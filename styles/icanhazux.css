@@ -16,7 +16,14 @@
     --icx-font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-/* ── Stage: full-window grid, cams | divider | chat ──────────────────────── */
+/* ── Stage: full-window grid, cams | divider | chat ────────────────────────
+   The stage (cams + chat) fills the window below the header. The user list
+   and footer sit underneath it, full width, reached by scrolling. */
+
+:root {
+    --icx-stage-h: max(360px, calc(100vh - var(--icx-stage-top, 0px) - 4px));
+    --icx-bar-h: 42px;   /* bar under the cams, including its bottom margin */
+}
 
 html.icx #panelHeader,
 html.icx #panelChat,
@@ -34,14 +41,14 @@ html.icx #body_container {
         calc((100% - 10px) * var(--icx-cams-fraction, .62))
         10px
         minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto auto;
+    grid-template-rows: calc(var(--icx-stage-h) - var(--icx-bar-h)) var(--icx-bar-h) auto auto;
     grid-template-areas:
-        "cams div chat"
-        "cams div users"
-        "bar  div footer";
+        "cams  div   chat"
+        "bar   div   chat"
+        "users users users"
+        "footer footer footer";
     width: 100% !important;
-    height: calc(100vh - var(--icx-stage-top, 0px) - 4px) !important;
-    min-height: 360px;
+    height: auto !important;
     position: relative !important;
     left: auto !important;
     top: auto !important;
@@ -95,13 +102,20 @@ html.icx #body_container > #activeUserList {
     left: auto !important;
     top: auto !important;
     width: auto !important;
-    max-height: 26vh;
-    overflow-y: auto !important;
-    margin: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    margin: 8px 6px 0 !important;
+    box-sizing: border-box;
 }
+
+/* The site's translucent backdrop panel, sized for its old fixed layout. */
+html.icx #back { display: none !important; }
 
 html.icx #body_container > #footer {
     grid-area: footer;
+    margin: 8px 6px 6px !important;
+    box-sizing: border-box;
     position: relative !important;
     left: auto !important;
     top: auto !important;
@@ -165,8 +179,9 @@ html.icx-resizing * {
     align-items: center;
     gap: 6px;
     margin: 0 0 6px 6px;
-    padding: 6px 8px;
-    min-height: 30px;
+    padding: 0 8px;
+    height: calc(var(--icx-bar-h) - 6px);
+    box-sizing: border-box;
     border-radius: 0 0 12px 12px;
     background: var(--icx-stage-bg);
     color: var(--icx-muted);
@@ -472,9 +487,8 @@ html.icx-dragging-cam .icx-tools { opacity: 0 !important; }
 @media (max-width: 900px) {
     html.icx #body_container {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-rows: 55vh auto minmax(320px, 1fr) auto auto;
+        grid-template-rows: 55vh var(--icx-bar-h) minmax(320px, 70vh) auto auto;
         grid-template-areas: "cams" "bar" "chat" "users" "footer";
-        height: auto !important;
     }
     #icx-divider { display: none; }
 }

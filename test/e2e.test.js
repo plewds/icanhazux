@@ -126,6 +126,24 @@ test('site cam chrome is tucked away and its buttons moved to the bar', async ()
     assert.deepStrictEqual(vis, { ohhai: 'none', mute: 'none', refreshInBar: 'icx-bar', nativeDisable: 'none' });
 });
 
+test('chat gets the full stage height; user list and footer go below it', async () => {
+    const r = await page.evaluate(() => {
+        const box = id => document.getElementById(id).getBoundingClientRect();
+        return {
+            cams: box('cams'), chat: box('chat_container'), bar: box('icx-bar'),
+            users: box('activeUserList'), footer: box('footer'),
+            back: getComputedStyle(document.getElementById('back')).display,
+            vh: window.innerHeight,
+        };
+    });
+    assert.ok(Math.abs(r.chat.bottom - r.bar.bottom) < 10, `chat runs down to the bar (${r.chat.bottom} vs ${r.bar.bottom})`);
+    assert.ok(r.chat.bottom <= r.vh + 1, 'stage fits the window');
+    assert.ok(r.users.top >= r.chat.bottom, 'user list below the stage');
+    assert.ok(r.footer.top >= r.users.bottom, 'footer below the user list');
+    assert.ok(r.users.width > r.cams.width, 'user list spans the width');
+    assert.strictEqual(r.back, 'none', 'site backdrop hidden');
+});
+
 test('focus makes one cam the largest, pinned top-left; unfocus restores the grid', async () => {
     await (await camButton(page, 'bravo', 'focus')).click();
     await page.waitForTimeout(400);
