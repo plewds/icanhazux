@@ -2,43 +2,54 @@
 // the site's own functions. Each patch is small, guarded, and a no-op if the
 // site's scripts change shape.
 //
-// Function names below are from the site's minified scripts110725.js and may
-// change if the site redeploys; every patch checks before wrapping.
+// Names below (onChatHistoryScroll, scrollOff, cR, as, du) are globals from the
+// site's scripts110725.js. Most are minified and may change if the site
+// redeploys; every patch checks before touching anything.
 (function () {
     'use strict';
 
-    // ── Chat stops updating once the chat log is taller than 450px ─────────
-    // The site decides you've scrolled away from the bottom with a fixed test
-    // in onChatHistoryScroll:
-    //     if (du.fp.scrollTop < du.fp.scrollHeight - 450) { ... scrollOff() }
-    // That's only right while the log is shorter than 450px. The stage makes it
-    // much taller, so at the very bottom the test is always true and the site
-    // pauses on every scroll event: incoming messages are buffered (du.en)
-    // instead of shown until something calls cR().
-    // scrollOff() is wrapped to refuse when the log really is at the bottom.
-    // Scrolling up still pauses as before.
-    const BOTTOM_SLOP = 150;
+    // ── Chat pausing is broken once the chat log is taller than 450px ──────
+    // The site's scroll handler (bound inline on #txt as onscroll="…
+    // onChatHistoryScroll();") decides with a fixed pixel test:
+    //     if (du.fp.scrollTop < du.fp.scrollHeight - 450) scrollOff();   // pause
+    //     else if (!du.eo) cR();                                         // resume
+    // That's only right while the log is shorter than 450px. The stage makes
+    // it much taller, and then at the very bottom the first test is always
+    // true: every scroll pauses chat (new messages are held back in du.en
+    // until resumed), and the resume branch can never be reached.
+    // The handler is replaced with the same logic measured from the bottom of
+    // the visible area. scrollOff() and cR() are the site's own; the pause
+    // button keeps working because scrollOff() itself is left alone.
+    // (cR() with no argument doesn't move focus.)
+    const BOTTOM_SLOP = 60;
 
-    function patchScrollOff() {
-        const orig = window.scrollOff;
-        if (typeof orig !== 'function') { return false; }
-        if (orig.__icx) { return true; }
-        const wrapped = function () {
-            try {
-                const log = (window.du && window.du.fp) || document.getElementById('txt');
-                if (log && log.scrollHeight - log.scrollTop - log.clientHeight < BOTTOM_SLOP) { return; }
-            } catch (_) {}
-            return orig.apply(this, arguments);
+    function patchChatScroll() {
+        if (!window.du || ['onChatHistoryScroll', 'scrollOff', 'cR'].some(f => typeof window[f] !== 'function')) { return false; }
+        if (window.onChatHistoryScroll.__icx) { return true; }
+        const replacement = function () {
+            const du = window.du;
+            if (!du.fp) { du.fp = document.getElementById('txt'); }
+            const log = du.fp;
+            if (!log) { return; }
+            const fromBottom = log.scrollHeight - log.scrollTop - log.clientHeight;
+            if (fromBottom > BOTTOM_SLOP) {
+                if (du.eo) {
+                    du.gY = !log.scrollTop;
+                    window.scrollOff();
+                }
+            } else if (!du.eo) {
+                window.cR();
+            }
         };
-        wrapped.__icx = true;
-        window.scrollOff = wrapped;
+        replacement.__icx = true;
+        window.onChatHistoryScroll = replacement;
         return true;
     }
 
-    // ── Scrolling chat steals focus from whatever you're typing in ─────────
-    // scrollOff() calls as(), which focuses the chat input. as() is also used
-    // legitimately after sending a message, so it isn't disabled — it just
-    // won't take focus away from another text field.
+    // ── Chat steals focus from whatever you're typing in ───────────────────
+    // as() focuses the chat input; the site calls it all over (pausing chat,
+    // disabling a cam, after sending). It's not disabled — it just won't take
+    // focus away from another text field.
     function patchFocusSteal() {
         const orig = window.as;
         if (typeof orig !== 'function') { return false; }
@@ -58,13 +69,12 @@
         return true;
     }
 
-    // The site's scripts may load after this one; retry for a while.
-    const patches = [patchScrollOff, patchFocusSteal];
+    // The site's scripts normally load before this runs (document_idle);
+    // retry for a while in case they're late.
+    let pending = [patchChatScroll, patchFocusSteal].filter(p => !p());
     let tries = 0;
-    const timer = setInterval(() => {
-        const pending = patches.filter(p => !p());
-        patches.length = 0;
-        patches.push(...pending);
+    const timer = pending.length && setInterval(() => {
+        pending = pending.filter(p => !p());
         if (!pending.length || ++tries > 60) { clearInterval(timer); }
     }, 500);
 })();

@@ -25,7 +25,7 @@ async function openRoom(page) {
     }
     // Feeds report their size, then a layout frame runs.
     await page.waitForFunction(() =>
-        [...document.querySelectorAll('#cams video')].every(v => v.videoWidth > 0));
+        [...document.querySelectorAll('#cams video[id^="vid-"]')].every(v => v.videoWidth > 0));
     await page.waitForTimeout(300);
 }
 
@@ -36,7 +36,7 @@ function readLayout(page) {
         const out = {};
         document.querySelectorAll('#cams > .rounded_square[data-icx-placed]').forEach(slot => {
             const r = slot.getBoundingClientRect();
-            const v = slot.querySelector('video');
+            const v = slot.querySelector('video[id^="vid-"]') || { videoWidth: 4, videoHeight: 3 };
             out[slot.querySelector('.name-on-cam').textContent] = {
                 x: r.left - cams.left, y: r.top - cams.top, w: r.width, h: r.height,
                 ar: v.videoWidth / v.videoHeight,
@@ -145,24 +145,27 @@ test('focus makes one cam the largest, pinned top-left; unfocus restores the gri
 });
 
 test('refresh drives the site\'s own disable → start for that cam', async () => {
-    const camId = await page.evaluate(() =>
-        [...document.querySelectorAll('.name-on-cam')].find(s => s.textContent === 'alpha_cam').id.slice(5));
-    const start = (await page.evaluate(() => window.sim.clicks.length));
+    const start = await page.evaluate(() => window.sim.effects.length);
     await (await camButton(page, 'alpha_cam', 'refresh')).click();
-    await page.waitForTimeout(400);
-    const clicks = await page.evaluate(n => window.sim.clicks.slice(n), start);
-    assert.deepStrictEqual(clicks, [`cambtn2-${camId}`, `cambtn1-${camId}-retry`]);
+    await page.waitForTimeout(500);
+    assert.deepStrictEqual(await page.evaluate(n => window.sim.effects.slice(n), start),
+        ['disable alpha_cam', 'start alpha_cam']);
+    // The rebuilt cam gets its controls back.
+    await page.waitForTimeout(300);
+    assert.ok(await page.evaluate(() =>
+        [...document.querySelectorAll('.name-on-cam')].find(s => s.textContent === 'alpha_cam')
+            .closest('.rounded_square').querySelector('.icx-tools')));
 });
 
 test('hide removes a cam, stops its stream, and lists it; show brings it back', async () => {
-    const start = await page.evaluate(() => window.sim.clicks.length);
+    const start = await page.evaluate(() => window.sim.effects.length);
     await (await camButton(page, 'delta', 'hide')).click();
     await page.waitForTimeout(300);
     let layout = await readLayout(page);
     assert.ok(!('delta' in layout), 'delta not placed');
     assert.strictEqual(Object.keys(camsOf(layout)).length, 5);
     assertTidy(layout);
-    assert.match((await page.evaluate(n => window.sim.clicks.slice(n), start)).join(), /^cambtn2-/);
+    assert.deepStrictEqual(await page.evaluate(n => window.sim.effects.slice(n), start), ['disable delta']);
     assert.strictEqual(await page.textContent('#icx-hidden-btn'), 'Hidden · 1');
 
     await page.click('#icx-hidden-btn');
@@ -171,21 +174,49 @@ test('hide removes a cam, stops its stream, and lists it; show brings it back', 
     await page.waitForTimeout(300);
     layout = await readLayout(page);
     assert.ok('delta' in layout, 'delta back');
-    assert.match((await page.evaluate(n => window.sim.clicks.slice(n), start)).at(-1), /-retry$/);
+    assert.deepStrictEqual(await page.evaluate(n => window.sim.effects.slice(n), start), ['disable delta', 'start delta']);
     assert.strictEqual(await page.textContent('#icx-hidden-btn'), 'Hidden · 0');
 });
 
-test('a hidden user stays hidden when they come back on a new cam', async () => {
+test('a hidden user stays hidden — and stopped — when they come back on a new cam', async () => {
     await (await camButton(page, 'echo_echo', 'hide')).click();
     await page.evaluate(() => { window.sim.removeCam('echo_echo'); });
     await page.waitForTimeout(200);
+    const start = await page.evaluate(() => window.sim.effects.length);
     await page.evaluate(() => window.sim.addCam('echo_echo', 640, 480));
-    await page.waitForTimeout(500);
-    assert.ok(!('echo_echo' in await readLayout(page)));
+    await page.waitForTimeout(300);
+    assert.ok(!('echo_echo' in await readLayout(page)), 'hidden straight away');
+    // Its disable button doesn't work until the stream connects; the stop is
+    // retried until it takes.
+    await page.waitForFunction(n => window.sim.effects.slice(n).includes('disable echo_echo'), start, { timeout: 8000 });
     await page.click('#icx-hidden-btn');
     await page.click('#icx-hidden-menu [data-show="echo_echo"]');
     await page.waitForTimeout(500);
     assert.ok('echo_echo' in await readLayout(page));
+    assert.ok((await page.evaluate(() => window.sim.effects)).at(-1) === 'start echo_echo');
+});
+
+test('chat: pauses when scrolled up, resumes at the bottom, in a tall chat log', async () => {
+    const state = () => page.evaluate(() => window.du.eo);
+    await page.evaluate(() => { const t = document.getElementById('txt'); t.scrollTop = t.scrollHeight; });
+    await page.waitForTimeout(100);
+    assert.ok(await page.evaluate(() => document.getElementById('txt').clientHeight > 450), 'log is tall');
+    assert.strictEqual(await state(), 1, 'at the bottom: still following');
+    await page.evaluate(() => { document.getElementById('txt').scrollTop -= 300; });
+    await page.waitForTimeout(100);
+    assert.strictEqual(await state(), 0, 'scrolled up: paused');
+    await page.evaluate(() => { const t = document.getElementById('txt'); t.scrollTop = t.scrollHeight; });
+    await page.waitForTimeout(100);
+    assert.strictEqual(await state(), 1, 'back at the bottom: resumed');
+});
+
+test('chat: the site can\'t pull focus out of another text box', async () => {
+    await page.focus('#other-input');
+    await page.evaluate(() => window.as());
+    assert.strictEqual(await page.evaluate(() => document.activeElement.id), 'other-input');
+    await page.evaluate(() => document.activeElement.blur());
+    await page.evaluate(() => window.as());
+    assert.strictEqual(await page.evaluate(() => document.activeElement.id), 'txtMsg', 'still focuses chat otherwise');
 });
 
 test('cams joining and leaving reflow the grid', async () => {
@@ -251,7 +282,7 @@ test('a full room (15 cams) still fits, and every cam\'s controls stay inside it
             i += 1;
         }
     });
-    await page.waitForFunction(() => [...document.querySelectorAll('#cams video')].every(v => v.videoWidth > 0));
+    await page.waitForFunction(() => [...document.querySelectorAll('#cams video[id^="vid-"]')].every(v => v.videoWidth > 0));
     await settle(page);
     const layout = await readLayout(page);
     assert.strictEqual(Object.keys(camsOf(layout)).length, 15);
@@ -279,6 +310,10 @@ test('focus, hidden cams, order and divider survive a reload', async () => {
     const layout = await readLayout(page);
     assert.ok(layout.charlie99.focused, 'focus restored');
     assert.ok(!('foxtrot' in layout), 'hidden restored');
+    await page.waitForFunction(() => {
+        const n = [...document.querySelectorAll('.name-on-cam')].find(s => s.textContent === 'foxtrot');
+        return n && document.getElementById(n.id.replace('name-', 'id-') + '-disabled');
+    }, null, { timeout: 8000 });
     assert.strictEqual(await page.evaluate(() => localStorage.getItem('icx_order')), order);
     const style = await page.evaluate(() => document.documentElement.style.getPropertyValue('--icx-cams-fraction'));
     assert.ok(Math.abs(Number(style) - Number(fraction)) < 1e-9, 'divider restored');

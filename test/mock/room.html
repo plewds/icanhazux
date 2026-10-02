@@ -59,17 +59,18 @@
       </div>
       <div id="chat_container" class="chat_container">
         <div id="pm_container" class="pm_container"></div>
-        <div id="txt" class="message_display"></div>
+        <div id="txt" class="message_display" onscroll="onChatHistoryScroll();"></div>
         <input id="txtMsg" type="text" style="width: 97%;">
         <input id="btn" type="button" value="send">
         <div id="room_command_bar" class="room_command_bar">command bar</div>
       </div>
-      <div id="activeUserList" class="room_user_list" style="left: 4px; width: 98.5%;">user list</div>
+      <div id="activeUserList" class="room_user_list" style="left: 4px; width: 98.5%;">user list <input id="other-input" placeholder="some other text box"></div>
       <div id="footer" class="chat_footer">footer</div>
     </div>
   </div>
 </div>
 </form>
+<script src="site-chat.js"></script>
 <script src="site-sim.js"></script>
 </body>
 </html>

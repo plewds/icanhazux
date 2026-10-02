@@ -20,7 +20,8 @@
 
 html.icx #panelHeader,
 html.icx #panelChat,
-html.icx #main {
+html.icx #main,
+html.icx #header {
     width: auto !important;
     max-width: none !important;
     margin-left: 0 !important;
@@ -46,6 +47,8 @@ html.icx #body_container {
     top: auto !important;
     margin: 0 !important;
     padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
     box-sizing: border-box;
 }
 
@@ -100,6 +103,8 @@ html.icx #body_container > #activeUserList {
 html.icx #body_container > #footer {
     grid-area: footer;
     position: relative !important;
+    left: auto !important;
+    top: auto !important;
     width: auto !important;
 }
 
@@ -188,7 +193,7 @@ html.icx #body_container > #cams { border-bottom-left-radius: 0 !important; bord
     border-radius: 999px;
     background: transparent;
     color: var(--icx-muted) !important;
-    font: inherit;
+    font: 12px/1.2 var(--icx-font) !important;
     text-decoration: none !important;
     cursor: pointer;
     transition: color .12s, border-color .12s, background-color .12s;

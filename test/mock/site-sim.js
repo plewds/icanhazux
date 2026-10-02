@@ -14,7 +14,8 @@
         ['foxtrot', 640, 480],
     ];
 
-    const clicks = [];
+    const clicks = [];    // every native button press
+    const effects = [];   // what the presses actually did
     const feeds = new Map();   // camId -> { canvas, running }
     let counter = 0;
 
@@ -43,15 +44,20 @@
         return canvas.captureStream(4);
     }
 
-    function addCam(name, w, h, slotNo) {
-        const slot = slotNo
-            ? document.getElementById('slot' + slotNo)
-            : [...document.querySelectorAll('#cams > .rounded_square')].find(s => !s.children.length);
-        const camId = hex();
+    // Mirrors the site's aV(): build the cam's markup into a slot. The
+    // disable button only starts working once the stream "connects", as on
+    // the real site, where its handler is bound after update_player resolves.
+    const CONNECT_MS = 1200;
+    const camInfo = new Map();   // camId -> { name, w, h, slot, connected, disabled }
+
+    function buildCam(slot, camId) {
+        const info = camInfo.get(camId);
+        info.connected = false;
+        info.disabled = false;
         slot.style.visibility = 'visible';
         slot.innerHTML =
             `<div id="id-${camId}" class="no_touchy videocontainer">` +
-            `<span id="name-${camId}" class="name-on-cam">${name}</span>` +
+            `<span id="name-${camId}" class="name-on-cam">${info.name}</span>` +
             `<span id="sym-${camId}" class="cam-syms">08bee0</span>` +
             `<button class="cam-button cam-report" id="report-${camId}">!</button>` +
             `<button class="cam-button cam-button1" id="cambtn1-${camId}">fullscreen</button>` +
@@ -59,8 +65,28 @@
             `<button class="cam-button cam-button2" id="cambtn2-${camId}">disable</button>` +
             `<video id="vid-${camId}" autoplay playsinline muted style="height: 150px;"></video>` +
             `<span class="cam-logo"><img alt=""></span></div>`;
-        slot.querySelector('video').srcObject = makeFeed(camId, name, w, h);
+        slot.querySelector('video').srcObject = makeFeed(camId, info.name, info.w, info.h);
+        setTimeout(() => { info.connected = true; }, CONNECT_MS);
+    }
+
+    function addCam(name, w, h, slotNo) {
+        const slot = slotNo
+            ? document.getElementById('slot' + slotNo)
+            : [...document.querySelectorAll('#cams > .rounded_square')].find(s => !s.children.length);
+        const camId = hex();
+        camInfo.set(camId, { name, w, h, slot });
+        buildCam(slot, camId);
         return camId;
+    }
+
+    // Mirrors aT(): stop the stream, drop the video, show a "disabled" poster.
+    function disableCam(camId) {
+        const info = camInfo.get(camId);
+        info.disabled = true;
+        feeds.delete(camId);
+        document.getElementById(`vid-${camId}`)?.remove();
+        document.getElementById(`id-${camId}`)
+            .insertAdjacentHTML('beforeend', `<video id="id-${camId}-disabled" style="width:100%;"></video>`);
     }
 
     function removeCam(name) {
@@ -81,11 +107,16 @@
         e.preventDefault();
         clicks.push(btn.id);
         const m = btn.id.match(/^cambtn(\d)-([0-9a-f]+)(-retry)?$/);
-        if (!m) { return; }
-        const feed = feeds.get(m[2]);
-        if (!feed) { return; }
-        if (m[1] === '2') { feed.running = false; }
-        if (m[3]) { feed.running = true; }
+        const info = m && camInfo.get(m[2]);
+        if (!info) { return; }
+        if (m[1] === '2' && info.connected && !info.disabled) {
+            effects.push(`disable ${info.name}`);
+            disableCam(m[2]);
+        } else if (m[3] && info.disabled) {
+            // aW(): wipe the slot and rebuild the cam.
+            effects.push(`start ${info.name}`);
+            buildCam(info.slot, m[2]);
+        }
     });
 
     // The site's own tile layout, reapplied periodically with plain inline
@@ -111,5 +142,5 @@
     CAMS.forEach(([name, w, h], i) => addCam(name, w, h, i + 1));
     siteRelayout();
 
-    window.sim = { addCam, removeCam, clicks, siteRelayout };
+    window.sim = { addCam, removeCam, clicks, effects, siteRelayout, CONNECT_MS };
 })();

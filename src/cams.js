@@ -26,9 +26,15 @@
     const FOCUS_ABSENT_MS = 2 * 60 * 1000;  // forget a focus whose cam has been gone this long
     const DRAG_THRESHOLD = 6;
 
-    // Hiding a cam also presses the site's own "disable" on it, so a hidden
-    // feed stops downloading instead of streaming into an invisible box.
+    // Hiding a cam also presses the site's own "disable" on it. The site's
+    // disable (aT in scripts110725.js) stops that cam's WebRTC connection and
+    // shows a poster, so a hidden feed stops downloading instead of streaming
+    // into an invisible box. Its "start" (aW) rebuilds the cam from scratch.
     const STOP_HIDDEN_STREAMS = true;
+    // The disable button only gets its handler once the stream has connected,
+    // so a click on a cam that has just appeared can do nothing. Retry until
+    // the site's disabled marker shows up.
+    const STOP_RETRY_MS = 2500;
 
     const state = {
         hidden: new Set(loadHidden()),
@@ -129,18 +135,34 @@
         schedule();
     }
 
-    // Keep hidden cams hidden (and stopped) as they come and go.
+    // The site marks a disabled cam by putting <video id="id-<camId>-disabled">
+    // in its container.
+    function isStopped(cam) {
+        return !!document.getElementById(`id-${cam.camId}-disabled`);
+    }
+
+    // Keep hidden cams hidden (and stopped) as they come and go. Returns true
+    // while a stop is still pending, so the caller can check back.
     function applyHidden(cam) {
         const hidden = state.hidden.has(cam.key);
         cam.slot.classList.toggle('icx-hidden', hidden);
-        if (!STOP_HIDDEN_STREAMS) { return; }
-        if (hidden && cam.slot.dataset.icxStopped !== cam.camId) {
-            cam.slot.dataset.icxStopped = cam.camId;
-            clickNative(`cambtn2-${cam.camId}`);
-        } else if (!hidden && cam.slot.dataset.icxStopped === cam.camId) {
-            delete cam.slot.dataset.icxStopped;
+        if (!STOP_HIDDEN_STREAMS) { return false; }
+        const stopped = isStopped(cam);
+        if (hidden && !stopped) {
+            const last = Number(cam.slot.dataset.icxStopTry || 0);
+            if (Date.now() - last >= STOP_RETRY_MS) {
+                cam.slot.dataset.icxStopTry = String(Date.now());
+                clickNative(`cambtn2-${cam.camId}`);
+            }
+            return true;
+        }
+        if (!hidden && stopped) {
+            // Only cams this extension stopped come back; the site's own
+            // disable button is replaced by ours, so that's all of them.
             clickNative(`cambtn1-${cam.camId}-retry`);
         }
+        delete cam.slot.dataset.icxStopTry;
+        return false;
     }
 
     // ── Hidden-cams menu (in the bar under the cams) ────────────────────────
@@ -201,7 +223,9 @@
         const cams = document.getElementById('cams');
         if (!cams) { return; }
         const { all, visible } = orderedVisible(cams);
-        all.forEach(cam => { decorate(cam); applyHidden(cam); });
+        all.forEach(decorate);
+        const stopPending = all.map(applyHidden).some(Boolean);
+        if (stopPending) { setTimeout(schedule, STOP_RETRY_MS); }
 
         // Focus survives short absences (a cam reconnecting) but not long ones.
         let focused = state.focus ? visible.find(c => c.key === state.focus) : null;
