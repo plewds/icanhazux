@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<!-- Stand-in for an icanhazchat.com room page. The markup inside #cams mirrors a
+     live snapshot of the real site (names changed); site-sim.js plays the
+     site's part: fake feeds, inline-style rewrites, and the cam buttons. -->
+<html>
+<head>
+<meta charset="utf-8">
+<title>mock room</title>
+<style>
+  /* A few of the site's own habits, so the stage has something to fight. */
+  body { margin: 0; font-family: calibri, sans-serif; font-size: 12px; background: #e9e9ef; }
+  #panelHeader { width: 1034px; height: 48px; background: #ccd; }
+  #panelChat, #main { width: 1034px; margin: 0 auto; }
+  #header { height: 36px; background: #dde; }
+  #body_container { position: relative; height: 520px; }
+  #cams { position: absolute; left: 0; top: 0; width: 460px; height: 480px; }
+  #cams .rounded_square { position: absolute; border: 1px solid #889; }
+  .videocontainer { position: relative; }
+  .name-on-cam { position: absolute; left: 4px; color: #fff; z-index: 2; text-shadow: 0 1px 2px #000; }
+  .cam-syms { display: none; }
+  .cam-button { position: absolute; bottom: 2px; z-index: 2; }
+  .cam-button1 { left: 2px; } .cam-button2 { right: 2px; } .cam-report { right: 2px; top: 2px; bottom: auto; }
+  #camVisibility, #camGlobalMute, #camRefresh, #ohhai { position: absolute; }
+  #chat_container { position: absolute; left: 470px; top: 0; width: 560px; height: 400px; }
+  #txt { height: 340px; overflow-y: scroll; background: #fff; }
+  #activeUserList { position: absolute; top: 410px; background: #f6f6f6; }
+  #footer { position: absolute; top: 500px; }
+</style>
+</head>
+<body>
+<form id="form1">
+<div id="panelHeader">header</div>
+<div id="panelChat">
+  <div id="main" class="main">
+    <div id="header" class="header"><div id="topic">mock topic</div></div>
+    <div id="body_container" class="body_container">
+      <div id="cams" class="cams">
+        <div id="divVids" style="visibility:hidden;" class="rounded"></div>
+        <!-- slots 1-6 hold cams; site-sim.js fills them from CAMS -->
+        <div id="slot1" class="rounded_square"></div>
+        <div id="slot2" class="rounded_square"></div>
+        <div id="slot3" class="rounded_square"></div>
+        <div id="slot4" class="rounded_square"></div>
+        <div id="slot5" class="rounded_square"></div>
+        <div id="slot6" class="rounded_square"></div>
+        <div id="slot7" class="rounded_square" style="visibility: hidden;"></div>
+        <div id="slot8" class="rounded_square" style="visibility: hidden;"></div>
+        <div id="slot9" class="rounded_square" style="visibility: hidden;"></div>
+        <div id="slot10" class="rounded_square" style="visibility: hidden;"></div>
+        <div id="slot11" class="rounded_square" style="visibility: hidden;"></div>
+        <div id="slot12" class="rounded_square" style="visibility: hidden;"></div>
+        <div id="slot13" class="rounded_square" style="visibility: hidden;"></div>
+        <div id="slot14" class="rounded_square" style="visibility: hidden;"></div>
+        <div id="slot15" class="rounded_square" style="visibility: hidden;"></div>
+        <div id="camVisibility" class="smallFont room_btn_hidecams" style="top: 458px;"><a href="javascript:void 0"><img class="smicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='%23888'/%3E%3C/svg%3E" title="Hide Cams"></a></div>
+        <div id="camGlobalMute" class="smallFont room_btn_mutecams" style="top: 458px; left: 90px;"><a href="javascript:void 0"><img class="smicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='%23888'/%3E%3C/svg%3E" title="Mute All Cam Audio"></a></div>
+        <div id="camRefresh" class="smallFont room_btn_refreshcams" style="top: 458px; left: 140px;"><a href="javascript:void 0" accesskey="r"><img class="smicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='%23888'/%3E%3C/svg%3E" title="Refresh Cams (alt+r)"></a></div>
+        <div id="ohhai" class="feint ohhai" style="top: 454px;">08bee043dd</div>
+      </div>
+      <div id="chat_container" class="chat_container">
+        <div id="pm_container" class="pm_container"></div>
+        <div id="txt" class="message_display"></div>
+        <input id="txtMsg" type="text" style="width: 97%;">
+        <input id="btn" type="button" value="send">
+        <div id="room_command_bar" class="room_command_bar">command bar</div>
+      </div>
+      <div id="activeUserList" class="room_user_list" style="left: 4px; width: 98.5%;">user list</div>
+      <div id="footer" class="chat_footer">footer</div>
+    </div>
+  </div>
+</div>
+</form>
+<script src="site-sim.js"></script>
+</body>
+</html>

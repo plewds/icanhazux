@@ -1,0 +1,479 @@
+/* icanhazux — cam stage for icanhazchat.com rooms.
+   Everything is scoped under html.icx (set by shell.js) or the #cams.icx-cams
+   class (set by cams.js), so the site is untouched until the scripts run.
+   Most rules need !important: the site positions everything with inline
+   styles that it keeps rewriting. */
+
+:root {
+    --icx-accent: #6d8dff;
+    --icx-stage-bg: #0d0e12;
+    --icx-surface: #17191f;
+    --icx-line: rgba(255, 255, 255, .09);
+    --icx-chrome-bg: rgba(14, 15, 19, .72);
+    --icx-chrome-fg: #eef0f5;
+    --icx-muted: #9aa0ad;
+    --icx-radius: 8px;
+    --icx-font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ── Stage: full-window grid, cams | divider | chat ──────────────────────── */
+
+html.icx #panelHeader,
+html.icx #panelChat,
+html.icx #main {
+    width: auto !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+html.icx #body_container {
+    display: grid !important;
+    grid-template-columns:
+        calc((100% - 10px) * var(--icx-cams-fraction, .62))
+        10px
+        minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+        "cams div chat"
+        "cams div users"
+        "bar  div footer";
+    width: 100% !important;
+    height: calc(100vh - var(--icx-stage-top, 0px) - 4px) !important;
+    min-height: 360px;
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box;
+}
+
+html.icx #body_container > #cams {
+    grid-area: cams;
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 6px 0 0 6px !important;
+    padding: 6px !important;
+    overflow: hidden !important;
+    border-radius: 12px !important;
+    background: var(--icx-stage-bg) !important;
+    color: var(--icx-chrome-fg);
+    --icx-gap: 6px;
+}
+
+html.icx #body_container > #chat_container {
+    grid-area: chat;
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+html.icx #chat_container > #txt {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow-y: auto !important;
+}
+html.icx #chat_container > #txtMsg { flex: none; }
+
+html.icx #body_container > #activeUserList {
+    grid-area: users;
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    width: auto !important;
+    max-height: 26vh;
+    overflow-y: auto !important;
+    margin: 0 !important;
+}
+
+html.icx #body_container > #footer {
+    grid-area: footer;
+    position: relative !important;
+    width: auto !important;
+}
+
+/* ── Divider ──────────────────────────────────────────────────────────────── */
+
+#icx-divider {
+    grid-area: div;
+    position: relative;
+    cursor: col-resize;
+    touch-action: none;
+    outline: none;
+}
+#icx-divider::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 4px;
+    width: 2px;
+    border-radius: 1px;
+    background: #8a8f9c;
+    opacity: .25;
+    transition: opacity .15s, background-color .15s;
+}
+#icx-divider:hover::before,
+#icx-divider:focus-visible::before,
+html.icx-resizing #icx-divider::before {
+    background: var(--icx-accent);
+    opacity: 1;
+}
+/* Grip in the middle so the divider reads as draggable. */
+#icx-divider::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 2px;
+    width: 6px;
+    height: 36px;
+    margin-top: -18px;
+    border-radius: 3px;
+    background: #8a8f9c;
+    opacity: .45;
+    transition: opacity .15s, background-color .15s;
+}
+#icx-divider:hover::after,
+html.icx-resizing #icx-divider::after { background: var(--icx-accent); opacity: 1; }
+html.icx-resizing,
+html.icx-resizing * {
+    cursor: col-resize !important;
+    user-select: none !important;
+}
+
+/* ── Bar under the cams ───────────────────────────────────────────────────── */
+
+#icx-bar {
+    grid-area: bar;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 6px 6px;
+    padding: 6px 8px;
+    min-height: 30px;
+    border-radius: 0 0 12px 12px;
+    background: var(--icx-stage-bg);
+    color: var(--icx-muted);
+    font: 12px/1.2 var(--icx-font);
+}
+/* Pull the bar up flush under the cam panel so the two read as one unit. */
+html.icx #body_container > #cams { border-bottom-left-radius: 0 !important; border-bottom-right-radius: 0 !important; }
+
+/* The site's own cam buttons, restyled as chips. */
+#icx-bar > #camRefresh,
+#icx-bar > #camVisibility {
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    display: inline-flex !important;
+}
+#icx-bar > div > a,
+#icx-hidden-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border: 1px solid var(--icx-line);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--icx-muted) !important;
+    font: inherit;
+    text-decoration: none !important;
+    cursor: pointer;
+    transition: color .12s, border-color .12s, background-color .12s;
+}
+#icx-bar > div > a:hover,
+#icx-hidden-btn:hover:not(:disabled) {
+    color: var(--icx-chrome-fg) !important;
+    border-color: rgba(255, 255, 255, .22);
+    background: rgba(255, 255, 255, .05);
+}
+#icx-bar .smicon { width: 14px; height: 14px; filter: grayscale(1) brightness(1.6); opacity: .8; }
+#camRefresh > a::after { content: "Refresh all"; }
+#camVisibility > a::after { content: "Hide cams"; }
+
+#icx-hidden { position: relative; margin-left: auto; }
+#icx-hidden-btn:disabled { opacity: .4; cursor: default; }
+#icx-hidden-menu {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 6px);
+    z-index: 1000;
+    min-width: 200px;
+    max-height: 50vh;
+    overflow-y: auto;
+    padding: 4px;
+    border: 1px solid var(--icx-line);
+    border-radius: 10px;
+    background: var(--icx-surface);
+    color: var(--icx-chrome-fg);
+    font: 12px/1.3 var(--icx-font);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, .45);
+}
+#icx-hidden-menu[hidden] { display: none; }
+.icx-hidden-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 4px 4px 8px;
+    border-radius: 5px;
+}
+.icx-hidden-row:hover { background: rgba(255, 255, 255, .06); }
+.icx-hidden-row .icx-live::after {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-left: 6px;
+    border-radius: 50%;
+    background: #3fce72;
+    vertical-align: middle;
+}
+.icx-hidden-row button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font: inherit;
+    padding: 2px 8px;
+    border: 0;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, .1);
+    color: inherit;
+    cursor: pointer;
+}
+.icx-hidden-row button:hover { background: var(--icx-accent); }
+
+/* ── Cam slots ────────────────────────────────────────────────────────────── */
+
+/* Site chrome inside #cams that the stage replaces. */
+#cams.icx-cams > :not(.rounded_square) { display: none !important; }
+/* Start/disable/fullscreen are replaced by the cam controls; the logo
+   watermark goes too. */
+#cams.icx-cams .cam-button1,
+#cams.icx-cams .cam-button2,
+#cams.icx-cams .cam-logo { display: none !important; }
+
+/* Name label: bottom-left over a soft gradient, instead of the site's
+   inline-sized text in the corner. */
+#cams.icx-cams .name-on-cam {
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: auto !important;
+    bottom: 0 !important;
+    z-index: 3 !important;
+    padding: 22px 10px 7px !important;
+    background: linear-gradient(transparent, rgba(0, 0, 0, .62)) !important;
+    color: #fff !important;
+    font: 600 12px/1.2 var(--icx-font) !important;
+    text-align: left !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, .5) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    pointer-events: none;
+}
+/* The site's report button: kept, but small and only on hover. */
+#cams.icx-cams .cam-report {
+    position: absolute !important;
+    top: 6px !important;
+    right: 6px !important;
+    left: auto !important;
+    bottom: auto !important;
+    z-index: 10 !important;
+    width: 20px !important;
+    height: 20px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 50% !important;
+    background: var(--icx-chrome-bg) !important;
+    color: var(--icx-muted) !important;
+    font: 700 11px/20px var(--icx-font) !important;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity .12s;
+}
+#cams.icx-cams .rounded_square:hover .cam-report { opacity: 1; }
+#cams.icx-cams .cam-report:hover { color: #ff8a8a !important; }
+
+/* Unplaced slots (empty, hidden, or not laid out yet) take no space. */
+#cams.icx-cams > .rounded_square { display: none !important; }
+
+/* The packer writes --icx-x/y/w/h and marks the slot [data-icx-placed].
+   This must stay a stylesheet rule: the site rewrites left/top/width/height
+   inline (without !important) on its own schedule, and only a stylesheet
+   !important reliably outranks that. */
+#cams.icx-cams > .rounded_square[data-icx-placed] {
+    display: block !important;
+    visibility: visible !important;
+    position: absolute !important;
+    left: var(--icx-x) !important;
+    top: var(--icx-y) !important;
+    width: var(--icx-w) !important;
+    height: var(--icx-h) !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+    overflow: hidden !important;
+    border: 0 !important;
+    border-radius: var(--icx-radius) !important;
+    background: #000 !important;
+    box-shadow: 0 0 0 1px var(--icx-line) !important;
+    cursor: grab;
+    transition: left .18s ease, top .18s ease, width .18s ease, height .18s ease;
+}
+#cams.icx-cams > .rounded_square.icx-hidden { display: none !important; }
+
+#cams.icx-cams > .rounded_square[data-icx-placed] > .videocontainer {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+#cams.icx-cams > .rounded_square[data-icx-placed] video {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+}
+
+#cams.icx-cams > .rounded_square.icx-focused {
+    box-shadow: 0 0 0 2px var(--icx-accent) !important;
+    cursor: default;
+}
+
+/* No transitions while the stage is being resized: every frame relayouts. */
+html.icx-resizing #cams.icx-cams > .rounded_square { transition: none !important; }
+
+/* Dragging: the slot follows the pointer; its old spot stays open while the
+   other cams reflow around it. */
+#cams.icx-cams > .rounded_square.icx-dragging[data-icx-placed] {
+    left: var(--icx-drag-x, var(--icx-x)) !important;
+    top: var(--icx-drag-y, var(--icx-y)) !important;
+    z-index: 20 !important;
+    opacity: .85;
+    transition: none !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .5) !important;
+}
+/* Drop marker: an accent bar on the side of the cam the dragged one will land. */
+#cams.icx-cams > .rounded_square.icx-drop-before::after,
+#cams.icx-cams > .rounded_square.icx-drop-after::after {
+    content: "";
+    position: absolute;
+    top: 6px;
+    bottom: 6px;
+    width: 4px;
+    z-index: 15;
+    border-radius: 2px;
+    background: var(--icx-accent);
+    box-shadow: 0 0 12px var(--icx-accent);
+}
+#cams.icx-cams > .rounded_square.icx-drop-before::after { left: 4px; }
+#cams.icx-cams > .rounded_square.icx-drop-after::after { right: 4px; }
+#cams.icx-cams > .rounded_square.icx-drop-before,
+#cams.icx-cams > .rounded_square.icx-drop-after { filter: brightness(.8); }
+
+html.icx-dragging-cam,
+html.icx-dragging-cam * {
+    cursor: grabbing !important;
+    user-select: none !important;
+}
+
+#cams.icx-cams.icx-empty::after {
+    content: "No cams on right now";
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: var(--icx-muted);
+    font: 14px var(--icx-font);
+}
+
+/* ── Per-cam controls ─────────────────────────────────────────────────────── */
+
+.icx-tools {
+    position: absolute;
+    top: 6px;
+    left: 50%;     /* centered: the site's name label and report (!) button take the corners */
+    transform: translateX(-50%);
+    z-index: 10;
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity .12s ease;
+}
+.rounded_square:hover > .icx-tools,
+.icx-tools:focus-within { opacity: 1; }
+html.icx-dragging-cam .icx-tools { opacity: 0 !important; }
+
+.icx-btn {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 7px;
+    background: var(--icx-chrome-bg);
+    color: var(--icx-chrome-fg);
+    cursor: pointer;
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    transition: background-color .12s;
+}
+.icx-btn[data-act="hide"]:hover { background: #c94a4a; }
+.icx-btn:hover { background: var(--icx-accent); }
+.icx-btn:focus-visible { outline: 2px solid var(--icx-accent); outline-offset: 1px; }
+
+/* Small cams get small buttons so all three always fit inside the cam. */
+#cams.icx-cams > .rounded_square[data-icx-placed] { container-type: size; }
+@container (max-width: 150px) {
+    .icx-tools { top: 3px; gap: 2px; }
+    .icx-btn { width: 22px; height: 22px; border-radius: 4px; }
+    .icx-btn svg { width: 13px; height: 13px; }
+}
+@container (max-width: 100px) {
+    .icx-btn { width: 19px; height: 19px; }
+    .icx-btn svg { width: 12px; height: 12px; }
+}
+@container (max-width: 84px) {
+    .icx-btn[data-act="fullscreen"] { display: none; }
+}
+@container (max-width: 66px) {
+    .icx-btn[data-act="refresh"] { display: none; }
+}
+
+.icx-refreshing .icx-btn[data-act="refresh"] svg { animation: icx-spin .8s linear infinite; }
+@keyframes icx-spin { to { transform: rotate(360deg); } }
+
+/* ── Narrow windows: stack cams above chat ────────────────────────────────── */
+
+@media (max-width: 900px) {
+    html.icx #body_container {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: 55vh auto minmax(320px, 1fr) auto auto;
+        grid-template-areas: "cams" "bar" "chat" "users" "footer";
+        height: auto !important;
+    }
+    #icx-divider { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #cams.icx-cams > .rounded_square[data-icx-placed] { transition: none; }
+}

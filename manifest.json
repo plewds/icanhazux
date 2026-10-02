@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "icanhazux",
+  "version": "0.1.0",
+  "description": "A better cam grid for icanhazchat.com rooms: focus a cam, drag to reorder, hide and refresh cams, resize cams vs. chat.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "icanhazux@icanhazux",
+      "strict_min_version": "128.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.icanhazchat.com/*"],
+      "css": ["styles/icanhazux.css"],
+      "js": ["src/core.js", "src/pack.js", "src/shell.js", "src/cams.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.icanhazchat.com/*"],
+      "js": ["src/page.js"],
+      "run_at": "document_idle",
+      "world": "MAIN"
+    }
+  ]
+}

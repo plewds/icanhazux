@@ -1,0 +1,14 @@
+{
+  "name": "icanhazux",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A better cam grid for icanhazchat.com rooms (browser extension).",
+  "scripts": {
+    "test": "node --test test/pack.test.js",
+    "test:e2e": "node --test test/e2e.test.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.1"
+  },
+  "license": "MIT"
+}
