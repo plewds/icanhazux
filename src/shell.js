@@ -7,8 +7,10 @@
 //     #chat_container  (chat log, input, command bar)
 //     #activeUserList
 //     #footer
-// Nothing is reparented except the site's three cam buttons: #body_container
-// becomes a CSS grid and the existing children are placed into it.
+// #body_container becomes a CSS grid and the existing children are placed
+// into it. Only two things move: the site's cam buttons (into the bar under
+// the cams) and the user list (into a drawer under the chat). Both keep their
+// ids, which is how the site finds them.
 (function () {
     'use strict';
 
@@ -40,6 +42,8 @@
             const btn = document.getElementById(id);
             if (btn) { bar.append(btn); }
         }
+
+        initDrawer(body);
 
         let fraction = clampFraction(store.get('camsFraction', DEFAULT_FRACTION));
         apply();
@@ -116,6 +120,50 @@
 
         globalThis.ICX.shell = { bar };
         document.dispatchEvent(new CustomEvent('icx:shell-ready'));
+    }
+
+    // ── User list drawer ────────────────────────────────────────────────────
+    // A bar under the chat showing the head count; clicking it opens the
+    // site's user list as a panel over the bottom of the chat.
+    function initDrawer(body) {
+        const list = document.getElementById('activeUserList');
+        if (!list) { return; }
+        const label = el('span', { class: 'icx-drawer-label', text: 'People' });
+        const toggle = el('button', {
+            type: 'button',
+            id: 'icx-drawer-toggle',
+            'aria-controls': 'activeUserList',
+            'aria-expanded': 'false',
+        }, [label, el('span', { class: 'icx-drawer-chevron', 'aria-hidden': 'true' })]);
+        const drawer = el('div', { id: 'icx-drawer' }, [toggle]);
+        body.append(drawer);
+        drawer.prepend(list);
+
+        const setOpen = open => {
+            drawer.classList.toggle('icx-open', open);
+            toggle.setAttribute('aria-expanded', String(open));
+            store.set('drawerOpen', open);
+        };
+        setOpen(!!store.get('drawerOpen', false));
+        toggle.addEventListener('click', () => setOpen(!drawer.classList.contains('icx-open')));
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && drawer.classList.contains('icx-open')) { setOpen(false); }
+        });
+        // Clicking elsewhere closes it, but not clicks in the site's popups
+        // (user info, gifts), which open from names in the list.
+        document.addEventListener('pointerdown', e => {
+            if (!drawer.classList.contains('icx-open') || drawer.contains(e.target)) { return; }
+            if (e.target.closest('.ui-dialog, .ui-widget-overlay, [role="dialog"]')) { return; }
+            setOpen(false);
+        });
+
+        // The site's list text starts "172 people (refresh) [click for details]: …".
+        const syncCount = () => {
+            const m = (list.textContent || '').match(/(\d+)\s+people/i);
+            label.textContent = m ? `${m[1]} people` : 'People';
+        };
+        new MutationObserver(syncCount).observe(list, { childList: true, subtree: true, characterData: true });
+        syncCount();
     }
 
     // Content scripts run at document_idle, so a room page's markup is all

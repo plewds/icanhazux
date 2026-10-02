@@ -126,22 +126,50 @@ test('site cam chrome is tucked away and its buttons moved to the bar', async ()
     assert.deepStrictEqual(vis, { ohhai: 'none', mute: 'none', refreshInBar: 'icx-bar', nativeDisable: 'none' });
 });
 
-test('chat gets the full stage height; user list and footer go below it', async () => {
+test('chat gets the full stage height; the user list is a drawer under it', async () => {
     const r = await page.evaluate(() => {
         const box = id => document.getElementById(id).getBoundingClientRect();
         return {
-            cams: box('cams'), chat: box('chat_container'), bar: box('icx-bar'),
-            users: box('activeUserList'), footer: box('footer'),
+            chat: box('chat_container'), bar: box('icx-bar'), toggle: box('icx-drawer-toggle'),
+            footer: box('footer'), label: document.getElementById('icx-drawer-toggle').textContent,
+            listVisible: getComputedStyle(document.getElementById('activeUserList')).visibility,
             back: getComputedStyle(document.getElementById('back')).display,
             vh: window.innerHeight,
         };
     });
-    assert.ok(Math.abs(r.chat.bottom - r.bar.bottom) < 10, `chat runs down to the bar (${r.chat.bottom} vs ${r.bar.bottom})`);
-    assert.ok(r.chat.bottom <= r.vh + 1, 'stage fits the window');
-    assert.ok(r.users.top >= r.chat.bottom, 'user list below the stage');
-    assert.ok(r.footer.top >= r.users.bottom, 'footer below the user list');
-    assert.ok(r.users.width > r.cams.width, 'user list spans the width');
+    assert.ok(r.chat.bottom <= r.toggle.top + 1, 'drawer bar directly under the chat');
+    assert.ok(Math.abs(r.toggle.bottom - r.bar.bottom) < 2, 'lines up with the cam bar');
+    assert.ok(r.toggle.height < 45, `only a bar tall (${r.toggle.height})`);
+    assert.ok(r.toggle.bottom <= r.vh + 1, 'in the viewport');
+    assert.strictEqual(r.label, '172 people');
+    assert.strictEqual(r.listVisible, 'hidden', 'closed by default');
+    assert.ok(r.footer.top >= r.toggle.bottom, 'footer below the stage');
     assert.strictEqual(r.back, 'none', 'site backdrop hidden');
+});
+
+test('the drawer opens over the chat, scrolls, and closes on Esc or a click elsewhere', async () => {
+    await page.click('#icx-drawer-toggle');
+    await page.waitForTimeout(250);
+    let r = await page.evaluate(() => {
+        const list = document.getElementById('activeUserList');
+        const l = list.getBoundingClientRect();
+        return { list: l, toggle: document.getElementById('icx-drawer-toggle').getBoundingClientRect(),
+            chat: document.getElementById('chat_container').getBoundingClientRect(),
+            visible: getComputedStyle(list).visibility, scrolls: list.scrollHeight > list.clientHeight };
+    });
+    assert.strictEqual(r.visible, 'visible');
+    assert.ok(r.list.bottom <= r.toggle.top + 1 && r.list.top >= r.chat.top, 'rises from the bar over the chat');
+    assert.ok(r.scrolls, 'long lists scroll inside the panel');
+    if (SHOTS) { await page.screenshot({ path: path.join(SHOTS, '1b-drawer.png') }); }
+
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(250);
+    assert.strictEqual(await page.evaluate(() => getComputedStyle(document.getElementById('activeUserList')).visibility), 'hidden');
+
+    await page.click('#icx-drawer-toggle');
+    await page.mouse.click(200, 300);   // on the cams
+    await page.waitForTimeout(250);
+    assert.strictEqual(await page.evaluate(() => getComputedStyle(document.getElementById('activeUserList')).visibility), 'hidden');
 });
 
 test('focus makes one cam the largest, pinned top-left; unfocus restores the grid', async () => {
@@ -229,12 +257,15 @@ test('chat: pauses when scrolled up, resumes at the bottom, in a tall chat log',
 });
 
 test('chat: the site can\'t pull focus out of another text box', async () => {
+    await page.click('#icx-drawer-toggle');
+    await page.waitForTimeout(250);
     await page.focus('#other-input');
     await page.evaluate(() => window.as());
     assert.strictEqual(await page.evaluate(() => document.activeElement.id), 'other-input');
     await page.evaluate(() => document.activeElement.blur());
     await page.evaluate(() => window.as());
     assert.strictEqual(await page.evaluate(() => document.activeElement.id), 'txtMsg', 'still focuses chat otherwise');
+    await page.keyboard.press('Escape');
 });
 
 test('cams joining and leaving reflow the grid', async () => {
