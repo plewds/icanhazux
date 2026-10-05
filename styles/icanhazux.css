@@ -1251,6 +1251,22 @@ html.icx-dragging-cam .icx-tools { opacity: 0 !important; }
 
 /* ICHUX Settings (menu.js): the header link and its panel, on every page. */
 html.icx-site #icx-menu-link { white-space: nowrap; }
+/* An accent bar instead of the separator dot before it, with a little more
+   room either side: the site's links, then the add-on's. */
+html.icx-site .page_header_userlinks #icx-menu-link::before {
+    content: "";
+    display: inline-block;
+    width: 3px;
+    height: 1em;
+    margin: 0 .75em 0 .9em;
+    border-radius: 2px;
+    background: var(--icx-accent);
+    opacity: 1;
+    vertical-align: -.15em;
+    pointer-events: none;
+}
+/* Logged out it's on a line of its own: the bar only marks it. */
+html.icx-site .page_header_userlinks.icx-signed-out #icx-menu-link::before { margin-left: 0; margin-right: .5em; }
 html.icx-site #icx-menu-link.icx-open { color: var(--icx-accent-text) !important; }
 /* Logged out there's no row of links: it sits under Sign-In / Join. */
 html.icx-site .page_header_userlinks.icx-signed-out span[style*="font-size"] { font-size: 13px !important; }

@@ -14,7 +14,7 @@ icanhazbetter worked out about the site's internals.
 - **Hide a cam.** The cam disappears and its stream is stopped, and it stays hidden whenever that user cams up again. Use **Hidden** under the cams to bring them back.
 - **Resize cams vs. chat.** Drag the bar between the cams and the chat. Double-click it to reset.
 - **The rest of the site matches.** The lobby, profiles, settings, messages, groups and dashboard get the same light and dark themes, accent and fonts as rooms. Their content sits on the same accent-edged cards as the cams and chat. Pages with a sidebar get two cards side by side. Room previews look like cam tiles. A profile's background picture becomes a cover banner.
-- **ICHUX Settings in the header.** On every page, the last link in the site header opens the extension's theme (System / Light / Dark) and accent color. Settings that only affect chat stay in the chat bar's ⚙ in rooms.
+- **ICHUX Settings in the header.** On every page, the last link in the site header ("ichux", after an accent-colored bar) opens the extension's theme (System / Light / Dark) and accent color. Settings that only affect chat stay in the chat bar's ⚙ in rooms.
 - **Chat fixes the bigger layout needs.** Stops chat freezing when the log is tall, and stops scrolling chat from stealing focus from other text boxes.
 
 Everything is saved in your browser's local storage for icanhazchat.com. There's no analytics and nothing leaves your browser.

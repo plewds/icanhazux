@@ -1,4 +1,5 @@
-// "ICHUX Settings" in the site header, on every page (rooms included): the
+// "| ichux" in the site header, on every page (rooms included), opening
+// ICHUX Settings: the
 // extension's appearance settings, theme and accent (controls.js), which
 // apply everywhere. Settings that only change chat stay in the chat bar's
 // panel in rooms.
@@ -18,10 +19,12 @@
     removeStale('icx-menu-link');   // left by an older copy (see core.js)
     removeStale('icx-site-settings');
 
+    // Marked as the add-on's by an accent-colored bar in place of the
+    // header's separator dot before it (the stylesheet draws it).
     const link = el('a', {
         href: '#', id: 'icx-menu-link', role: 'button',
         'aria-haspopup': 'dialog', 'aria-expanded': 'false', 'aria-controls': 'icx-site-settings',
-        text: 'ICHUX Settings',
+        'aria-label': 'ICHUX Settings', title: 'ICHUX Settings: theme and accent', text: 'ichux',
     });
     const row = links.querySelector('.header_links');
     if (row) {

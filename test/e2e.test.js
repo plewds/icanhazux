@@ -527,11 +527,27 @@ test('header: ICHUX Settings opens from the header and changes the theme, logged
                 const link = document.getElementById('icx-menu-link');
                 return {
                     text: link?.textContent,
+                    label: link?.getAttribute('aria-label'),
+                    bar: link && (() => {
+                        const before = getComputedStyle(link, '::before');
+                        return { color: before.backgroundColor, width: parseFloat(before.width), height: parseFloat(before.height) };
+                    })(),
+                    accent: (() => {
+                        const probe = document.createElement('span');
+                        probe.style.color = 'var(--icx-accent)';
+                        document.body.append(probe);
+                        const c = getComputedStyle(probe).color;
+                        probe.remove();
+                        return c;
+                    })(),
                     lastInRow: link?.parentElement.classList.contains('header_links') && !link.nextElementSibling,
                     inLinks: !!link?.closest('.page_header_userlinks'),
                 };
             });
-            assert.strictEqual(where.text, 'ICHUX Settings', file);
+            assert.strictEqual(where.text, 'ichux', file);
+            assert.strictEqual(where.label, 'ICHUX Settings');
+            assert.strictEqual(where.bar.color, where.accent, 'marked by an accent bar');
+            assert.ok(where.bar.height > where.bar.width * 3, 'a vertical bar, not a dot');
             assert.ok(where.inLinks, `${file}: in the header`);
             if (signedIn) { assert.ok(where.lastInRow, 'last in the row of links'); }
 
