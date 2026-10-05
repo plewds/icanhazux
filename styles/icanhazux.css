@@ -1267,7 +1267,14 @@ html.icx-site .page_header_userlinks #icx-menu-link::before {
 }
 /* Logged out it's on a line of its own: the bar only marks it. */
 html.icx-site .page_header_userlinks.icx-signed-out #icx-menu-link::before { margin-left: 0; margin-right: .5em; }
-html.icx-site #icx-menu-link.icx-open { color: var(--icx-accent-text) !important; }
+/* The word in the accent too (the readable text shade; the bar takes the
+   fill). It's always accent-colored, so hover and open show as an underline. */
+html.icx-site .page_header_userlinks #icx-menu-link { color: var(--icx-accent-text) !important; text-decoration: none !important; }
+html.icx-site .page_header_userlinks #icx-menu-link:is(:hover, .icx-open) {
+    text-decoration: underline !important;
+    text-decoration-thickness: 1.5px !important;
+    text-underline-offset: 3px;
+}
 /* Logged out there's no row of links: it sits under Sign-In / Join. */
 html.icx-site .page_header_userlinks.icx-signed-out span[style*="font-size"] { font-size: 13px !important; }
 html.icx-site .page_header_userlinks.icx-signed-out #icx-menu-link { display: block; margin-top: 2px; text-align: right; }
