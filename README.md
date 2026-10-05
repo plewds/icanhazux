@@ -67,40 +67,6 @@ zip -r icanhazux.zip manifest.json src styles fonts LICENSE README.md
 
 If you used icanhazbetter, your hidden-cam list carries over the first time icanhazux runs.
 
-## Development
-
-```
-manifest.json
-src/
-  core.js      shared helpers (storage, DOM, icons, one live copy at a time)
-  pack.js      cam layout engine: pure math, unit tested
-  theme.js     light/dark and accent; lifts too-dark colors in the dark theme
-  site.js      every page: fonts, the shared header and footer
-  pages.js     pages outside rooms: page type, cards, re-pointing hard-coded grays
-  shell.js     room stage: cams | divider | chat, and the drawer
-  cams.js      cam grid: placement, focus, refresh, full screen, hide, drag
-  stamps.js    chat timestamps
-  controls.js  settings controls shared by the chat bar and header panels
-  chatbar.js   chat bar and its settings panel
-  menu.js      ichux settings in the site header
-  pms.js       PMs docked in the chat, or floating
-  people.js    people drawer
-  modtools.js  cam time and last chat, for mods
-  memes.js     emotimeme autocomplete
-  media.js     inline image and video previews
-  memespage.js room emotimemes page as a grid
-  page.js      runs in the page's own JavaScript world; small, guarded patches to site functions
-styles/
-  icanhazux.css   rooms, the header and footer, themes
-  pages.css       pages outside rooms
-fonts/            Nunito and Source Sans 3 (SIL Open Font License)
-test/
-  pack.test.js    layout engine unit tests
-  e2e.test.js     browser tests against test/mock (stand-in room, settings, inbox and lobby pages)
-```
-
-There's no build step. `npm test` runs the unit tests. `npm run test:e2e` runs the browser tests and needs Playwright.
-
 ## Credits
 
 icanhazux started from [icanhazbetter](https://github.com/sardistic/icanhazbetter) by sardistic, an MIT-licensed extension that reshapes icanhazchat.com into a customizable chat and cam room. Its work on the site's internals made this one possible. Adapted from it:
