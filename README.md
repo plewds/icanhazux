@@ -1,6 +1,6 @@
 # icanhazux
 
-A browser extension that gives [icanhazchat.com](https://www.icanhazchat.com) a modern look and a room that fits your window: a cam grid you can arrange, a cleaner chat, light and dark themes, and the rest of the site restyled to match.
+A browser extension that seeks to add a more modernized experience to [icanhazchat.com](https://www.icanhazchat.com) without necessarily overhauling the core layout. You get a more intuitive settings menu, a cam grid you can arrange, a cleaner chat, light and dark themes, and the rest of the site restyled to match.
 
 icanhazux builds on [icanhazbetter](https://github.com/sardistic/icanhazbetter) by sardistic, which worked out much of the site's internals and whose cam layout engine and chat fixes are adapted here. See [Credits](#credits).
 
