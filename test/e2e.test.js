@@ -369,3 +369,68 @@ test('focus, hidden cams, order and divider survive a reload', async () => {
     assertTidy(layout);
     if (SHOTS) { await page.screenshot({ path: path.join(SHOTS, '7-reloaded.png') }); }
 });
+
+// ── Pages outside rooms ─────────────────────────────────────────────────────
+
+const SETTINGS = 'file://' + path.join(__dirname, 'mock', 'settings.html');
+
+async function openPage(page, url) {
+    await page.goto(url);
+    for (const css of manifest.content_scripts[0].css) {
+        await page.addStyleTag({ path: path.join(ROOT, css) });
+    }
+    for (const js of manifest.content_scripts[0].js) { await page.addScriptTag({ path: path.join(ROOT, js) }); }
+    await page.waitForTimeout(100);
+}
+
+for (const scheme of ['light', 'dark']) {
+    test(`pages: a settings page is two theme cards with its grays re-pointed (${scheme})`, async () => {
+        const browser = await chromium.launch();
+        const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, colorScheme: scheme });
+        await openPage(page, SETTINGS);
+        const r = await page.evaluate(() => {
+            const css = (sel, prop) => getComputedStyle(document.querySelector(sel))[prop];
+            const token = name => {
+                const probe = document.createElement('span');
+                probe.style.color = `var(${name})`;
+                document.querySelector('.icx-paper').append(probe);
+                const value = getComputedStyle(probe).color;
+                probe.remove();
+                return value;
+            };
+            return {
+                kind: document.documentElement.dataset.icxPage,
+                theme: document.documentElement.dataset.icxTheme,
+                side: document.querySelector('.icx-side.icx-card') !== null,
+                main: document.querySelector('.icx-main.icx-card') !== null,
+                paperBg: css('.icx-paper', 'backgroundColor'),
+                crumb: document.querySelector('h3.icx-crumb .icx-crumb-here')?.textContent,
+                crumbBg: css('h3.icx-crumb', 'backgroundColor'),
+                box: css('#box', 'backgroundColor'),
+                note: css('#note', 'color'),
+                dark: css('#dark', 'color'),
+                warn: css('#warn', 'color'),
+                field: css('#field', 'backgroundColor'),
+                save: css('#save', 'backgroundColor'),
+                surface2: token('--icx-surface-2'),
+                text: token('--icx-text'),
+                muted: token('--icx-text-muted'),
+                accent: token('--icx-accent'),
+            };
+        });
+        await browser.close();
+
+        assert.strictEqual(r.kind, 'settings');
+        assert.strictEqual(r.theme, scheme);
+        assert.ok(r.side && r.main, 'sidebar and main are cards');
+        assert.strictEqual(r.paperBg, 'rgba(0, 0, 0, 0)', 'the white panel gives way to the cards');
+        assert.strictEqual(r.crumb, 'Your Password');
+        assert.strictEqual(r.crumbBg, 'rgba(0, 0, 0, 0)', 'no dark title bar');
+        assert.strictEqual(r.box, r.surface2, 'gray box → inset');
+        assert.strictEqual(r.note, r.muted, 'light gray text → muted');
+        assert.strictEqual(r.dark, r.text, 'dark gray text → text');
+        assert.notStrictEqual(r.warn, r.text, 'a real color is kept');
+        assert.strictEqual(r.field, r.surface2);
+        assert.strictEqual(r.save, r.accent, 'primary button in the accent');
+    });
+}

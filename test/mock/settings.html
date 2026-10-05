@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<!-- A stand-in for a settings page outside rooms: the site's master page
+     (header, content panel, footer) around a settings panel, with the kind
+     of hard-coded colors the real pages carry. Names and data are made up. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings</title>
+<style>
+    /* The page's own block, as the site ships it. */
+    h3 { margin: 0; color: white; background-color: #444; border-radius: 4px; padding: 4px; }
+    h3 a { color: #ddd; }
+    td { font-size: 18px; }
+    .page_section_white { background: #fff; }
+</style>
+</head>
+<body style="background: url(data:,) center / cover fixed;">
+<form id="aspnetForm" class="container-fluid">
+    <div id="ctl00_panelHeader" class="row gray_back page_header rounded">
+        <div class="col-lg-2"><div class="page_header_logo" id="ichc-logo-header"><a href="#"><img id="ichc-logo" alt="logo"></a></div></div>
+        <div class="col-12 col-lg-10 txtright">
+            <div class="page_header_userlinks"><span id="ctl00_labelSignInStatus">Hi <a href="#"><b id="userID">someone</b></a>
+                <span class="header_links">(<a href="#">signout</a>)<br><a href="#">messages</a> <a href="#">posts</a> <a href="#">settings</a></span></span></div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12 page_section_white rounded_top" style="margin-top:4px;">
+            <div class="row" style="width:99%;">
+                <div class="col-12 col-lg-2" style="padding-left:5px;margin-top:10px;">
+                    <center><img class="rounded user_pic" alt="someone" width="100%"></center>
+                </div>
+                <div class="col-12 col-lg-10" style="border:1px dotted #ddd;padding:20px;">
+                    <div id="ctl00_ContentPlaceHolder1_divSettings"></div>
+                    <div id="ctl00_ContentPlaceHolder1_panelPassword">
+                        <div class="subsection rounded">
+                            <h3><a href="https://example.test/Settings/"><i class="icon-home"></i> Settings</a> » Your Password</h3>
+                            <div style="padding:8px;font-size:120%;">
+                                <div id="box" style="background-color:#eee;padding:10px;">An inset box</div>
+                                <p id="note" style="color:#aaa;">A gray note.</p>
+                                <p id="dark" style="color:#444;">Dark gray text.</p>
+                                <font id="warn" color="red">A red warning.</font>
+                                <input class="form-control" id="field" type="password">
+                                <input class="btn btn-primary" id="save" type="submit" value="change">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="ctl00_panelFooter"><div class="row page_footer"><div class="col-12 footer_links"><a href="#">help</a></div></div></div>
+</form>
+</body>
+</html>

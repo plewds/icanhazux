@@ -8,15 +8,13 @@
 
    Colors come only from the tokens below. There are two themes, light and
    dark, selected by html[data-icx-theme] (theme.js: follows the system
-   setting unless the user picks one in chat settings). Outside rooms, the
-   page's content panel (.icx-paper) keeps the light tokens in either theme:
-   only the header and footer are shared markup, the rest is per page. */
+   setting unless the user picks one in chat settings). Pages outside rooms
+   follow the same theme (pages.js tames their hard-coded colors). */
 
 /* ── Tokens ──────────────────────────────────────────────────────────────── */
 
 :root,
-html[data-icx-theme="light"],
-html.icx-site .icx-paper {
+html[data-icx-theme="light"] {
     color-scheme: light;
     /* Warm paper tones. */
     --icx-bg: #f6f2ec;              /* page */
@@ -82,17 +80,16 @@ html[data-icx-theme="dark"] {
 
 /* The chosen accent (theme.js sets html[data-icx-accent]; grape by default). */
 :root,
-html[data-icx-accent="grape"], html[data-icx-accent="grape"] .icx-paper { --icx-accent: var(--icx-sw-grape); --icx-accent-fg: var(--icx-sw-grape-fg); --icx-accent-text: var(--icx-sw-grape-text); }
-html[data-icx-accent="crimson"], html[data-icx-accent="crimson"] .icx-paper { --icx-accent: var(--icx-sw-crimson); --icx-accent-fg: var(--icx-sw-crimson-fg); --icx-accent-text: var(--icx-sw-crimson-text); }
-html[data-icx-accent="tangerine"], html[data-icx-accent="tangerine"] .icx-paper { --icx-accent: var(--icx-sw-tangerine); --icx-accent-fg: var(--icx-sw-tangerine-fg); --icx-accent-text: var(--icx-sw-tangerine-text); }
-html[data-icx-accent="gold"], html[data-icx-accent="gold"] .icx-paper { --icx-accent: var(--icx-sw-gold); --icx-accent-fg: var(--icx-sw-gold-fg); --icx-accent-text: var(--icx-sw-gold-text); }
-html[data-icx-accent="forest"], html[data-icx-accent="forest"] .icx-paper { --icx-accent: var(--icx-sw-forest); --icx-accent-fg: var(--icx-sw-forest-fg); --icx-accent-text: var(--icx-sw-forest-text); }
-html[data-icx-accent="aqua"], html[data-icx-accent="aqua"] .icx-paper { --icx-accent: var(--icx-sw-aqua); --icx-accent-fg: var(--icx-sw-aqua-fg); --icx-accent-text: var(--icx-sw-aqua-text); }
-html[data-icx-accent="cobalt"], html[data-icx-accent="cobalt"] .icx-paper { --icx-accent: var(--icx-sw-cobalt); --icx-accent-fg: var(--icx-sw-cobalt-fg); --icx-accent-text: var(--icx-sw-cobalt-text); }
-html[data-icx-accent="pink"], html[data-icx-accent="pink"] .icx-paper { --icx-accent: var(--icx-sw-pink); --icx-accent-fg: var(--icx-sw-pink-fg); --icx-accent-text: var(--icx-sw-pink-text); }
+html[data-icx-accent="grape"] { --icx-accent: var(--icx-sw-grape); --icx-accent-fg: var(--icx-sw-grape-fg); --icx-accent-text: var(--icx-sw-grape-text); }
+html[data-icx-accent="crimson"] { --icx-accent: var(--icx-sw-crimson); --icx-accent-fg: var(--icx-sw-crimson-fg); --icx-accent-text: var(--icx-sw-crimson-text); }
+html[data-icx-accent="tangerine"] { --icx-accent: var(--icx-sw-tangerine); --icx-accent-fg: var(--icx-sw-tangerine-fg); --icx-accent-text: var(--icx-sw-tangerine-text); }
+html[data-icx-accent="gold"] { --icx-accent: var(--icx-sw-gold); --icx-accent-fg: var(--icx-sw-gold-fg); --icx-accent-text: var(--icx-sw-gold-text); }
+html[data-icx-accent="forest"] { --icx-accent: var(--icx-sw-forest); --icx-accent-fg: var(--icx-sw-forest-fg); --icx-accent-text: var(--icx-sw-forest-text); }
+html[data-icx-accent="aqua"] { --icx-accent: var(--icx-sw-aqua); --icx-accent-fg: var(--icx-sw-aqua-fg); --icx-accent-text: var(--icx-sw-aqua-text); }
+html[data-icx-accent="cobalt"] { --icx-accent: var(--icx-sw-cobalt); --icx-accent-fg: var(--icx-sw-cobalt-fg); --icx-accent-text: var(--icx-sw-cobalt-text); }
+html[data-icx-accent="pink"] { --icx-accent: var(--icx-sw-pink); --icx-accent-fg: var(--icx-sw-pink-fg); --icx-accent-text: var(--icx-sw-pink-text); }
 
-:root,
-html.icx-site .icx-paper {
+:root {
     --icx-accent-soft: color-mix(in srgb, var(--icx-accent) 16%, transparent);
     --icx-accent-glow: color-mix(in srgb, var(--icx-accent) 9%, transparent);   /* top of the cam and chat cards */
 
@@ -2232,44 +2229,7 @@ html.icx #rtc-broadcaster .control-button { margin-top: 0 !important; }
 }
 
 
-/* ── Other pages (lobby, profiles, settings…) ─────────────────────────────
-   The shared header and footer (above) and the themed background; the
-   content panel becomes a light card (.icx-paper, set by site.js). */
-
-/* Header edge to edge; the card centered with a gutter either side. */
-html.icx-site:not(.icx) #aspnetForm { padding: 0 0 8px !important; }
-html.icx-site:not(.icx) #aspnetForm > .row { margin-left: 0 !important; margin-right: 0 !important; }
-html.icx-site .icx-paper {
-    max-width: min(1200px, calc(100% - 32px)) !important;
-    margin: 16px auto 0 !important;
-    padding: 16px 24px 40px !important;
-    border: 1px solid var(--icx-border);
-    border-radius: var(--icx-radius) !important;
-    background: var(--icx-surface) !important;
-    color: var(--icx-text);
-    box-shadow: var(--icx-shadow) !important;
-}
-html.icx-site .icx-paper .page_name {
-    margin-top: 8px;
-    padding: 8px 20px 16px 0;
-    color: var(--icx-text-muted);
-    font-size: 28px;
-    font-weight: 800;
-    letter-spacing: -.01em;
-}
-html.icx-site #ctl00_panelFooter {
-    margin: 12px 0 0;
-    padding: 8px 4px 16px;
-    text-align: center;
-}
-@media (max-width: 767px) {
-    html.icx-site .icx-paper { max-width: calc(100% - 16px) !important; margin-top: 8px !important; padding: 12px 12px 32px !important; border-radius: var(--icx-radius-sm) !important; }
-}
-
-
-/* ── Room emotimemes page (memespage.js) ───────────────────────────────────
-   Inside the page's light card (.icx-paper), so the tokens here are always
-   the light ones; the accent still follows the user's pick. */
+/* ── Room emotimemes page (memespage.js) ─────────────────────────────────── */
 
 /* The site's gray frame and white box around the list, inside the card. */
 html.icx-memes-page .icx-paper div[style*="background-color:#e8e8e8"],

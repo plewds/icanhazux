@@ -112,7 +112,10 @@
     // Elements carrying a user color: inline style="color:…" (chat lines,
     // names) and the occasional <font color>. Originals live in data-icx-color.
 
-    const SCOPES = ['#txt', '#activeUserList', '#tabs', '#userinfo_dialog', '#gift_dialog', '#picture_dialog'];
+    // Outside rooms, the page's content panel (pages.js re-points its gray
+    // text at the theme; real colors are lifted here like chat colors).
+    const SCOPES = ['#txt', '#activeUserList', '#tabs', '#userinfo_dialog', '#gift_dialog', '#picture_dialog',
+        '.page_section_white'];
     const SELECTOR = '[style*="color"], font[color]';
 
     function fixEl(node) {

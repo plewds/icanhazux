@@ -1,0 +1,1319 @@
+/* icanhazux — pages outside rooms: the lobby, profiles, settings, messages,
+   groups, the dashboard.
+
+   The same look as a room: the themed page background, the slim header,
+   and the content on cards with the accent along their top edge. A page
+   with a sidebar (most of them) is two cards side by side, like the cam and
+   chat cards; a one-column page is one card. Colors come only from the
+   tokens in icanhazux.css, in both themes.
+
+   pages.js marks things up for these rules:
+     html[data-icx-page]   settings | dashboard | home | profile | messages |
+                           thread | group | groups | other
+     .icx-card             a card (the panel, or each of its two columns)
+     .icx-split            the row holding .icx-side and .icx-main
+     .icx-t-*              a hard-coded neutral color re-pointed at the theme:
+                           -clear (white → the card), -soft (gray → an inset),
+                           -ink (→ text color), -muted, -line (→ border)
+   Lots of !important: the pages carry inline styles and <style> blocks of
+   their own, which load after this stylesheet. */
+
+/* ── Frame ────────────────────────────────────────────────────────────────── */
+
+/* Header edge to edge; the content centered with a gutter either side. */
+html.icx-site:not(.icx) #aspnetForm { padding: 0 0 8px !important; }
+html.icx-site:not(.icx) #aspnetForm > .row { margin-left: 0 !important; margin-right: 0 !important; }
+
+html.icx-site .icx-paper {
+    flex: none !important;
+    width: 100% !important;
+    max-width: min(1240px, calc(100% - 32px)) !important;
+    margin: 16px auto 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+    color: var(--icx-text);
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+/* A card: the room's cam/chat card. Gradient border (the accent along the
+   top, fading into the border color down the sides) by the background-clip
+   method, so it follows the rounded corners, with a soft accent glow
+   washing down from the top inside. */
+html.icx-site .icx-card {
+    position: relative;
+    box-sizing: border-box;
+    min-width: 0;
+    padding: 20px 24px 24px !important;
+    border: 1px solid transparent !important;
+    border-radius: var(--icx-radius) !important;
+    background:
+        linear-gradient(var(--icx-accent-glow), transparent 72px) padding-box,
+        linear-gradient(var(--icx-surface), var(--icx-surface)) padding-box,
+        linear-gradient(var(--icx-accent), color-mix(in srgb, var(--icx-accent) 45%, var(--icx-border)) 64px, var(--icx-border) 200px) border-box !important;
+    color: var(--icx-text);
+}
+/* A one-column page: the panel is the card. */
+html.icx-site .icx-paper.icx-card { padding: 24px 28px 32px !important; }
+
+/* Sidebar + main, side by side. */
+html.icx-site .icx-split {
+    display: grid !important;
+    grid-template-columns: var(--icx-side-w, 248px) minmax(0, 1fr);
+    align-items: start;
+    gap: 12px;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+html.icx-site .icx-split > .icx-side,
+html.icx-site .icx-split > .icx-main {
+    flex: none !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+}
+/* A page whose sidebar held only its name: the name as a title, then the
+   content, in one card. */
+html.icx-site .icx-titled { display: block !important; margin: 0 !important; }
+html.icx-site .icx-titled > div { width: auto !important; max-width: none !important; flex: none !important; padding: 0 !important; margin: 0 !important; }
+html.icx-site .icx-titled > .icx-page-title,
+html.icx-site .icx-titled > .icx-page-title * {
+    color: var(--icx-text) !important;
+    font: 800 26px/1.2 var(--icx-font) !important;
+    letter-spacing: -.015em;
+    text-align: left !important;
+}
+html.icx-site .icx-titled > .icx-page-title { margin-bottom: 18px !important; }
+html[data-icx-page="groups"] .icx-titled > .icx-page-title::first-letter { text-transform: uppercase; }
+html.icx-site .icx-titled > .icx-page-title :is(br, center:empty) { display: none; }
+
+/* The sidebar stays in view while a long page scrolls. */
+html.icx-site .icx-split > .icx-side { position: sticky; top: 12px; }
+@media (max-width: 991px) {
+    html.icx-site .icx-split { grid-template-columns: minmax(0, 1fr); }
+    html.icx-site .icx-split > .icx-side { position: relative; top: auto; }
+}
+@media (max-width: 767px) {
+    html.icx-site .icx-paper { max-width: calc(100% - 16px) !important; margin-top: 8px !important; }
+    html.icx-site .icx-card,
+    html.icx-site .icx-paper.icx-card { padding: 16px !important; }
+}
+
+html.icx-site #ctl00_panelFooter {
+    width: 100%;
+    margin: 16px 0 0;
+    padding: 8px 4px 16px;
+    text-align: center;
+}
+/* The site's floating "Feedback" tab: a small chip in the corner. */
+html[data-icx-page] #bugstomp {
+    position: fixed !important;
+    left: 12px !important;
+    right: auto !important;
+    bottom: 12px !important;
+    top: auto !important;
+    z-index: 900;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 7px 12px !important;
+    border: 1px solid var(--icx-border-strong) !important;
+    border-radius: var(--icx-radius-btn) !important;
+    background: var(--icx-surface) !important;
+    box-shadow: none !important;
+    color: var(--icx-text-muted) !important;
+    font: 600 12px/1 var(--icx-font) !important;
+    transform: none !important;
+    writing-mode: horizontal-tb !important;
+    cursor: pointer;
+    transition: color .12s, border-color .12s;
+}
+html[data-icx-page] #bugstomp:hover { border-color: var(--icx-accent) !important; color: var(--icx-text) !important; }
+
+/* ── Re-pointed colors (pages.js) ─────────────────────────────────────────── */
+
+html.icx-site .icx-paper .icx-t-clear { background-color: transparent !important; }
+html.icx-site .icx-paper .icx-t-soft { background-color: var(--icx-surface-2) !important; }
+html.icx-site .icx-paper div.icx-t-soft { border-radius: var(--icx-radius-sm) !important; }
+html.icx-site .icx-paper .icx-t-soft:empty { display: none !important; }
+html.icx-site .icx-paper .icx-t-ink { color: var(--icx-text) !important; }
+html.icx-site .icx-paper .icx-t-muted { color: var(--icx-text-muted) !important; }
+html.icx-site .icx-paper .icx-t-line { border-color: var(--icx-border) !important; }
+
+/* ── Type ─────────────────────────────────────────────────────────────────── */
+
+html.icx-site .icx-paper :is(h1, h2, h3, h4, h5) {
+    margin: 0 0 .55em !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: none !important;
+    color: var(--icx-text) !important;
+    font-family: var(--icx-font) !important;
+    letter-spacing: -.01em;
+    line-height: 1.25 !important;
+    text-shadow: none !important;
+}
+html.icx-site .icx-paper h1 { font-size: 26px !important; font-weight: 800 !important; }
+html.icx-site .icx-paper h2 { font-size: 20px !important; font-weight: 800 !important; }
+html.icx-site .icx-paper h3 { font-size: 17px !important; font-weight: 800 !important; }
+html.icx-site .icx-paper h4 { font-size: 15px !important; font-weight: 700 !important; }
+html.icx-site .icx-paper :is(h1, h2, h3, h4) a { color: inherit !important; }
+/* A heading after other content gets room above it. */
+html.icx-site .icx-paper :is(p, div, ul, ol, table, center, br, pre, span) + :is(h1, h2, h3) { margin-top: 1.4em !important; }
+
+html.icx-site .icx-paper :is(p, li, td, th, label, dir, span, div) { line-height: 1.5; }
+/* The pages size their text in pt and percentages of percentages; one
+   reading size inside the cards (headings and the room-name box aside). */
+html.icx-site .icx-paper :is(p, li, td, th, label, dir) { font-size: inherit !important; }
+html.icx-site .icx-paper [style*="font-size:120%"],
+html.icx-site .icx-paper [style*="font-size: 120%"],
+html.icx-site .icx-paper [style*="font-size:14pt"],
+html.icx-site .icx-paper [style*="font-size: 14pt"],
+html.icx-site .icx-paper [style*="font-size:16pt"],
+html.icx-site .icx-paper [style*="font-size:18pt"],
+html.icx-site .icx-paper [style*="font-size:large"],
+html.icx-site .icx-paper [style*="font-size: large"],
+html.icx-site .icx-paper [style*="font-size:Large"],
+html.icx-site .icx-paper [style*="font-size:larger"] { font-size: inherit !important; }
+html.icx-site .icx-paper p { margin: 0 0 .8em; }
+html.icx-site .icx-paper dir { margin: 0; padding: 0; }
+html.icx-site .icx-paper :is(ul, ol) { margin: .4em 0 1em; padding-left: 1.4em; }
+html.icx-site .icx-paper hr { margin: 16px 0; border: 0; border-top: 1px solid var(--icx-border); opacity: 1; }
+html.icx-site .icx-paper b,
+html.icx-site .icx-paper strong { font-weight: 700; }
+
+html.icx-site .icx-paper a { color: var(--icx-accent-text); text-decoration: none; }
+html.icx-site .icx-paper a:hover { color: var(--icx-accent-text); text-decoration: underline; text-underline-offset: 2px; }
+
+html.icx-site .icx-paper .small_less_important_text,
+html.icx-site .icx-paper .status_when { color: var(--icx-text-muted) !important; font-size: 13px !important; }
+
+html.icx-site .icx-paper pre {
+    margin: 0 0 1em;
+    padding: 12px 14px;
+    border: 1px solid var(--icx-border);
+    border-radius: var(--icx-radius-sm);
+    background: var(--icx-surface-2) !important;
+    color: var(--icx-text) !important;
+    font: 13px/1.5 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace !important;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+/* The site's icon font: tinted with the accent next to headings and links. */
+html.icx-site .icx-paper [class^="icon-"],
+html.icx-site .icx-paper [class*=" icon-"] { color: var(--icx-accent-text) !important; }
+
+html.icx-site { scrollbar-color: color-mix(in srgb, var(--icx-accent) 55%, transparent) transparent; }
+html.icx-site ::selection { background: color-mix(in srgb, var(--icx-accent) 30%, transparent); }
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+
+/* Everything: the room's chip (outlined rounded rectangle). Primary: the
+   accent fill, like Send. */
+html.icx-site .icx-paper :is(.btn, input[type="submit"], input[type="button"], input[type="reset"]):not(.ui-button):not([type="file"]) {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: auto;
+    height: auto !important;
+    min-height: 36px;
+    margin: 2px;
+    padding: 0 16px !important;
+    box-sizing: border-box;
+    border: 1px solid var(--icx-border-strong) !important;
+    border-radius: var(--icx-radius-btn) !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--icx-text) !important;
+    font: 700 14px/1.2 var(--icx-font) !important;
+    text-decoration: none !important;
+    text-shadow: none !important;
+    vertical-align: middle;
+    white-space: normal;
+    cursor: pointer;
+    transition: transform .28s var(--icx-spring), color .12s, background-color .12s, border-color .12s, filter .12s;
+}
+html.icx-site .icx-paper :is(.btn, input[type="submit"], input[type="button"]):not(.ui-button):not([type="file"]):hover {
+    border-color: var(--icx-accent) !important;
+    background: var(--icx-surface-2) !important;
+    transform: translateY(-1px);
+}
+html.icx-site .icx-paper :is(.btn, input[type="submit"], input[type="button"]):not(.ui-button):not([type="file"]):active {
+    transform: translateY(1px);
+    transition-duration: .08s;
+}
+html.icx-site .icx-paper :is(.btn-primary, input[type="submit"]:not(.btn-secondary):not(.btn-outline-secondary)):not(.ui-button):not([type="file"]) {
+    border-color: var(--icx-accent) !important;
+    background: var(--icx-accent) !important;
+    color: var(--icx-accent-fg) !important;
+}
+html.icx-site .icx-paper :is(.btn-primary, input[type="submit"]:not(.btn-secondary):not(.btn-outline-secondary)):not(.ui-button):not([type="file"]):hover {
+    background: var(--icx-accent) !important;
+    filter: brightness(1.07);
+}
+html.icx-site .icx-paper .btn-sm:not([type="file"]) { min-height: 30px; padding: 0 12px !important; font-size: 12px !important; font-weight: 600 !important; }
+html.icx-site .icx-paper .btn-lg { min-height: 46px; padding: 0 24px !important; font-size: 17px !important; }
+html.icx-site .icx-paper .btn [class*="icon-"] { font-size: 14px; }
+html.icx-site .icx-paper .btn:focus,
+html.icx-site .icx-paper input:focus { outline: none !important; }
+html.icx-site .icx-paper :is(.btn, input[type="submit"], input[type="button"]):focus-visible {
+    outline: 2px solid var(--icx-accent) !important;
+    outline-offset: 2px;
+}
+
+/* File pickers: the native control, with its button as a chip. */
+html.icx-site .icx-paper input[type="file"] {
+    height: auto !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+    color: var(--icx-text-muted) !important;
+    font: 13px var(--icx-font) !important;
+}
+html.icx-site .icx-paper input[type="file"]::file-selector-button {
+    margin-right: 10px;
+    padding: 8px 14px;
+    border: 1px solid var(--icx-border-strong);
+    border-radius: var(--icx-radius-btn);
+    background: var(--icx-surface-2);
+    color: var(--icx-text);
+    font: 700 13px var(--icx-font);
+    cursor: pointer;
+}
+html.icx-site .icx-paper input[type="file"]::file-selector-button:hover { border-color: var(--icx-accent); }
+
+/* ── Form fields ──────────────────────────────────────────────────────────── */
+
+html.icx-site .icx-paper :is(.form-control, textarea, select,
+    input:is([type="text"], [type="password"], [type="email"], [type="search"], [type="url"], [type="number"], [type="tel"], :not([type]))) {
+    max-width: 100%;
+    min-height: 38px;
+    height: auto;
+    padding: 7px 12px !important;
+    box-sizing: border-box;
+    border: 1px solid var(--icx-border-strong) !important;
+    border-radius: var(--icx-radius-sm) !important;
+    background-color: var(--icx-surface-2) !important;
+    box-shadow: none !important;
+    color: var(--icx-text) !important;
+    font: 15px/1.4 var(--icx-font) !important;
+    transition: border-color .12s, box-shadow .12s, background-color .12s;
+}
+html.icx-site .icx-paper textarea { line-height: 1.5 !important; resize: vertical; }
+html.icx-site .icx-paper select { padding-right: 32px !important; cursor: pointer; }
+html.icx-site .icx-paper :is(.form-control, textarea, select, input):focus {
+    border-color: var(--icx-accent) !important;
+    background-color: var(--icx-surface) !important;
+    box-shadow: 0 0 0 3px var(--icx-accent-soft) !important;
+    outline: none !important;
+}
+html.icx-site .icx-paper ::placeholder { color: var(--icx-text-muted); opacity: .8; }
+
+html.icx-site .icx-paper :is(input[type="checkbox"], input[type="radio"]) {
+    width: 18px !important;
+    height: 18px !important;
+    margin: 0 10px 0 0 !important;
+    accent-color: var(--icx-accent);
+    vertical-align: -3px;
+    cursor: pointer;
+}
+html.icx-site .icx-paper label {
+    position: static !important;
+    top: auto !important;
+    margin: 0;
+    padding: 0;
+    cursor: pointer;
+}
+
+/* ── Tables ───────────────────────────────────────────────────────────────── */
+
+html.icx-site .icx-paper table { border-collapse: collapse; color: inherit; }
+html.icx-site .icx-paper :is(td, th) { padding: 4px 8px; vertical-align: middle; }
+
+/* ── Shared pieces ────────────────────────────────────────────────────────── */
+
+/* Sidebar: the profile picture as a rounded tile, the rest centered under it. */
+html.icx-site .icx-side { text-align: center; }
+html.icx-site .icx-side > br,
+html.icx-site .icx-side > center:empty { display: none; }
+html.icx-site .icx-paper .user_pic {
+    display: block;
+    width: 100% !important;
+    max-width: 180px;
+    height: auto !important;
+    margin: 0 auto;
+    border-radius: var(--icx-radius-sm) !important;
+    box-shadow: 0 0 0 1px var(--icx-border);
+    object-fit: cover;
+}
+/* A small label over a group of things: the room's "● 172 people". */
+html.icx-site .icx-paper .icx-label,
+html.icx-site .icx-paper .trophy_case,
+html.icx-site .icx-paper .dash_header {
+    color: var(--icx-text-muted) !important;
+    font: 700 12px/1.2 var(--icx-font) !important;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+/* ── Settings ─────────────────────────────────────────────────────────────── */
+
+/* The panel's own frame and padding: the card has its own. */
+html[data-icx-page="settings"] .icx-main { padding: 22px 28px 28px !important; }
+html[data-icx-page="settings"] .icx-main > div > .subsection,
+html[data-icx-page="settings"] .icx-main .subsection.rounded { padding: 0 !important; border: 0 !important; background: none !important; }
+
+/* Breadcrumb: "⌂ Settings ›" small and muted, then the page's name as the
+   card's title, over a rule. */
+html[data-icx-page="settings"] .icx-paper h3.icx-crumb {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+    margin: 0 0 20px !important;
+    padding: 0 0 14px !important;
+    border-bottom: 1px solid var(--icx-border) !important;
+}
+html[data-icx-page="settings"] .icx-crumb > a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--icx-text-muted) !important;
+    font: 700 13px/1 var(--icx-font) !important;
+    text-decoration: none !important;
+    order: -1;
+    flex-basis: 100%;
+}
+html[data-icx-page="settings"] .icx-crumb > a:hover { color: var(--icx-accent-text) !important; }
+html[data-icx-page="settings"] .icx-crumb > a > i { padding: 0 !important; font-size: 13px; }
+html[data-icx-page="settings"] .icx-crumb > a::after { content: "\203A"; margin-left: 4px; font-size: 15px; }
+html[data-icx-page="settings"] .icx-crumb-here { color: var(--icx-text); font: 800 24px/1.2 var(--icx-font); letter-spacing: -.015em; }
+
+/* The page's content under the title: one reading size, no extra frame. */
+html[data-icx-page="settings"] .icx-main .subsection > div[style] {
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: 15px !important;
+}
+html[data-icx-page="settings"] .icx-main .row { align-items: center; }
+html[data-icx-page="settings"] .icx-main center { text-align: center; }
+html[data-icx-page="settings"] .icx-main .subsection > br,
+html[data-icx-page="settings"] .icx-main > br { display: none; }
+/* Feedback after a save. */
+html[data-icx-page="settings"] .icx-main span[id$="Status"]:not(:empty),
+html[data-icx-page="settings"] .icx-main span[id$="Feedback"]:not(:empty),
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_labelFeedback:not(:empty) {
+    display: block;
+    margin: 12px 0;
+    padding: 10px 14px;
+    border-radius: var(--icx-radius-sm);
+    background: var(--icx-accent-soft);
+    color: var(--icx-text);
+    font-weight: 600;
+}
+
+/* Sidebar: picture, "show recent", and the recent sign-ins once shown. */
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_btnRecentAddresses {
+    margin-top: 14px !important;
+    border-color: var(--icx-border-strong) !important;
+    background: transparent !important;
+    color: var(--icx-text-muted) !important;
+}
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_btnRecentAddresses:hover { color: var(--icx-text) !important; border-color: var(--icx-accent) !important; }
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_UpdatePanelRecentAddresses .standard_font {
+    margin-top: 14px;
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+    text-align: left;
+}
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_labelRecentAddresses :is(b, p, div) { font-weight: 400; font-size: 12px !important; line-height: 1.4; }
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_labelRecentAddresses > div > b:first-child { display: block; }
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_labelRecentAddresses p { margin: 0 0 10px; color: var(--icx-text-muted); }
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_labelRecentAddresses p a { font-weight: 700; }
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_labelRecentAddresses h1 { margin: 16px 0 6px !important; font-size: 13px !important; }
+
+/* Form rows on the profile-info page: label | field, one per line. */
+html[data-icx-page="settings"] .icx-main .user_setting {
+    align-items: start;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 12px 0 !important;
+    border-bottom: 1px solid var(--icx-border);
+    background: none !important;
+}
+html[data-icx-page="settings"] .icx-main .user_setting > :first-child {
+    padding-top: 8px;
+    color: var(--icx-text-muted);
+    font-weight: 700;
+}
+html[data-icx-page="settings"] .icx-main .user_setting > :first-child:has(input[type="checkbox"]) { padding-top: 0; }
+html[data-icx-page="settings"] .icx-main [style*="font-size:18px"] { font-size: inherit !important; }
+
+/* Audio: what | sound | buttons, the buttons on one line. */
+html[data-icx-page="settings"] .icx-main .row:has(.wav_name) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 170px auto;
+    gap: 12px;
+    margin: 0 0 8px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--icx-border);
+    text-align: left;
+}
+html[data-icx-page="settings"] .icx-main .row:has(.wav_name) > div { width: auto; max-width: none; flex: none; padding: 0; }
+html[data-icx-page="settings"] .icx-main .wav_name { width: 100% !important; text-align: center; }
+html[data-icx-page="settings"] .icx-main .row:has(.wav_name) .btn { min-height: 30px; margin: 1px; padding: 0 10px !important; }
+@media (max-width: 767px) {
+    html[data-icx-page="settings"] .icx-main .row:has(.wav_name) { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Trophies: a compact list, picture | name | show/hide. */
+html.icx-site .icx-paper img.trophy { width: 56px !important; max-width: 56px; height: auto !important; border-radius: 6px; }
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_labelTrophyList > .row {
+    align-items: center;
+    margin: 0 0 6px !important;
+    padding: 8px 12px !important;
+    border: 1px solid var(--icx-border);
+    border-radius: var(--icx-radius-sm) !important;
+    background: var(--icx-bg) !important;
+}
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_labelTrophyList > .row > div { padding-top: 0 !important; padding-bottom: 0 !important; }
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_labelTrophyList > .row > [class*="col-sm-8"] { text-align: left; }
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_labelTrophyList > .row > [class*="col-sm-2"]:first-child { flex: 0 0 80px; max-width: 80px; }
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_labelTrophyList h2 { margin-top: 24px !important; }
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_labelTrophyList h2:first-child { margin-top: 8px !important; }
+
+/* Following: a grid of people tiles (the site nests them in three tables). */
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_divFollowing > center {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+}
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_divFollowing > center :is(table, tbody),
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_divFollowing > center > table > tbody > tr,
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_divFollowing > center > table > tbody > tr > td { display: contents; }
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_divFollowing tr[id^="unfollow_"] {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    margin: 0 !important;
+    padding: 14px 10px 10px !important;
+    border: 1px solid var(--icx-border) !important;
+    border-radius: var(--icx-radius-sm) !important;
+    background: var(--icx-bg);
+    transition: transform .2s var(--icx-spring), border-color .12s;
+}
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_divFollowing tr[id^="unfollow_"]:hover { border-color: var(--icx-accent) !important; transform: translateY(-2px); }
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_divFollowing tr[id^="unfollow_"]:not(:has(td)) { display: none; }
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_divFollowing tr[id^="unfollow_"] > td { display: block; padding: 0; text-align: center; }
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_divFollowing tr[id^="unfollow_"] img { width: 96px !important; height: 96px; object-fit: cover; border-radius: var(--icx-radius-sm) !important; margin-bottom: 6px; }
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_divFollowing tr[id^="unfollow_"] br { display: none; }
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_divFollowing tr[id^="unfollow_"] b a { display: flex; flex-direction: column; align-items: center; color: var(--icx-text) !important; }
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_divFollowing tr[id^="unfollow_"] center > span { display: none; }   /* the site's running count */
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_divFollowing a[href*="unfollow"] { color: var(--icx-text-muted) !important; font-size: 13px; }
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_divFollowing a[href*="unfollow"]:hover { color: var(--icx-live) !important; }
+
+/* Picture and icon pickers: thumbnails, the current one ringed in the accent. */
+html.icx-site .icx-paper ul.thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px !important; padding: 0 !important; }
+html.icx-site .icx-paper ul.thumbs li { float: none !important; margin: 0 !important; padding: 0 !important; text-align: center; }
+html.icx-site .icx-paper ul.thumbs a.thumb {
+    padding: 3px !important;
+    border: 1px solid var(--icx-border) !important;
+    border-radius: var(--icx-radius-btn) !important;
+    background: var(--icx-surface-2) !important;
+    transition: border-color .12s, transform .2s var(--icx-spring);
+}
+html.icx-site .icx-paper ul.thumbs a.thumb:hover { border-color: var(--icx-accent) !important; transform: translateY(-2px); }
+html.icx-site .icx-paper ul.thumbs li.selected a.thumb { border-color: var(--icx-accent) !important; background: var(--icx-accent-soft) !important; box-shadow: 0 0 0 1px var(--icx-accent); }
+html.icx-site .icx-paper ul.thumbs img { border-radius: 5px; }
+html.icx-site .icx-paper ul.thumbs a.thumblink { color: var(--icx-text-muted) !important; font-size: 12px; }
+html.icx-site .icx-paper ul.thumbs a.thumblink:hover { color: var(--icx-live) !important; }
+html.icx-site .icx-paper span.slideshow_profilepic img { padding: 0 !important; border: 0 !important; border-radius: var(--icx-radius-sm) !important; }
+
+/* Dropify upload box: a dashed drop zone in the theme. */
+html.icx-site .icx-paper .dropify-wrapper {
+    max-width: 520px;
+    border: 2px dashed var(--icx-border-strong) !important;
+    border-radius: var(--icx-radius-sm) !important;
+    background: var(--icx-surface-2) !important;
+    color: var(--icx-text-muted) !important;
+    font-family: var(--icx-font) !important;
+    transition: border-color .12s;
+}
+html.icx-site .icx-paper .dropify-wrapper:hover { border-color: var(--icx-accent) !important; background-image: none !important; }
+html.icx-site .icx-paper .dropify-wrapper :is(.dropify-message p, .file-icon) { color: var(--icx-text-muted) !important; font-size: 14px !important; }
+html.icx-site .icx-paper .dropify-wrapper .file-icon::before { color: var(--icx-accent-text) !important; }
+html.icx-site .icx-paper .dropify-wrapper .dropify-preview { background: var(--icx-surface-2) !important; }
+html.icx-site .icx-paper .dropify-wrapper .dropify-clear {
+    border: 1px solid var(--icx-border-strong) !important;
+    border-radius: var(--icx-radius-btn) !important;
+    background: var(--icx-surface) !important;
+    color: var(--icx-text) !important;
+    font: 600 12px var(--icx-font) !important;
+}
+html.icx-site .icx-paper .dropify-wrapper .dropify-infos { background: color-mix(in srgb, var(--icx-surface) 85%, transparent) !important; }
+html.icx-site .icx-paper .dropify-wrapper .dropify-infos-inner p { color: var(--icx-text) !important; }
+
+/* Payment and gifting history: plain data tables. */
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_divHistory center { text-align: left; }
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_divHistory .subsection { width: auto !important; }
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_divHistory table { width: 100% !important; max-width: 640px; margin: 0 0 24px; font-variant-numeric: tabular-nums; }
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_divHistory td { padding: 8px 12px; border-bottom: 1px solid var(--icx-border); text-align: left !important; }
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_divHistory table[width] tr:first-child td {
+    color: var(--icx-text-muted);
+    font: 700 12px/1.2 var(--icx-font) !important;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+html[data-icx-page="settings"] #ctl00_ContentPlaceHolder1_divEmailPreferences { margin: 16px 0 0 !important; padding: 12px 8px; border-radius: var(--icx-radius-sm); line-height: 2; }
+
+/* The index: four groups of links, as tiles in a two-column grid. Each
+   link is a row that lights up on hover, with a chevron. */
+html[data-icx-page="settings"] .icx-settings-index > h3:first-child { margin-bottom: 20px !important; font-size: 24px !important; }
+html[data-icx-page="settings"] .icx-settings-index > h3:first-child > i { display: none; }
+html[data-icx-page="settings"] .icx-settings-index > .row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    margin: 0;
+}
+html[data-icx-page="settings"] .icx-settings-index > .row > div {
+    display: grid;
+    gap: 12px;
+    align-content: start;
+    width: auto;
+    max-width: none;
+    padding: 0;
+}
+@media (min-width: 1100px) {
+    html[data-icx-page="settings"] .icx-settings-index > .row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+html[data-icx-page="settings"] .icx-settings-index .subsection {
+    padding: 14px 8px 8px !important;
+    border: 1px solid var(--icx-border) !important;
+    border-radius: var(--icx-radius-sm) !important;
+    background: var(--icx-bg) !important;
+}
+html[data-icx-page="settings"] .icx-settings-index .bighead {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 8px 8px !important;
+    font-size: 15px !important;
+}
+html[data-icx-page="settings"] .icx-settings-index .bighead > i {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    padding: 0 !important;
+    border-radius: var(--icx-radius-btn);
+    background: var(--icx-accent-soft);
+    color: var(--icx-accent-text) !important;
+    font-size: 14px;
+}
+html[data-icx-page="settings"] .icx-settings-index ul { margin: 0 !important; padding: 0 !important; list-style: none; }
+html[data-icx-page="settings"] .icx-settings-index li { padding: 0 !important; font-size: 15px !important; }
+html[data-icx-page="settings"] .icx-settings-index li a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: var(--icx-radius-btn);
+    color: var(--icx-text) !important;
+    font-weight: 600;
+    text-decoration: none !important;
+    transition: background-color .12s, color .12s;
+}
+html[data-icx-page="settings"] .icx-settings-index li a::after {
+    content: "\203A";
+    color: var(--icx-text-muted);
+    font-size: 18px;
+    line-height: 1;
+    transition: transform .2s var(--icx-spring), color .12s;
+}
+html[data-icx-page="settings"] .icx-settings-index li a:hover { background: var(--icx-surface-2); color: var(--icx-accent-text) !important; }
+html[data-icx-page="settings"] .icx-settings-index li a:hover::after { color: var(--icx-accent-text); transform: translateX(3px); }
+
+/* ── Room tiles (lobby, groups) ──────────────────────────────────────────────
+   The site's room previews, drawn like cams in a room: the room's picture
+   filling a rounded tile, its name bottom-left over a soft gradient. */
+
+html.icx-site .icx-paper .preview_room {
+    position: relative;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 16 / 10;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden;
+    border: 0 !important;
+    border-radius: var(--icx-radius-sm) !important;
+    background-color: var(--icx-stage) !important;
+    background-position: center !important;
+    background-size: cover !important;
+    box-shadow: 0 0 0 1px var(--icx-border) !important;
+    text-align: left !important;
+    transition: transform .2s var(--icx-spring), box-shadow .12s;
+}
+html.icx-site .icx-paper a:hover > .preview_room { transform: translateY(-2px); box-shadow: 0 0 0 2px var(--icx-accent) !important; }
+html.icx-site .icx-paper a:has(> .preview_room) { display: block; text-decoration: none !important; }
+html.icx-site .icx-paper .preview_room::after {
+    content: "";
+    position: absolute;
+    inset: 40% 0 0;
+    background: linear-gradient(transparent, rgba(0, 0, 0, .7));
+    pointer-events: none;
+}
+html.icx-site .icx-paper .preview_room > :is(.preview_name, .preview_info) {
+    position: absolute !important;
+    left: 10px !important;
+    right: 10px !important;
+    top: auto !important;
+    z-index: 2 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden;
+    background: none !important;
+    color: #fff !important;
+    text-align: left !important;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, .5) !important;
+    white-space: nowrap;
+}
+html.icx-site .icx-paper .preview_room > .preview_name { bottom: 26px !important; font: 700 15px/1.2 var(--icx-font) !important; }
+html.icx-site .icx-paper .preview_room > .preview_info { bottom: 9px !important; font: 600 12px/1.2 var(--icx-font) !important; opacity: .85; }
+/* "18+": a small tag in the corner. */
+html.icx-site .icx-paper .preview_room > p {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 2;
+    margin: 0 !important;
+}
+html.icx-site .icx-paper .preview_room > p > span {
+    display: inline-block;
+    padding: 3px 7px;
+    border-radius: 6px;
+    background: var(--icx-overlay-bg) !important;
+    color: var(--icx-overlay-fg) !important;
+    font: 800 11px/1 var(--icx-font) !important;
+}
+html.icx-site .icx-paper .side-corner-tag::before { display: none !important; }
+
+/* ── Lobby ────────────────────────────────────────────────────────────────── */
+
+html[data-icx-page="home"] { --icx-side-w: 320px; }
+html[data-icx-page="home"] .icx-split { grid-template-columns: minmax(0, 1fr) var(--icx-side-w); }
+html[data-icx-page="home"] .icx-split > .icx-side { order: 2; text-align: left; }
+@media (max-width: 991px) {
+    html[data-icx-page="home"] .icx-split { grid-template-columns: minmax(0, 1fr); }
+}
+html[data-icx-page="home"] .icx-main { padding: 28px 32px 32px !important; }
+
+/* Join: the headline, then the room box and the button on one line. */
+html[data-icx-page="home"] .icx-main > h3.big_title { margin-bottom: 4px !important; font-size: 30px !important; letter-spacing: -.02em; }
+html[data-icx-page="home"] .icx-main > h3.big_title + h3 { margin: 0 0 18px !important; color: var(--icx-text-muted) !important; font-size: 16px !important; font-weight: 600 !important; }
+html[data-icx-page="home"] .icx-main > h3.big_title + h3 + .row { align-items: start; margin: 0; }
+html[data-icx-page="home"] .icx-main > h3.big_title + h3 + .row > div { padding: 0 6px 0 0; }
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_txtRoomName {
+    width: 100% !important;
+    height: 48px;
+    margin: 0 !important;
+    font-size: 18px !important;
+}
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_btnSelectRoom { width: 100%; min-height: 48px; margin: 0; }
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_btnPhoneLogin { color: var(--icx-text-muted) !important; font-size: 12px !important; }
+html[data-icx-page="home"] .site_statistics { margin-top: 8px; color: var(--icx-text-muted) !important; font-size: 13px !important; text-align: left; }
+html[data-icx-page="home"] .site_statistics b { margin: 0 4px; }
+html[data-icx-page="home"] .icx-main > h3.big_title + h3 + .row center { text-align: left; }
+
+/* The GetHearted gauge. */
+html.icx-site .icx-paper td[style*="background-color:red"] {
+    border-radius: var(--icx-radius-sm) !important;
+    background-color: var(--icx-live) !important;
+    color: var(--icx-live-fg) !important;
+    padding: 6px !important;
+}
+html.icx-site .icx-paper td[style*="background-color:red"] img { border-radius: 6px; }
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_divStatus center { text-align: left; }
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_divStatus table { width: 100% !important; max-width: 420px !important; margin: 0; }
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_divStatus td:first-child { width: 96px; text-align: left !important; }
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_divStatus td:first-child { color: var(--icx-text) !important; font-size: 12px !important; }
+
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_divStatus h2 { margin-top: 28px !important; }
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_divStatus div[style*="font-size:larger"] > br:nth-last-child(-n+2) { display: none; }
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_divStatus div[style*="padding"] { padding: 0 !important; }
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_divStatus div[style*="font-size:larger"] {
+    padding: 12px 14px !important;
+    border-left: 3px solid var(--icx-accent) !important;
+    border-radius: 0 var(--icx-radius-sm) var(--icx-radius-sm) 0;
+    background: var(--icx-surface-2);
+}
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_lblRoomList > h1 { margin-top: 32px !important; font-size: 20px !important; }
+
+/* Posts: numbered rows. */
+html.icx-site .icx-paper .row.message_content_block:has(> .post_number) {
+    align-items: center;
+    margin: 0 0 6px !important;
+    padding: 10px 12px !important;
+    border: 1px solid var(--icx-border);
+    border-radius: var(--icx-radius-sm) !important;
+    background: var(--icx-bg) !important;
+    color: var(--icx-text-muted);
+    font-size: 13px;
+}
+html.icx-site .icx-paper .post_number {
+    flex: 0 0 34px !important;
+    max-width: 34px !important;
+    height: 34px;
+    margin-right: 12px;
+    padding: 0 !important;
+    display: grid;
+    place-items: center;
+    border-radius: var(--icx-radius-btn) !important;
+    background: var(--icx-accent-soft) !important;
+    color: var(--icx-accent-text) !important;
+    font: 800 14px/1 var(--icx-font);
+}
+html.icx-site .icx-paper .post_link a { color: var(--icx-text) !important; font-size: 15px; font-weight: 700; }
+html.icx-site .icx-paper .row.message_content_block:has(> .post_number) span.rounded {
+    padding: 1px 7px !important;
+    border-color: var(--icx-border-strong) !important;
+    border-radius: 6px !important;
+    font-family: var(--icx-font) !important;
+}
+
+/* Rooms: a grid of tiles (the site lays them out in rows of three). */
+html.icx-site .icx-paper #rooms > div {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+}
+html.icx-site .icx-paper #rooms .row { display: contents; }
+html.icx-site .icx-paper #rooms .row > .col-1 { display: none; }
+html.icx-site .icx-paper #rooms .row > div { width: auto; max-width: none; flex: none; padding: 0; }
+
+/* Sidebar: the landing picture, your status box, and friends' statuses. */
+html[data-icx-page="home"] .icx-side #nonessential { text-align: left; }
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_landingGraphic { display: block; margin: 0 !important; }
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_landingGraphic img { width: 100% !important; height: auto; border-radius: var(--icx-radius-sm) !important; }
+html[data-icx-page="home"] #nonessential > div:has(> a[href*="contact"]) { margin: 6px 0 0; text-align: center; }
+html[data-icx-page="home"] #nonessential a[href*="contact"] { color: var(--icx-text-muted) !important; font-size: 12px !important; }
+html[data-icx-page="home"] #nonessential > .indent { margin: 16px 0 !important; padding: 0 !important; }
+html[data-icx-page="home"] .post-reply.top {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 10px;
+    margin: 0 !important;
+}
+html[data-icx-page="home"] .post-reply.top > div { width: auto; max-width: none; flex: none; padding: 0 !important; text-align: right; }
+html[data-icx-page="home"] .post-reply.top img { width: 44px !important; height: 44px; object-fit: cover; border-radius: var(--icx-radius-btn) !important; }
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_txtStatusUpdate { width: 100%; height: 64px !important; margin-bottom: 6px; }
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_divFriendsList::before {
+    content: "Friends' statuses";
+    display: block;
+    margin: 4px 0 8px;
+    color: var(--icx-text-muted);
+    font: 700 12px/1.2 var(--icx-font);
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_divFriendsList > .row {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+    margin: 0 !important;
+    padding: 8px 6px;
+    border-radius: var(--icx-radius-btn);
+}
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_divFriendsList > .row:hover { background: var(--icx-surface-2); }
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_divFriendsList > .row > div { width: auto; max-width: none; flex: none; padding: 0; text-align: left; }
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_divFriendsList img { width: 40px !important; height: 40px; object-fit: cover; border-radius: var(--icx-radius-btn) !important; }
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_divFriendsList a { text-decoration: none !important; }
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_divFriendsList h4 { margin: 0 0 2px !important; font-size: 14px !important; font-weight: 600 !important; overflow-wrap: anywhere; }
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_divFriendsList .status_when { margin: 0; font-size: 12px !important; }
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_divFriendsList .status_when b { color: var(--icx-accent-text); }
+
+/* ── People tiles (dashboard) ─────────────────────────────────────────────── */
+
+html.icx-site .icx-paper #followingList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+}
+html.icx-site .icx-paper #followingList > .row { display: contents; }
+html.icx-site .icx-paper #followingList .card {
+    display: flex;
+    flex-direction: column;
+    width: auto !important;
+    max-width: none !important;
+    flex: none !important;
+    margin: 0 !important;
+    padding: 14px 10px 12px !important;
+    border: 1px solid var(--icx-border) !important;
+    border-radius: var(--icx-radius-sm) !important;
+    background: var(--icx-bg) !important;
+    text-align: center;
+    transition: transform .2s var(--icx-spring), border-color .12s;
+}
+html.icx-site .icx-paper #followingList .card:hover { border-color: var(--icx-accent) !important; transform: translateY(-2px); }
+html.icx-site .icx-paper #followingList .card-img-top img { width: 88px !important; height: 88px; object-fit: cover; border-radius: var(--icx-radius-sm) !important; }
+html.icx-site .icx-paper #followingList .card .card-block { padding: 8px 0 0 !important; overflow-wrap: anywhere; }
+html.icx-site .icx-paper #followingList .card .card-block > a { color: var(--icx-text) !important; font-weight: 700; }
+html.icx-site .icx-paper #followingList .card .card-block div {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-top: 2px;
+    font-size: 12px !important;
+    font-weight: 400;
+    line-height: 1.35 !important;
+}
+
+/* ── Dashboard ────────────────────────────────────────────────────────────── */
+
+html[data-icx-page="dashboard"] .icx-paper h1 { margin-left: 0 !important; }
+html[data-icx-page="dashboard"] .icx-paper > .col-12 > h1:first-of-type { margin-bottom: 20px !important; font-size: 28px !important; }
+html[data-icx-page="dashboard"] #ctl00_ContentPlaceHolder1_pnlMain h1 { margin: 28px 0 12px !important; font-size: 20px !important; }
+html[data-icx-page="dashboard"] #ctl00_ContentPlaceHolder1_pnlMain > h1:first-child { margin-top: 0 !important; }
+html[data-icx-page="dashboard"] #ctl00_ContentPlaceHolder1_pnlMain > br { display: none; }
+/* The site's spacer columns. */
+html[data-icx-page="dashboard"] .icx-paper :is(.col-sm-1, .col-1, .col-2):not(:has(*)) { display: none; }
+html[data-icx-page="dashboard"] .icx-paper :is(.col-sm-10, .col-sm-11) { flex: 1 1 auto; max-width: none; padding: 0; }
+html[data-icx-page="dashboard"] #ctl00_ContentPlaceHolder1_pnlMain .row { margin-left: 0; margin-right: 0; }
+html[data-icx-page="dashboard"] #ctl00_ContentPlaceHolder1_pnlScratchPad:not(:has(img, a, b, p, li)) { display: none; }
+html[data-icx-page="dashboard"] .icx-paper center[style*="color"] { margin-bottom: 8px; text-align: left; font-size: 13px; }
+/* Your rooms and groups: chips. */
+html[data-icx-page="dashboard"] #ctl00_ContentPlaceHolder1_pnlMain :is(.col-sm-10, .col-sm-11) a:not(#followingList a) {
+    display: inline-flex;
+    align-items: center;
+    height: 32px;
+    margin: 0 6px 8px 0;
+    padding: 0 12px;
+    border: 1px solid var(--icx-border-strong);
+    border-radius: var(--icx-radius-btn);
+    color: var(--icx-text) !important;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none !important;
+    transition: border-color .12s, background-color .12s, transform .28s var(--icx-spring);
+}
+html[data-icx-page="dashboard"] #ctl00_ContentPlaceHolder1_pnlMain :is(.col-sm-10, .col-sm-11) a:not(#followingList a):hover {
+    border-color: var(--icx-accent);
+    background: var(--icx-surface-2);
+    transform: translateY(-1px);
+}
+/* Site dashboard: tiles. */
+html[data-icx-page="dashboard"] #ctl00_ContentPlaceHolder1_divSite h3 { margin: 32px 0 12px !important; margin-left: 0 !important; }
+html[data-icx-page="dashboard"] #ctl00_ContentPlaceHolder1_divSite .row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+    margin: 0;
+}
+html[data-icx-page="dashboard"] #ctl00_ContentPlaceHolder1_divSite .row > br { display: none; }
+html[data-icx-page="dashboard"] #ctl00_ContentPlaceHolder1_divSite .col-3 {
+    width: auto;
+    max-width: none;
+    flex: none;
+    padding: 14px !important;
+    border: 1px solid var(--icx-border);
+    border-radius: var(--icx-radius-sm) !important;
+    background: var(--icx-bg) !important;
+    font-size: 14px;
+}
+html[data-icx-page="dashboard"] #ctl00_ContentPlaceHolder1_divSite .col-3 .col-3 { margin-top: 12px; background: var(--icx-surface) !important; }
+html[data-icx-page="dashboard"] #ctl00_ContentPlaceHolder1_divSite .dash_header { margin-bottom: 8px; background: none !important; }
+html[data-icx-page="dashboard"] #ctl00_ContentPlaceHolder1_divSite td { white-space: normal; }
+html[data-icx-page="dashboard"] #ctl00_ContentPlaceHolder1_divSite td[align="right"] { width: 1%; padding-right: 10px !important; font-size: 12px !important; text-align: left; }
+html[data-icx-page="dashboard"] #ctl00_ContentPlaceHolder1_divSite .indent { margin: 6px 0 0; }
+
+/* ── Profile ──────────────────────────────────────────────────────────────── */
+
+html[data-icx-page="profile"] { --icx-side-w: 264px; }
+/* Cover banner: the profile's own background picture (pages.js). */
+html[data-icx-page="profile"] .icx-main.icx-has-cover { padding-top: 168px !important; }
+html[data-icx-page="profile"] .icx-main.icx-has-cover::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 148px;
+    border-radius: calc(var(--icx-radius) - 1px) calc(var(--icx-radius) - 1px) 0 0;
+    background: linear-gradient(transparent 40%, var(--icx-surface)), var(--icx-cover) center / cover no-repeat;
+}
+html[data-icx-page="profile"] .icx-side .user_name > div {
+    margin: 0 0 12px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: none !important;
+    color: var(--icx-text) !important;
+}
+html[data-icx-page="profile"] .icx-side .user_name span { color: var(--icx-text) !important; font: 800 20px/1.2 var(--icx-font) !important; overflow-wrap: anywhere; }
+html[data-icx-page="profile"] .user_profile_details { margin-top: 14px; color: var(--icx-text-muted); font-size: 13px; line-height: 1.45; }
+html[data-icx-page="profile"] .user_profile_details b { color: var(--icx-text); font-size: 14px; }
+html[data-icx-page="profile"] .user_profile_details > br { display: none; }
+html[data-icx-page="profile"] #ctl00_ContentPlaceHolder1_lblJoinDate { display: block; margin-bottom: 10px; }
+html[data-icx-page="profile"] #ctl00_ContentPlaceHolder1_lblKarma { display: inline-block; margin-top: 4px; padding: 6px 12px; border-radius: var(--icx-radius-btn); background: var(--icx-accent-soft); color: var(--icx-text); font-size: 14px; }
+html[data-icx-page="profile"] #ctl00_ContentPlaceHolder1_lblKarma b { color: var(--icx-accent-text); }
+html[data-icx-page="profile"] .user_profile_details > div[style*="width:70%"] { width: auto !important; margin: 6px auto 8px; font-size: 12px; }
+html[data-icx-page="profile"] .user_profile_details > div[id$="Button"] { margin: 6px 0 !important; }
+html[data-icx-page="profile"] .user_profile_details > div[id$="Button"]:empty { display: none; }
+html[data-icx-page="profile"] .user_profile_details .btn { width: 100% !important; }
+html[data-icx-page="profile"] .icon-heart-empty { color: var(--icx-live) !important; }
+html[data-icx-page="profile"] .icon-gift { color: var(--icx-online) !important; }
+
+/* Trophy case and badges: a wrapping grid, labels as small caps. */
+html.icx-site .icx-paper .trophy_case { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--icx-border); }
+html.icx-site .icx-paper .trophy_case > span,
+html.icx-site .icx-paper .trophy_case font { color: var(--icx-text-muted) !important; font: 400 11px/1.3 var(--icx-font) !important; letter-spacing: 0; text-transform: none; }
+html.icx-site .icx-paper .trophy_case > br { display: none; }
+html.icx-site .icx-paper .trophy_case table { margin: 8px auto 4px; }
+html.icx-site .icx-paper .trophy_case tbody { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+html.icx-site .icx-paper .trophy_case tr { display: contents; }
+html.icx-site .icx-paper .trophy_case td { display: block; padding: 0; }
+html.icx-site .icx-paper .trophy_case img.trophy { width: 44px !important; max-width: 44px; transition: transform .2s var(--icx-spring); }
+html.icx-site .icx-paper .trophy_case img.trophy:hover { transform: translateY(-2px) scale(1.06); }
+
+/* Summary line and bio. */
+html[data-icx-page="profile"] .profile_user_summary { margin-bottom: 16px; color: var(--icx-text-muted); font-size: 14px; }
+html[data-icx-page="profile"] .profile_user_summary b { color: var(--icx-text); }
+html[data-icx-page="profile"] .icx-main > div[style*="text-align:center"] { padding: 0 !important; text-align: left !important; }
+html[data-icx-page="profile"] .icx-main > div[style*="text-align:center"] > table {
+    width: 100% !important;
+    border-collapse: separate;
+    padding: 0 !important;
+    border-radius: var(--icx-radius-sm) !important;
+    background: var(--icx-bg) !important;
+    color: var(--icx-text) !important;
+}
+html[data-icx-page="profile"] .icx-main > div[style*="text-align:center"] > table td {
+    padding: 18px 20px !important;
+    border: 1px solid var(--icx-border);
+    border-radius: var(--icx-radius-sm);
+    box-shadow: none !important;
+}
+html[data-icx-page="profile"] #ctl00_ContentPlaceHolder1_labelBio,
+html[data-icx-page="profile"] #ctl00_ContentPlaceHolder1_labelBio * { color: var(--icx-text) !important; font-family: var(--icx-font-chat) !important; font-size: 16px !important; }
+html[data-icx-page="profile"] #ctl00_ContentPlaceHolder1_labelBio a { color: var(--icx-accent-text) !important; }
+
+/* ── Groups list ──────────────────────────────────────────────────────────── */
+
+html.icx-site .icx-paper .group_entry {
+    margin: 0 0 10px !important;
+    padding: 14px !important;
+    border: 1px solid var(--icx-border) !important;
+    border-radius: var(--icx-radius-sm) !important;
+    background: var(--icx-bg) !important;
+}
+html.icx-site .icx-paper .group_entry > .row {
+    display: grid;
+    grid-template-columns: 72px minmax(140px, 220px) minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+    margin: 0;
+    padding: 0 !important;
+}
+html.icx-site .icx-paper .group_entry > .row > div { width: auto; max-width: none; flex: none; padding: 0; }
+html.icx-site .icx-paper .group_entry .small_indent { margin: 0; padding: 0; }
+html.icx-site .icx-paper img.roomgraphic {
+    width: 72px !important;
+    height: 72px !important;
+    object-fit: cover;
+    border-radius: var(--icx-radius-sm) !important;
+    box-shadow: 0 0 0 1px var(--icx-border);
+}
+html.icx-site .icx-paper .group_entry > .row > div:nth-child(2) { color: var(--icx-text-muted); font-size: 13px; }
+html.icx-site .icx-paper .group_entry > .row > div:nth-child(2) a { color: var(--icx-text-muted) !important; text-decoration: none !important; }
+html.icx-site .icx-paper .group_entry > .row > div:nth-child(2) a b { color: var(--icx-text); font-size: 16px; font-weight: 800; }
+html.icx-site .icx-paper .group_entry > .row > div:nth-child(2) a:hover b { color: var(--icx-accent-text); }
+html.icx-site .icx-paper .group_entry span[style*="font-size:18pt"] { display: block; font-size: 14px !important; line-height: 1.9; }
+html.icx-site .icx-paper .group_entry [class*="icon-circle-arrow"] { margin-right: 6px; }
+/* Its rooms: tiles, like the lobby. */
+html.icx-site .icx-paper .group_entry > .row > div:nth-child(3) > .row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+    margin: 0 0 10px;
+}
+html.icx-site .icx-paper .group_entry > .row > div:nth-child(3) > .row > div { width: auto; max-width: none; flex: none; padding: 0; }
+html.icx-site .icx-paper .group_entry > .row > div:nth-child(3) > .row > .col-sm-1,
+html.icx-site .icx-paper .group_entry > .row > div:nth-child(3) > .row > div:not(:has(*)) { display: none; }
+@media (max-width: 767px) {
+    html.icx-site .icx-paper .group_entry > .row { grid-template-columns: 56px minmax(0, 1fr); }
+    html.icx-site .icx-paper .group_entry > .row > div:nth-child(3) { grid-column: 1 / -1; }
+    html.icx-site .icx-paper img.roomgraphic { width: 56px !important; height: 56px !important; }
+}
+
+/* ── Messages ─────────────────────────────────────────────────────────────── */
+
+html[data-icx-page="messages"] .icx-side { text-align: left; }
+html[data-icx-page="messages"] .icx-side .page_name,
+html[data-icx-page="messages"] .icx-side .page_name * { color: var(--icx-text) !important; font: 800 24px/1.2 var(--icx-font) !important; text-align: left; }
+html[data-icx-page="messages"] .icx-side .page_name::first-letter { text-transform: uppercase; }
+html[data-icx-page="messages"] #links { margin-top: 14px; color: var(--icx-text-muted); font-size: 13px; line-height: 1.4 !important; text-align: left; }
+html[data-icx-page="messages"] #links > br { display: none; }
+/* "Showing: recent" and the unread / all / more filters as a stacked menu. */
+html[data-icx-page="messages"] #links > b.rounded {
+    display: block;
+    margin: 4px 0 14px;
+    padding: 0 !important;
+    background: none !important;
+    color: var(--icx-accent-text) !important;
+    font: 800 18px/1.3 var(--icx-font) !important;
+}
+html[data-icx-page="messages"] #links > p { margin: 0 0 2px; }
+html[data-icx-page="messages"] #links > p > a,
+html[data-icx-page="messages"] #more_links a {
+    display: block;
+    padding: 6px 10px;
+    border-radius: var(--icx-radius-btn);
+    color: var(--icx-text) !important;
+    font-weight: 600;
+    text-decoration: none !important;
+}
+html[data-icx-page="messages"] #links > p > a:hover,
+html[data-icx-page="messages"] #more_links a:hover { background: var(--icx-surface-2); color: var(--icx-accent-text) !important; }
+/* Keyboard shortcuts: a small key/action list. */
+html[data-icx-page="messages"] #links > div[align="center"] { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--icx-border); text-align: left; }
+html[data-icx-page="messages"] #links table { width: 100%; margin-top: 8px; border: 0 !important; }
+html[data-icx-page="messages"] #links td { padding: 3px 0; font-size: 12px !important; }
+html[data-icx-page="messages"] #links td[align="right"] { width: 56px; padding-right: 10px; text-align: left; }
+html[data-icx-page="messages"] #links td[align="right"] {
+    color: var(--icx-text);
+    font: 700 11px/1 ui-monospace, Menlo, Consolas, monospace !important;
+}
+
+/* Search. */
+html[data-icx-page="messages"] #search-parent { display: flex; justify-content: flex-start; gap: 6px; margin-bottom: 14px; }
+html[data-icx-page="messages"] #search-for { width: min(420px, 100%) !important; font-size: 15px !important; }
+html[data-icx-page="messages"] #startSearch { top: 0 !important; min-height: 38px; color: var(--icx-text-muted) !important; }
+html[data-icx-page="messages"] #search-parent + br { display: none; }
+
+/* The list: one row per conversation; unread ones bold with an accent dot;
+   the j/k cursor (.hover) and x-marked rows (.selected) in the accent. */
+html[data-icx-page="messages"] #messages > a { display: block; color: var(--icx-text) !important; text-decoration: none !important; }
+html[data-icx-page="messages"] .message_header {
+    align-items: center;
+    margin: 0 !important;
+    padding: 10px 6px !important;
+    border-bottom: 1px solid var(--icx-border);
+    border-radius: var(--icx-radius-btn);
+    background: none !important;
+    color: var(--icx-text-muted) !important;
+    font-size: 14px;
+    transition: background-color .12s;
+}
+html[data-icx-page="messages"] #messages > a:hover .message_header { background: var(--icx-surface-2) !important; }
+html[data-icx-page="messages"] .message_header > div { color: inherit; }
+html[data-icx-page="messages"] .message_header > [class*="col-9"] { color: var(--icx-text); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html[data-icx-page="messages"] .message_subject { color: var(--icx-text-muted); font-weight: 400; }
+html[data-icx-page="messages"] .message_subject b { color: var(--icx-text); font-weight: 600; }
+html[data-icx-page="messages"] .message_header.read > [class*="col-9"] { font-weight: 600; }
+html[data-icx-page="messages"] .message_header.read .message_subject b { font-weight: 400; }
+html[data-icx-page="messages"] .message_header:not(.read) > .message_state::before {
+    content: "";
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 6px;
+    border-radius: 50%;
+    background: var(--icx-accent);
+}
+html[data-icx-page="messages"] .message_state img { width: 16px !important; height: 16px !important; opacity: .7; }
+html[data-icx-page="messages"] .message_header.read .message_state img { opacity: .35; }
+html[data-icx-page="messages"] .message_when { color: var(--icx-text-muted) !important; font-size: 12px; text-align: right; white-space: nowrap; }
+html[data-icx-page="messages"] .message_header.hover,
+html[data-icx-page="messages"] .message_header.hover a {
+    background: var(--icx-accent-soft) !important;
+    color: var(--icx-text) !important;
+}
+html[data-icx-page="messages"] .message_header.hover { box-shadow: inset 3px 0 0 var(--icx-accent); }
+html[data-icx-page="messages"] .message_header.selected { background: var(--icx-surface-2) !important; box-shadow: inset 0 0 0 1px var(--icx-accent); }
+
+/* ── A conversation ───────────────────────────────────────────────────────── */
+
+html[data-icx-page="thread"] #ctl00_ContentPlaceHolder1_divMessages { padding: 0 !important; }
+html[data-icx-page="thread"] #ctl00_ContentPlaceHolder1_labelMessageList > a[href$="/messages/"] { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 8px; color: var(--icx-text-muted) !important; font-size: 13px; font-weight: 700; }
+html[data-icx-page="thread"] #ctl00_ContentPlaceHolder1_labelMessageList > br { display: none; }
+html[data-icx-page="thread"] #clickToShow { margin: 8px 0 14px; }
+html[data-icx-page="thread"] #clickToShow > br { display: none; }
+html[data-icx-page="thread"] #clickToShow a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border: 1px dashed var(--icx-border-strong);
+    border-radius: var(--icx-radius-btn);
+    color: var(--icx-text-muted) !important;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none !important;
+}
+html[data-icx-page="thread"] #clickToShow a:hover { border-color: var(--icx-accent); color: var(--icx-text) !important; }
+/* Each message: a tile with the sender (picture, name, when) across the
+   top and the body under it. */
+html.icx-site .icx-paper .row.message_content_block:not(:has(> .post_number)) {
+    display: block;
+    margin: 0 0 12px !important;
+    padding: 14px 16px 10px !important;
+    border: 1px solid var(--icx-border);
+    border-radius: var(--icx-radius-sm) !important;
+    background: var(--icx-bg) !important;
+}
+html.icx-site .icx-paper .row.message_content_block:not(:has(> .post_number)) > div {
+    width: auto;
+    max-width: none;
+    flex: none;
+    margin: 0 !important;
+    padding: 0 !important;
+    text-align: left;
+}
+html.icx-site .icx-paper .row.message_content_block:not(:has(> .post_number)) > div:first-child {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px !important;
+}
+html.icx-site .icx-paper .message_content_block .user_pic { width: 36px !important; height: 36px !important; border-radius: var(--icx-radius-btn) !important; }
+html.icx-site .icx-paper .message_content_block > div:first-child > br { display: none; }
+html.icx-site .icx-paper .message_who { color: var(--icx-text); font-size: 14px; font-weight: 800; }
+html.icx-site .icx-paper .message_content_block > div:first-child > span { color: var(--icx-text-muted) !important; font-size: 12px; }
+html.icx-site .icx-paper .message_body { padding-left: 46px; color: var(--icx-text); font-family: var(--icx-font-chat); font-size: 16px; line-height: 1.55; overflow-wrap: anywhere; }
+html.icx-site .icx-paper .message_body :is(h1, h2, h3) { font-size: 18px !important; }
+html.icx-site .icx-paper .message_body > br:nth-last-child(-n+3) { display: none; }
+html.icx-site .icx-paper .message_content_block p.txtright { margin: 0 !important; text-align: right; }
+html.icx-site .icx-paper .message_content_block p.txtright a { font-size: 12px; }
+html.icx-site .icx-paper .message_content_block p.txtright a:hover { color: var(--icx-live) !important; }
+@media (max-width: 767px) {
+    html.icx-site .icx-paper .message_body { padding-left: 0; }
+}
+
+/* Reply box and the thread's actions. */
+html[data-icx-page="thread"] #ctl00_ContentPlaceHolder1_divMessageViewControls { margin-top: 8px; }
+html[data-icx-page="thread"] #ctl00_ContentPlaceHolder1_divMessageViewControls textarea { width: 100% !important; min-height: 120px; }
+html[data-icx-page="thread"] #ctl00_ContentPlaceHolder1_divMessageViewControls .ui-button {
+    width: 36px !important;
+    height: 36px !important;
+    margin: 0 2px !important;
+    padding: 0 !important;
+    border: 1px solid var(--icx-border-strong) !important;
+    border-radius: var(--icx-radius-btn) !important;
+    background-color: var(--icx-surface-2) !important;
+    background-position-y: center;
+    cursor: pointer;
+    transition: border-color .12s;
+}
+html[data-icx-page="thread"] #ctl00_ContentPlaceHolder1_divMessageViewControls .ui-button:hover { border-color: var(--icx-accent) !important; }
+
+/* ── A group ──────────────────────────────────────────────────────────────── */
+
+html[data-icx-page="group"] .icx-side { text-align: left; }
+html[data-icx-page="group"] .icx-side .indent { margin: 0; padding: 0; }
+html[data-icx-page="group"] .icx-side .page_name,
+html[data-icx-page="group"] .icx-side .page_name * { color: var(--icx-text) !important; font: 800 20px/1.25 var(--icx-font) !important; overflow-wrap: anywhere; }
+html[data-icx-page="group"] #ctl00_ContentPlaceHolder1_labelDetails { display: block; margin: 8px 0 0; line-height: 1.6; }
+html[data-icx-page="group"] .icx-side :is(.btn, input[type="submit"]) { width: 100%; margin: 4px 0 0 !important; }
+html[data-icx-page="group"] .icx-main > div[style*="padding"] { padding: 0 !important; }
+/* Members: the A–Z letter bar as small chips; each letter's list in columns. */
+html[data-icx-page="group"] .lm-wrapper { position: relative; margin-bottom: 16px; }
+html[data-icx-page="group"] .lm-letters { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+html[data-icx-page="group"] .lm-letters a {
+    display: grid;
+    place-items: center;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 6px;
+    border: 1px solid var(--icx-border);
+    border-radius: 6px;
+    background: none !important;
+    color: var(--icx-text-muted) !important;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none !important;
+}
+html[data-icx-page="group"] .lm-letters a:hover,
+html[data-icx-page="group"] .lm-letters a.lm-selected { border-color: var(--icx-accent); background: var(--icx-accent-soft) !important; color: var(--icx-text) !important; }
+html[data-icx-page="group"] .lm-letters a.lm-disabled { opacity: .4; }
+html[data-icx-page="group"] .lm-menu {
+    width: auto !important;
+    padding: 12px 14px;
+    border: 1px solid var(--icx-border) !important;
+    border-radius: var(--icx-radius-sm);
+    background: var(--icx-bg) !important;
+    box-shadow: none !important;
+}
+html[data-icx-page="group"] .lm-menu:not(:has(.lm-submenu:not([style*="display:none"]):not([style*="display: none"]))) { padding: 0; border: 0 !important; }
+html[data-icx-page="group"] .lm-menu .lm-col { width: auto !important; min-width: 150px; margin-right: 24px !important; }
+html[data-icx-page="group"] .lm-menu ul { margin: 0 !important; padding: 0 !important; list-style: none; }
+html[data-icx-page="group"] .lm-menu li { padding: 2px 0; font-size: 14px !important; }
+html[data-icx-page="group"] .lm-letter-count { border-radius: 6px; background: var(--icx-accent) !important; color: var(--icx-accent-fg) !important; }
+/* Email preferences: radio rows. */
+html[data-icx-page="group"] table.radio td { padding: 4px 0; }
+html[data-icx-page="group"] .icx-main :is(span, div)[id] > h2,
+html[data-icx-page="group"] .icx-main #ctl00_ContentPlaceHolder1_divEmailPreferences > h3 { margin-top: 24px !important; }
+html[data-icx-page="group"] table.radio label { color: var(--icx-text); }
+
+/* ── Dialogs over the pages (jQuery UI, Bootstrap modals, SweetAlert) ─────── */
+
+html[data-icx-page] .ui-dialog,
+html[data-icx-page] .modal-content,
+html[data-icx-page] .swal-modal {
+    border: 1px solid var(--icx-border) !important;
+    border-radius: var(--icx-radius) !important;
+    background: var(--icx-surface) !important;
+    box-shadow: var(--icx-shadow) !important;
+    color: var(--icx-text) !important;
+    font-family: var(--icx-font) !important;
+}
+html[data-icx-page] :is(.ui-dialog-titlebar, .modal-header, .modal-footer) {
+    border: 0 !important;
+    border-color: var(--icx-border) !important;
+    background: transparent !important;
+    color: var(--icx-text) !important;
+}
+html[data-icx-page] .modal-header { border-bottom: 1px solid var(--icx-border) !important; }
+html[data-icx-page] :is(.ui-dialog-title, .modal-title, .swal-title) { color: var(--icx-text) !important; font: 800 17px/1.25 var(--icx-font) !important; }
+html[data-icx-page] .swal-text { color: var(--icx-text-muted) !important; }
+html[data-icx-page] .modal-header .close { color: var(--icx-text-muted) !important; text-shadow: none !important; opacity: 1; }
+html[data-icx-page] .ui-dialog-content { background: transparent !important; color: var(--icx-text) !important; }
+html[data-icx-page] .swal-button { border-radius: var(--icx-radius-btn) !important; background: var(--icx-accent) !important; color: var(--icx-accent-fg) !important; font: 700 14px var(--icx-font) !important; box-shadow: none !important; }
+html[data-icx-page] .swal-button--cancel { background: var(--icx-surface-2) !important; color: var(--icx-text) !important; }
+html[data-icx-page] :is(.ui-widget-overlay, .swal-overlay, .modal-backdrop.show) { background: rgba(20, 14, 22, .45) !important; opacity: 1 !important; }
+
+@media (prefers-reduced-motion: reduce) {
+    html.icx-site .icx-paper * { transition: none !important; }
+    html.icx-site .icx-paper *:active,
+    html.icx-site .icx-paper *:hover { transform: none !important; }
+}
+
+/* ── Phones ───────────────────────────────────────────────────────────────── */
+
+@media (max-width: 767px) {
+    /* The header's two rows of links wrap rather than spill out of it. */
+    html[data-icx-page] #ctl00_panelHeader { height: auto !important; min-height: 48px; padding: 6px 12px !important; gap: 10px; }
+    html[data-icx-page] .page_header_userlinks { line-height: 1.6; }
+    /* Label above field. */
+    html[data-icx-page="settings"] .icx-main .user_setting > div,
+    html[data-icx-page="settings"] .icx-main .row > :is(.col-1, .col-3, .col-4, .col-5, .col-6, .col-9, .col-10):not(:empty) { flex: 0 0 100%; max-width: 100%; text-align: left !important; }
+    html[data-icx-page="settings"] .icx-main .row > :is(.col-1, .col-3, .col-4):empty { display: none; }
+    html[data-icx-page="settings"] .icx-main .user_setting > :first-child { padding-top: 0; padding-bottom: 6px; }
+    html.icx-site .icx-side .user_pic { max-width: 96px; }
+    /* The feedback chip sits at the end of the page instead of over it. */
+    html[data-icx-page] #bugstomp { position: static !important; display: block !important; width: max-content !important; margin: 0 auto 16px !important; }
+}

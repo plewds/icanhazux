@@ -13,6 +13,7 @@ icanhazbetter worked out about the site's internals.
 - **Refresh a cam.** Restarts just that one feed. Use it when a cam freezes or goes black.
 - **Hide a cam.** The cam disappears and its stream is stopped, and it stays hidden whenever that user cams up again. Use **Hidden** under the cams to bring them back.
 - **Resize cams vs. chat.** Drag the bar between the cams and the chat. Double-click it to reset.
+- **The rest of the site matches.** The lobby, profiles, settings, messages, groups and dashboard get the same light and dark themes, accent and fonts as rooms. Their content sits on the same accent-edged cards as the cams and chat. Pages with a sidebar get two cards side by side. Room previews look like cam tiles. A profile's background picture becomes a cover banner.
 - **Chat fixes the bigger layout needs.** Stops chat freezing when the log is tall, and stops scrolling chat from stealing focus from other text boxes.
 
 Everything is saved in your browser's local storage for icanhazchat.com. There's no analytics and nothing leaves your browser.
@@ -33,11 +34,15 @@ src/
   shell.js   full-window stage and the cams/chat divider
   cams.js    cam grid: placement, focus, refresh, hide, drag
   page.js    runs in the page's own JS world; wraps two site functions
+  site.js    every page: fonts, the shared header and footer
+  pages.js   pages outside rooms: page type, cards, re-pointing hard-coded grays
+  theme.js   light/dark and accent; lifts too-dark colors in the dark theme
 styles/
   icanhazux.css
+  pages.css  pages outside rooms
 test/
   pack.test.js   layout engine unit tests
-  e2e.test.js    browser tests against test/mock (a stand-in room page)
+  e2e.test.js    browser tests against test/mock (stand-in room and settings pages)
 ```
 
 No build step. `npm test` runs the unit tests. `npm run test:e2e` runs the browser tests and needs Playwright.

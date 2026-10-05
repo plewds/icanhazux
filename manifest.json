@@ -20,13 +20,15 @@
         "https://www.icanhazchat.com/*"
       ],
       "css": [
-        "styles/icanhazux.css"
+        "styles/icanhazux.css",
+        "styles/pages.css"
       ],
       "js": [
         "src/core.js",
         "src/pack.js",
         "src/theme.js",
         "src/site.js",
+        "src/pages.js",
         "src/shell.js",
         "src/cams.js",
         "src/stamps.js",

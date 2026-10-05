@@ -1,0 +1,232 @@
+// Pages outside rooms: the lobby, profiles, settings, messages, groups and the
+// dashboard. They share the site header and footer (site.js themes those) and
+// little else: each page's content is its own markup, full of hard-coded
+// whites and grays (inline styles, <style> blocks, the site's stylesheet). So:
+//
+//   - html[data-icx-page] names the page, for the per-page rules in the CSS.
+//   - A two-column page (a sidebar and the main content, which is most of
+//     them) gets its columns marked .icx-side / .icx-main, and the CSS makes
+//     each a card, like the cam and chat cards in a room. A one-column page
+//     is a single card.
+//   - Neutral colors are re-pointed at the theme: a white or gray background
+//     becomes the card or an inset, gray text becomes the text or muted color,
+//     a gray border the border color. That works off computed styles, so it
+//     catches colors from anywhere, and leaves real colors (a red warning,
+//     a user's pick) alone. theme.js lifts those in the dark theme if they
+//     would be too dark to read.
+(function () {
+    'use strict';
+
+    const { el, frameThrottle, onRetire } = globalThis.ICX;
+
+    if (globalThis.ICX.isRoom) { return; }
+    const paper = document.querySelector('.icx-paper');
+    if (!paper) { return; }
+    const root = document.documentElement;
+    const part = id => document.getElementById(`ctl00_ContentPlaceHolder1_${id}`);
+
+    // ── Which page ──────────────────────────────────────────────────────────
+    // By landmarks in the markup rather than the URL: the site serves the same
+    // page under several paths (/settings, /Settings/, /settings.aspx…).
+    const KINDS = [
+        ['settings', () => part('divSettings')],
+        ['dashboard', () => part('pnlScratchPad')],
+        ['home', () => part('txtRoomName')],
+        ['profile', () => part('lblKarma') || part('labelBio')],
+        ['thread', () => part('divMessageViewControls')],
+        ['messages', () => part('divMessages')],
+        ['group', () => part('labelGroupName')],
+        ['groups', () => paper.querySelector('.group_entry')],
+    ];
+    const kind = (KINDS.find(([, test]) => test()) || ['other'])[0];
+    root.dataset.icxPage = kind;
+
+    // ── Layout: sidebar card + main card ────────────────────────────────────
+    // The two-column pages are a Bootstrap row near the top of the panel with
+    // a narrow col-lg-* and a wide one.
+    const cols = row => [...row.children].filter(c => /\bcol-lg-\d/.test(c.className));
+    const split = [...paper.querySelectorAll(':scope > .row, :scope > div > .row, :scope > div > div > .row')]
+        .find(row => cols(row).length === 2);
+    if (split) {
+        const [side, main] = cols(split);
+        // A "sidebar" holding only the page's name (groups, a message
+        // thread) is a title over a single card instead.
+        const thin = !side.querySelector('img, input, textarea, select, table, ul, a') &&
+            side.textContent.trim().length < 40;
+        if (thin) {
+            split.classList.add('icx-titled');
+            side.classList.add('icx-page-title');
+            paper.classList.add('icx-card');
+        } else {
+            split.classList.add('icx-split');
+            side.classList.add('icx-side', 'icx-card');
+            main.classList.add('icx-main', 'icx-card');
+            paper.classList.add('icx-paper-split');
+        }
+    } else {
+        paper.classList.add('icx-card');
+    }
+
+    // ── Settings ────────────────────────────────────────────────────────────
+    // Each settings page opens with a dark bar: "⌂ Settings » Your Password".
+    // It becomes a breadcrumb: the link back, then this page's name as the
+    // card's title.
+    if (kind === 'settings') {
+        for (const h3 of paper.querySelectorAll('h3')) {
+            const back = h3.querySelector(':scope > a[href*="ettings"]');
+            if (!back) { continue; }
+            h3.classList.add('icx-crumb');
+            for (const node of [...h3.childNodes]) {
+                if (node.nodeType === 3 && /»/.test(node.textContent)) {
+                    const here = node.textContent.replace(/^[\s»]+/, '').trim();
+                    node.replaceWith(el('span', { class: 'icx-crumb-here', text: here }));
+                }
+            }
+        }
+        // The index: four groups of links.
+        const index = part('panelMain');
+        if (index) { index.classList.add('icx-settings-index'); }
+    }
+
+    // ── Profile ─────────────────────────────────────────────────────────────
+    // A profile's background picture (the owner's pick, which the theme
+    // otherwise hides behind its plain page color) becomes a cover banner
+    // across the top of the main card.
+    if (kind === 'profile' && split?.classList.contains('icx-split')) {
+        const m = /url\(["']?([^"')]+)["']?\)/.exec(document.body.style.backgroundImage || '');
+        if (m) {
+            const main = split.querySelector(':scope > .icx-main');
+            main.style.setProperty('--icx-cover', `url("${m[1].replace(/"/g, '%22')}")`);
+            main.classList.add('icx-has-cover');
+        }
+    }
+
+    // ── Colors ──────────────────────────────────────────────────────────────
+
+    function rgba(css) {
+        const m = /rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,\s/]+([\d.]+%?))?/.exec(css || '');
+        if (!m) { return null; }
+        let a = m[4] === undefined ? 1 : parseFloat(m[4]);
+        if (String(m[4]).endsWith('%')) { a /= 100; }
+        return [+m[1], +m[2], +m[3], a];
+    }
+    // The color theme.js saved before lifting it: an rgb() from style.color,
+    // or "color:<value>" from <font color>, where the value is usually hex.
+    function original(node) {
+        let c = node.dataset.icxColor;
+        if (!c) { return null; }
+        if (c.startsWith('color:')) { c = c.slice(6).trim(); }
+        const hex = /^#?([\da-f]{3}|[\da-f]{6})$/i.exec(c);
+        if (hex) {
+            const h = hex[1].length === 3 ? hex[1].replace(/./g, ch => ch + ch) : hex[1];
+            const n = parseInt(h, 16);
+            return `rgb(${n >> 16}, ${(n >> 8) & 255}, ${n & 255})`;
+        }
+        return c;
+    }
+
+    // Gray (any shade, white and black included) vs. a real color.
+    const isNeutral = ([r, g, b]) => Math.max(r, g, b) - Math.min(r, g, b) <= 24;
+    const lightness = ([r, g, b]) => (Math.max(r, g, b) + Math.min(r, g, b)) / 510;
+
+    // The theme's own colors, as computed rgb() strings: anything already
+    // wearing one of these is styled by our CSS and left alone. Kept apart
+    // for backgrounds and text: white is a text token (on the accent), but a
+    // white background is the page's.
+    const bgTokens = new Set();
+    const fgTokens = new Set();
+    function readTokens() {
+        const probe = el('span', { style: 'position:absolute;visibility:hidden' });
+        paper.append(probe);
+        const read = (set, names) => names.forEach(name => {
+            probe.style.color = `var(${name})`;
+            set.add(getComputedStyle(probe).color);
+        });
+        read(bgTokens, ['--icx-bg', '--icx-surface', '--icx-surface-2', '--icx-stage', '--icx-accent',
+            '--icx-accent-soft', '--icx-live', '--icx-border', '--icx-border-strong']);
+        read(fgTokens, ['--icx-text', '--icx-text-muted', '--icx-accent', '--icx-accent-text', '--icx-accent-fg',
+            '--icx-live-fg']);
+        probe.remove();
+    }
+
+    // Nothing to re-point in media, form controls and buttons (the CSS styles
+    // those outright), or in our own elements.
+    const SKIP = 'img, svg, video, audio, iframe, object, embed, canvas, input, select, textarea, option, ' +
+        'button, .btn, br, script, style, link, [class*="icx-"]:not(.icx-paper):not(.icx-card)';
+
+    // The background a piece of text actually sits on: the nearest one that
+    // isn't (nearly) transparent.
+    function backdrop(node) {
+        for (let n = node; n && n !== document.documentElement; n = n.parentElement) {
+            const c = rgba(getComputedStyle(n).backgroundColor);
+            if (c && c[3] > 0.5) { return c; }
+        }
+        return null;
+    }
+
+    function tame(node) {
+        if (node.matches(SKIP)) { return; }
+        const cs = getComputedStyle(node);
+
+        const bg = rgba(cs.backgroundColor);
+        if (bg && bg[3] > 0.08 && isNeutral(bg) && !bgTokens.has(cs.backgroundColor) &&
+                !node.classList.contains('icx-card')) {
+            const l = lightness(bg);
+            if (l > 0.96) {
+                node.classList.add('icx-t-clear');                   // white (or a white haze): the card itself
+            } else {
+                node.classList.add('icx-t-soft');                    // gray: an inset
+                if (l < 0.6) { node.classList.add('icx-t-ink'); }    // dark gray bar with light text on it
+            }
+        }
+
+        // Text color: only where this element sets its own (not inherited).
+        // theme.js may already have lifted it for the dark theme; judge the
+        // color the page asked for.
+        const parent = node.parentElement;
+        if (parent && cs.color !== getComputedStyle(parent).color && !fgTokens.has(cs.color)) {
+            const fg = rgba(original(node)) || rgba(cs.color);
+            if (fg && isNeutral(fg)) {
+                const l = lightness(fg);
+                if (l > 0.9) {
+                    // White text belongs to whatever colored thing it sits on.
+                    const under = backdrop(node);
+                    if (!under || isNeutral(under)) { node.classList.add('icx-t-ink'); }
+                } else if (l >= 0.4) {
+                    node.classList.add('icx-t-muted');
+                } else {
+                    node.classList.add('icx-t-ink');
+                }
+            }
+        }
+
+        if (parseFloat(cs.borderTopWidth) || parseFloat(cs.borderLeftWidth)) {
+            const line = rgba(cs.borderTopColor) || rgba(cs.borderLeftColor);
+            if (line && isNeutral(line) && !bgTokens.has(cs.borderTopColor)) { node.classList.add('icx-t-line'); }
+        }
+    }
+
+    function tameWithin(node) {
+        if (node.nodeType !== 1 || !node.isConnected) { return; }
+        tame(node);
+        node.querySelectorAll('*').forEach(tame);
+    }
+
+    readTokens();
+    tameWithin(paper);
+    paper.classList.remove('icx-t-clear', 'icx-t-soft', 'icx-t-ink', 'icx-t-muted', 'icx-t-line');
+
+    // Update panels (ASP.NET partial postbacks) and the site's scripts replace
+    // parts of the page; tame what they add.
+    const pending = new Set();
+    const flush = frameThrottle(() => {
+        pending.forEach(tameWithin);
+        pending.clear();
+    });
+    const observer = new MutationObserver(records => {
+        for (const r of records) { r.addedNodes.forEach(n => { if (n.nodeType === 1) { pending.add(n); } }); }
+        if (pending.size) { flush(); }
+    });
+    observer.observe(paper, { childList: true, subtree: true });
+    onRetire(() => observer.disconnect());
+})();
