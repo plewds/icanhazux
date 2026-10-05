@@ -66,7 +66,9 @@ html[data-icx-theme="dark"] {
     --icx-mention: color-mix(in srgb, var(--icx-accent) 24%, transparent);
     --icx-mention-edge: var(--icx-accent);
     --icx-shadow: 0 12px 34px rgba(0, 0, 0, .5), 0 1px 3px rgba(0, 0, 0, .35);
-    --icx-logo-filter: brightness(0) invert(.92);   /* the site's logo is dark-on-light */
+    /* The site's logo is gray and blue on light. Flip its lightness and turn
+       the hues back: light-gray lettering, a brighter blue CHAT. */
+    --icx-logo-filter: invert(1) hue-rotate(180deg);
 
     --icx-sw-grape:     #a78bfa;  --icx-sw-grape-fg:     #1d1720;  --icx-sw-grape-text:     #b9a3ff;
     --icx-sw-crimson:   #e05561;  --icx-sw-crimson-fg:   #1d1720;  --icx-sw-crimson-text:   #e36671;
