@@ -2,6 +2,11 @@
 // store/screenshots/.
 //
 //   node scripts/screenshots.js        (needs Playwright + Chromium)
+//   ICX_SHOT_LOGO=path/to/logo.png node scripts/screenshots.js
+//
+// The header matches the site's own (logo, greeting, karma, the five
+// links), as does the room's (topic, Broadcast, Leave). The site's logo isn't part of this repo: point ICX_SHOT_LOGO at
+// a copy of it to show it, or the header goes without.
 //
 // Shot from the test stand-ins (test/mock), copied to a temporary folder and
 // dressed for a store page: soft lit "rooms" with a blurred, featureless
@@ -101,7 +106,29 @@ const FEED_SOURCE = `
 
 `;
 
+// The site header as the real site writes it when you're signed in
+// (rooms call the outer div #panelHeader, other pages #ctl00_panelHeader).
+const VIEWER = 'quietstorm';
+function siteHeader(id, logo) {
+    const links = ['messages', 'posts', 'groups', 'settings', 'dashboard']
+        .map(l => `<a href="javascript:void 0">${l}</a>`).join(' ');
+    return `<div id="${id}" class="row gray_back page_header rounded">` +
+        `<div class="col-0 col-lg-2" style="z-index:1000;"><div class="page_header_logo" id="ichc-logo-header">` +
+        `<a href="javascript:void 0">${logo ? `<img id="ichc-logo" src="${logo}" alt="">` : ''}</a></div></div>` +
+        `<div class="col-12 col-lg-10 txtright" style="text-align:right"><div class="page_header_userlinks"><span id="${id === 'panelHeader' ? 'labelSignInStatus' : 'ctl00_labelSignInStatus'}">` +
+        `Hello <a href="javascript:void 0"><b id="userID" style="font-size:large;">${VIEWER}</b></a> [<span title="karma">2417</span>] ` +
+        `<span class="header_links">(<a href="javascript:void 0">signout</a>)<br>${links} </span></span></div></div></div>`;
+}
+
+function logoDataUrl() {
+    const file = process.env.ICX_SHOT_LOGO;
+    if (!file) { return ''; }
+    const type = file.endsWith('.webp') ? 'image/webp' : file.endsWith('.png') ? 'image/png' : 'image/jpeg';
+    return `data:${type};base64,${fs.readFileSync(file).toString('base64')}`;
+}
+
 function dressMocks() {
+    const logo = logoDataUrl();
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'icx-shots-'));
     for (const f of fs.readdirSync(path.join(ROOT, 'test', 'mock'))) {
         fs.copyFileSync(path.join(ROOT, 'test', 'mock', f), path.join(dir, f));
@@ -139,26 +166,43 @@ function dressMocks() {
         `${open}${PEOPLE.length} people (<a href="javascript:void 0">refresh</a>) [click for details]: ` +
         `<input id="other-input" placeholder="some other text box"> ${PEOPLE.map(link).join(' ')}` +
         `<p>2 mods: ${link('northwind')} ${link('mika')}</p>${close}`);
-    room = room.replace('mock topic', 'The Lounge · be kind, have fun');
+    // The room header: topic, then Broadcast and Leave, as the site has them.
+    room = room.replace('<div id="topic">mock topic</div>',
+        '<div id="topicContainer"><div id="topic">The Lounge · be kind, have fun</div></div>' +
+        '<div id="camControl"><div id="broadcast" class="btn"><img alt="">&nbsp;<a href="javascript:void 0">Broadcast</a></div></div>' +
+        '<div id="signout"><b><a href="javascript:void 0">Leave</a></b></div>');
     room = room.replace('>command bar</div>', '></div>');   // the stand-in's placeholder text
-    room = room.replace(/<img id="ichc-logo"[^>]*>/, '');
+    room = room.replace(/<div id="panelHeader">[\s\S]*?<\/div><\/div>\n/, siteHeader('panelHeader', logo) + '\n');
+    // The room's emotimemes, in the site's hidden field (memes.js reads it).
+    const memes = Object.keys(MEMES).map(code => `:${code},${code}.svg,1`).join('|');
+    room = room.replace('<input id="txtMsg"', `<input id="hdnMemes" type="hidden" value="${memes}">\n        <input id="txtMsg"`);
     fs.writeFileSync(path.join(dir, 'room.html'), room);
 
-    let home = fs.readFileSync(path.join(dir, 'home.html'), 'utf8');
-    const ROOMS = { alpha: 'the_lounge', bravo: 'night_owls', charlie: 'studyhall', delta: 'music_room', echo: 'dashcams', foxtrot: 'movie_night', golf: 'yoga' };
-    for (const [from, to] of Object.entries(ROOMS)) { home = home.replaceAll(from, to); }
-    // No 18+ tags in a store listing, and no logo: the stand-in's is an empty
-    // image, and the site's isn't ours to show.
-    home = home.replaceAll('<p><span>18+</span></p>', '');
-    home = home.replace(/<img id="ichc-logo"[^>]*>/, '');
-    fs.writeFileSync(path.join(dir, 'home.html'), home);
     return dir;
 }
 
 // ── Shooting ─────────────────────────────────────────────────────────────────
 
+// Stand-in emotimemes: an emoji on a soft tile, served in place of the
+// site's image host (each room's real ones are its members' uploads).
+const MEMES = {
+    haha: ['😂', '#f5c84c'], happy: ['😊', '#f2a65a'], happydance: ['💃', '#e46f9b'], hai: ['👋', '#7cc5e8'],
+    hats: ['🎩', '#9a8cd8'], thanks: ['🙏', '#8fd18b'], shades: ['😎', '#5fb3b3'], chai: ['🍵', '#c9a27a'],
+    hug: ['🤗', '#f0a0a0'], yawn: ['🥱', '#b0b8c8'], party: ['🎉', '#e8b04c'], heart: ['❤️', '#e57b7b'],
+};
+function memeSvg(code) {
+    const [emoji, bg] = MEMES[code] || ['🙂', '#ccc'];
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">` +
+        `<rect width="96" height="96" rx="18" fill="${bg}"/>` +
+        `<text x="48" y="66" font-size="52" text-anchor="middle" font-family="Noto Color Emoji, sans-serif">${emoji}</text></svg>`;
+}
+
 async function open(browser, url, { theme = 'dark', room = false, setup } = {}) {
     const page = await browser.newPage({ viewport: { width: W, height: H }, colorScheme: theme, deviceScaleFactor: 1 });
+    await page.route('https://www.vidble.com/**', route => route.fulfill({
+        contentType: 'image/svg+xml',
+        body: memeSvg(path.basename(new URL(route.request().url()).pathname, '.svg')),
+    }));
     await page.addInitScript(root => {
         globalThis.chrome = { runtime: { getURL: p => `file://${root}/${p}` } };
         try { localStorage.clear(); } catch (_) {}
@@ -246,21 +290,27 @@ async function main() {
     await page.evaluate(() => document.getElementById('icx-chat-settings').querySelector('[data-accent="aqua"]')?.click());
     await shot(page, '4-chat-settings.png');
 
-    // 5. The lobby, light theme, with theme and accent from the header.
-    page = await open(browser, `file://${mocks}/home.html`, {
-        theme: 'light',
+    // 5. Emotimeme autocomplete, part way through a message.
+    page = await open(browser, room, { theme: 'dark', room: true });
+    await page.click('#txtMsg');
+    await page.keyboard.type('welcome back! :ha', { delay: 20 });
+    await page.waitForTimeout(600);
+    await shot(page, '5-emotimemes.png');
+
+    // 6. Hidden cams: two hidden here (one a nickname, hidden for this visit
+    // only), and a few more from other visits who aren't on cam.
+    page = await open(browser, room, {
+        theme: 'light', room: true,
         setup: () => {
-            const scenes = [['#7a5a8c', '#3a2f4f'], ['#4f7a8c', '#1f3b4d'], ['#8c6a55', '#40302a'], ['#5c8c6a', '#233a2c'],
-                ['#5a6a9c', '#2e2a40'], ['#9c6a5a', '#3d2b2b'], ['#6a8c8c', '#253d3d']];
-            document.querySelectorAll('.preview_room').forEach((tile, i) => {
-                const [a, b] = scenes[i % scenes.length];
-                tile.style.backgroundImage = `radial-gradient(circle at 78% 28%, #ffe2b0aa, transparent 45%), linear-gradient(135deg, ${a}, ${b})`;
-            });
+            localStorage.setItem('icx_hidden', JSON.stringify(['bramble', 'driftwood', 'zigzag_22', 'nightowl88']));
+            sessionStorage.setItem('icx_nicks', JSON.stringify(['saltydog']));
+            sessionStorage.setItem('icx_hiddenNicks', JSON.stringify(['saltydog']));
         },
     });
-    await page.click('#icx-menu-link');
-    await page.waitForTimeout(300);
-    await shot(page, '5-lobby-and-settings.png');
+    await page.click('#icx-hidden-btn');
+    await page.click('#icx-hidden-menu [data-offcam-toggle]');
+    await page.waitForTimeout(400);
+    await shot(page, '6-hidden-cams.png');
 
     // Small promo tile (440×280): the icon and the name.
     page = await browser.newPage({ viewport: { width: 440, height: 280 }, deviceScaleFactor: 1 });
