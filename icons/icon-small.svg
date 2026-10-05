@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" shape-rendering="crispEdges">
+  <!-- icanhazux, pixel-aligned for 16px (and 32/48 at 2x/3x): the same focus
+       layout as icon.svg on a 16-unit grid. -->
+  <rect x="0" y="0" width="16" height="16" rx="3.5" fill="#7c4dff" shape-rendering="geometricPrecision"/>
+  <rect x="3" y="3" width="7" height="7" fill="#fff"/>
+  <rect x="11" y="3" width="2" height="3" fill="#fff" fill-opacity=".72"/>
+  <rect x="11" y="7" width="2" height="3" fill="#fff" fill-opacity=".72"/>
+  <rect x="3" y="11" width="4" height="2" fill="#fff" fill-opacity=".72"/>
+  <rect x="8" y="11" width="5" height="2" fill="#fff" fill-opacity=".72"/>
+</svg>
