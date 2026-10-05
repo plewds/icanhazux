@@ -369,7 +369,18 @@ html.icx-site .icx-paper .dash_header {
 /* The panel's own frame and padding: the card has its own. */
 html[data-icx-page="settings"] .icx-main { padding: 22px 28px 28px !important; }
 html[data-icx-page="settings"] .icx-main > div > .subsection,
-html[data-icx-page="settings"] .icx-main .subsection.rounded { padding: 0 !important; border: 0 !important; background: none !important; }
+html[data-icx-page="settings"] .icx-main .subsection.rounded {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    outline: 0 !important;
+    border-radius: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+}
+/* The site draws its own frames (a shadowed white box) around sections;
+   inside a card, the card is the frame. */
+html.icx-site .icx-card :is(.subsection, .page_section, .page_section_white) { box-shadow: none !important; outline: 0 !important; }
 
 /* Breadcrumb: "⌂ Settings ›" small and muted, then the page's name as the
    card's title, over a rule. */
