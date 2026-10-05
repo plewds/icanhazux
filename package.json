@@ -2,7 +2,7 @@
   "name": "icanhazux",
   "version": "0.1.0",
   "private": true,
-  "description": "A better cam grid for icanhazchat.com rooms (browser extension).",
+  "description": "Restyles icanhazchat.com: a cam grid you can arrange, a cleaner chat, light and dark themes, and every page to match.",
   "scripts": {
     "test": "node --test test/pack.test.js",
     "test:e2e": "node --test test/e2e.test.js"
