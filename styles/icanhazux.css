@@ -1298,7 +1298,13 @@ html.icx-site .page_header_userlinks.icx-signed-out #icx-menu-link { display: bl
 #icx-site-settings[hidden] { display: none; }
 #icx-site-settings .icx-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 #icx-site-settings .icx-panel-title { margin: 0; }
-#icx-site-settings .icx-setting:last-child { margin-bottom: 0; }
+#icx-site-settings .icx-panel-note {
+    margin: 14px 0 0;
+    padding-top: 12px;
+    border-top: 1px solid var(--icx-border);
+    color: var(--icx-text-muted);
+    font: 12px/1.45 var(--icx-font);
+}
 .icx-panel-close {
     display: grid;
     place-items: center;

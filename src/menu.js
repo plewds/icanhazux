@@ -1,8 +1,7 @@
 // "| ichux" in the site header, on every page (rooms included), opening
-// ICHUX Settings: the
-// extension's appearance settings, theme and accent (controls.js), which
-// apply everywhere. Settings that only change chat stay in the chat bar's
-// panel in rooms.
+// ICHUX Settings: the extension's appearance settings, theme and accent
+// (controls.js), which apply everywhere. Settings that only change chat
+// stay in the chat bar's panel in rooms, and the panel says so.
 //
 // The header's links are
 //   logged in:  .page_header_userlinks … .header_links: (signout)<br>messages posts … dashboard
@@ -42,6 +41,11 @@
     const panel = el('div', { id: 'icx-site-settings', role: 'dialog', 'aria-label': 'ICHUX Settings', hidden: '' }, [
         el('div', { class: 'icx-panel-head' }, [el('div', { class: 'icx-panel-title', text: 'ICHUX Settings' }), close]),
         ...shared.map(c => c.node),
+        el('p', {
+            class: 'icx-panel-note',
+            text: 'Chat settings (your text color and size, chat colors, timestamps, PMs, notices and sounds) ' +
+                'are in the \u2699 on the chat bar in any room.',
+        }),
     ]);
     document.body.append(panel);
 

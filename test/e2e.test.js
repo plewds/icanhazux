@@ -581,6 +581,8 @@ test('header: ICHUX Settings holds appearance only; in a room it stays in step w
             [...document.querySelectorAll('#icx-site-settings [data-pref], #icx-site-settings .icx-swatches')]
                 .map(n => n.dataset.pref || 'accent'));
         assert.deepStrictEqual(prefs, ['theme', 'accent'], 'no chat-only settings in the header panel');
+        const note = await page.textContent('#icx-site-settings .icx-panel-note');
+        assert.match(note, /chat bar/, 'says where the chat settings are');
 
         await page.click('#icx-site-settings [data-accent="forest"]');
         await page.click('#icx-site-settings [data-pref="theme"] [data-value="dark"]');
