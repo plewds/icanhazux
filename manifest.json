@@ -1,17 +1,28 @@
 {
   "manifest_version": 3,
   "name": "icanhazux",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Restyles icanhazchat.com: a cam grid you can arrange, a cleaner chat, light and dark themes, and every page to match.",
+  "homepage_url": "https://github.com/plewds/icanhazux",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "96": "icons/icon-96.png",
+    "128": "icons/icon-128.png"
+  },
   "browser_specific_settings": {
     "gecko": {
       "id": "icanhazux@icanhazux",
-      "strict_min_version": "128.0",
+      "strict_min_version": "140.0",
       "data_collection_permissions": {
         "required": [
           "none"
         ]
       }
+    },
+    "gecko_android": {
+      "strict_min_version": "142.0"
     }
   },
   "content_scripts": [

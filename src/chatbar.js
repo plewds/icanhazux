@@ -13,7 +13,7 @@
 (function () {
     'use strict';
 
-    const { el, ICONS, signal, onRetire, removeStale } = globalThis.ICX;
+    const { el, icon, signal, onRetire, removeStale } = globalThis.ICX;
 
     const bar = document.getElementById('room_command_bar');
     if (!bar) { return; }
@@ -30,8 +30,7 @@
     const clearBtn = el('button', {
         type: 'button', class: 'icx-chip', id: 'icx-chat-clear',
         title: 'Clear the chat window (only on your screen)',
-        html: ICONS.clear + '<span>Clear</span>',
-    });
+    }, [icon('clear'), el('span', { text: 'Clear' })]);
     const pmBtn = el('button', { type: 'button', class: 'icx-chip', id: 'icx-chat-pms', hidden: '' });
     // PM conversations closed from their tab (pms.js keeps them): a menu to
     // reopen one.
@@ -44,8 +43,7 @@
     const gearBtn = el('button', {
         type: 'button', class: 'icx-chip icx-chip-icon', id: 'icx-chat-settings-btn', title: 'Settings',
         'aria-label': 'Settings', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-controls': 'icx-chat-settings',
-        html: ICONS.gear,
-    });
+    }, [icon('gear')]);
 
     const panel = el('div', { id: 'icx-chat-settings', role: 'dialog', 'aria-label': 'Chat settings', hidden: '' });
 
@@ -215,8 +213,10 @@
 
         pauseBtn.classList.toggle('icx-chip-alert', !s.following);
         const held = s.held || 0;
-        pauseBtn.innerHTML = s.following ? ICONS.pause + '<span>Pause</span>'
-            : ICONS.play + `<span>${held ? `Paused · ${held} new ↓` : 'Paused · Resume'}</span>`;
+        pauseBtn.replaceChildren(
+            icon(s.following ? 'pause' : 'play'),
+            el('span', { text: s.following ? 'Pause' : held ? `Paused · ${held} new ↓` : 'Paused · Resume' }),
+        );
         pauseBtn.title = s.following ? 'Pause chat scrolling'
             : 'Chat is paused. New messages are held until you resume. Click to resume.';
         pauseBtn.setAttribute('aria-pressed', String(!s.following));
@@ -225,7 +225,7 @@
 
         const closed = s.closedPms || [];
         closedBtn.hidden = !closed.length;
-        closedBtn.innerHTML = ICONS.message + `<span>Closed · ${closed.length}</span>`;
+        closedBtn.replaceChildren(icon('message'), el('span', { text: `Closed · ${closed.length}` }));
         if (!closed.length) { setClosedOpen(false); }
         const names = closed.join('\n');
         if (closedMenu.dataset.names !== names) {
@@ -238,7 +238,7 @@
 
         pmBtn.hidden = s.pmsVisible === null;
         if (s.pmsVisible !== null) {
-            pmBtn.innerHTML = ICONS.message + `<span>${s.pmsVisible ? 'Hide PMs' : 'Show PMs'}</span>`;
+            pmBtn.replaceChildren(icon('message'), el('span', { text: s.pmsVisible ? 'Hide PMs' : 'Show PMs' }));
             pmBtn.setAttribute('aria-pressed', String(s.pmsVisible));
         }
 

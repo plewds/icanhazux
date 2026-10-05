@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- icanhazux: the cam grid in focus layout (one big feed, the rest around
+       it), on the default grape accent. Drawn for 96px and up; icon-small.svg
+       is the pixel-aligned version for 16-48px. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9670ff"/>
+      <stop offset="1" stop-color="#5b2fe0"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="url(#bg)"/>
+  <rect x="24" y="24" width="52" height="52" rx="8" fill="#fff"/>
+  <rect x="82" y="24" width="22" height="23" rx="5" fill="#fff" fill-opacity=".72"/>
+  <rect x="82" y="53" width="22" height="23" rx="5" fill="#fff" fill-opacity=".72"/>
+  <rect x="24" y="82" width="37" height="22" rx="5" fill="#fff" fill-opacity=".72"/>
+  <rect x="67" y="82" width="37" height="22" rx="5" fill="#fff" fill-opacity=".72"/>
+</svg>

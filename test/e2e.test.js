@@ -127,13 +127,30 @@ test('site cam chrome is tucked away and its buttons moved to the bar', async ()
     assert.deepStrictEqual(vis, { ohhai: 'none', mute: 'none', refreshInBar: 'icx-bar', nativeDisable: 'none' });
 });
 
+test('the extension\'s icons are drawn: real SVG with a size, not empty', async () => {
+    await page.hover('#cams .rounded_square[data-icx-placed]');
+    const icons = await page.evaluate(() =>
+        [...document.querySelectorAll('.icx-tools svg, #icx-chatbar svg, #icx-people svg')].map(svg => ({
+            svg: svg instanceof SVGSVGElement,
+            size: svg.getBoundingClientRect().width,
+            drawn: svg.querySelector('path, rect, circle') !== null,
+        })));
+    assert.ok(icons.length >= 6, `icons found (${icons.length})`);
+    for (const i of icons) {
+        assert.ok(i.svg && i.drawn, 'an SVG element with shapes in it');
+    }
+    assert.ok(icons.some(i => i.size > 0), 'the visible ones have a size');
+});
 test('chat gets the full stage height; the user list is a drawer under it', async () => {
     const r = await page.evaluate(() => {
         const box = id => document.getElementById(id).getBoundingClientRect();
         return {
             chat: box('chat_container'), bar: box('icx-bar'), toggle: box('icx-drawer-toggle'),
             footer: box('footer'), label: document.getElementById('icx-drawer-toggle').textContent,
-            listVisible: getComputedStyle(document.getElementById('activeUserList')).visibility,
+            // The site's list stays in the drawer as people.js's source; the
+            // people panel is what opens.
+            siteList: getComputedStyle(document.getElementById('activeUserList')).display,
+            panelVisible: getComputedStyle(document.getElementById('icx-people')).visibility,
             back: getComputedStyle(document.getElementById('back')).display,
             vh: window.innerHeight,
         };
@@ -143,36 +160,40 @@ test('chat gets the full stage height; the user list is a drawer under it', asyn
     assert.ok(r.toggle.height < 45, `only a bar tall (${r.toggle.height})`);
     assert.ok(r.toggle.bottom <= r.vh + 1, 'in the viewport');
     assert.strictEqual(r.label, '172 people');
-    assert.strictEqual(r.listVisible, 'hidden', 'closed by default');
+    assert.strictEqual(r.siteList, 'none', "the site's own list is the hidden source");
+    assert.strictEqual(r.panelVisible, 'hidden', 'closed by default');
     assert.ok(r.footer.top >= r.toggle.bottom, 'footer below the stage');
     assert.strictEqual(r.back, 'none', 'site backdrop hidden');
 });
 
 test('the drawer opens over the chat, scrolls, and closes on Esc or a click elsewhere', async () => {
+    const panelVisibility = () => page.evaluate(() => getComputedStyle(document.getElementById('icx-people')).visibility);
     await page.click('#icx-drawer-toggle');
     await page.waitForTimeout(250);
     let r = await page.evaluate(() => {
-        const list = document.getElementById('activeUserList');
-        const l = list.getBoundingClientRect();
-        return { list: l, toggle: document.getElementById('icx-drawer-toggle').getBoundingClientRect(),
+        const panel = document.getElementById('icx-people');
+        const list = panel.querySelector('.icx-people-list');
+        return { panel: panel.getBoundingClientRect(), toggle: document.getElementById('icx-drawer-toggle').getBoundingClientRect(),
             chat: document.getElementById('chat_container').getBoundingClientRect(),
-            visible: getComputedStyle(list).visibility, scrolls: list.scrollHeight > list.clientHeight };
+            visible: getComputedStyle(panel).visibility, scrolls: list.scrollHeight > list.clientHeight };
     });
     assert.strictEqual(r.visible, 'visible');
-    assert.ok(r.list.bottom <= r.toggle.top + 1 && r.list.top >= r.chat.top, 'rises from the bar over the chat');
+    assert.ok(r.panel.bottom <= r.toggle.top + 1 && r.panel.top >= r.chat.top, 'rises from the bar over the chat');
     assert.ok(r.scrolls, 'long lists scroll inside the panel');
     if (SHOTS) { await page.screenshot({ path: path.join(SHOTS, '1b-drawer.png') }); }
 
+    // Esc closes it (from the search box, Esc clears it first; focus is on the toggle here).
     await page.keyboard.press('Escape');
     await page.waitForTimeout(250);
-    assert.strictEqual(await page.evaluate(() => getComputedStyle(document.getElementById('activeUserList')).visibility), 'hidden');
+    assert.strictEqual(await panelVisibility(), 'hidden');
 
     await page.click('#icx-drawer-toggle');
+    await page.waitForTimeout(250);
+    assert.strictEqual(await panelVisibility(), 'visible');
     await page.mouse.click(200, 300);   // on the cams
     await page.waitForTimeout(250);
-    assert.strictEqual(await page.evaluate(() => getComputedStyle(document.getElementById('activeUserList')).visibility), 'hidden');
+    assert.strictEqual(await panelVisibility(), 'hidden');
 });
-
 test('focus makes one cam the largest, pinned top-left; unfocus restores the grid', async () => {
     await (await camButton(page, 'bravo', 'focus')).click();
     await page.waitForTimeout(400);
@@ -258,11 +279,13 @@ test('chat: pauses when scrolled up, resumes at the bottom, in a tall chat log',
 });
 
 test('chat: the site can\'t pull focus out of another text box', async () => {
+    // Typing in the people search while the site calls as() (pausing
+    // chat, disabling a cam, after sending): focus stays in the search.
     await page.click('#icx-drawer-toggle');
     await page.waitForTimeout(250);
-    await page.focus('#other-input');
+    await page.focus('#icx-people .icx-people-search');
     await page.evaluate(() => window.as());
-    assert.strictEqual(await page.evaluate(() => document.activeElement.id), 'other-input');
+    assert.ok(await page.evaluate(() => document.activeElement.matches('#icx-people .icx-people-search')), 'focus stays in the search box');
     await page.evaluate(() => document.activeElement.blur());
     await page.evaluate(() => window.as());
     assert.strictEqual(await page.evaluate(() => document.activeElement.id), 'txtMsg', 'still focuses chat otherwise');

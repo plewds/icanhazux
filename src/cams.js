@@ -19,7 +19,7 @@
 (function () {
     'use strict';
 
-    const { store, frameThrottle, el, ICONS, alive, signal, onRetire } = globalThis.ICX;
+    const { store, frameThrottle, el, icon, alive, signal, onRetire } = globalThis.ICX;
     const { packGrid, packFocused, quantize } = globalThis.ICX_PACK;
 
     const DEFAULT_AR = 4 / 3;
@@ -125,10 +125,10 @@
         slot.dataset.icxCam = cam.camId;
         slot.querySelector(':scope > .icx-tools')?.remove();
         slot.append(el('div', { class: 'icx-tools' }, [
-            el('button', { type: 'button', class: 'icx-btn', 'data-act': 'focus', title: 'Focus', 'aria-label': 'Focus cam', html: ICONS.focus }),
-            el('button', { type: 'button', class: 'icx-btn', 'data-act': 'refresh', title: 'Refresh feed', 'aria-label': 'Refresh cam feed', html: ICONS.refresh }),
-            el('button', { type: 'button', class: 'icx-btn', 'data-act': 'fullscreen', title: 'Full screen', 'aria-label': 'Full screen', html: ICONS.fullscreen }),
-            el('button', { type: 'button', class: 'icx-btn', 'data-act': 'hide', title: 'Hide this cam', 'aria-label': 'Hide cam', html: ICONS.hide }),
+            el('button', { type: 'button', class: 'icx-btn', 'data-act': 'focus', title: 'Focus', 'aria-label': 'Focus cam' }, [icon('focus')]),
+            el('button', { type: 'button', class: 'icx-btn', 'data-act': 'refresh', title: 'Refresh feed', 'aria-label': 'Refresh cam feed' }, [icon('refresh')]),
+            el('button', { type: 'button', class: 'icx-btn', 'data-act': 'fullscreen', title: 'Full screen', 'aria-label': 'Full screen' }, [icon('fullscreen')]),
+            el('button', { type: 'button', class: 'icx-btn', 'data-act': 'hide', title: 'Hide this cam', 'aria-label': 'Hide cam' }, [icon('hide')]),
         ]));
     }
 
@@ -136,7 +136,7 @@
         const btn = cam.slot.querySelector('.icx-btn[data-act="focus"]');
         if (!btn || btn.dataset.on === String(focused)) { return; }
         btn.dataset.on = String(focused);
-        btn.innerHTML = focused ? ICONS.unfocus : ICONS.focus;
+        btn.replaceChildren(icon(focused ? 'unfocus' : 'focus'));
         btn.title = focused ? 'Unfocus' : 'Focus';
         btn.setAttribute('aria-label', focused ? 'Unfocus cam' : 'Focus cam');
     }
@@ -295,7 +295,7 @@
         if (menu.dataset.signature === signature) { return; }
         menu.dataset.signature = signature;
         // A nickname gets a "nick" pill and the Perma-nick box.
-        const row = (name, label, icon) => el('div', { class: 'icx-hidden-row' }, [
+        const row = (name, label, iconName) => el('div', { class: 'icx-hidden-row' }, [
             el('span', { text: name }, isNick(name) ? [el('em', { class: 'icx-nick-tag', text: 'nick' })] : []),
             el('span', { class: 'icx-hidden-actions' }, [
                 isNick(name) ? el('label', {
@@ -305,12 +305,12 @@
                     el('input', { type: 'checkbox', 'data-perma': name, ...(state.permaNicks.has(name) ? { checked: '' } : {}) }),
                     'Perma-nick',
                 ]) : '',
-                el('button', { type: 'button', 'data-show': name, html: icon + `<span>${label}</span>` }),
+                el('button', { type: 'button', 'data-show': name }, [iconName ? icon(iconName) : '', el('span', { text: label })]),
             ]),
         ]);
         menu.replaceChildren(
             el('div', { class: 'icx-menu-title', text: 'Hidden, on cam now' }),
-            ...(on.length ? on.map(name => row(name, 'Show', ICONS.show))
+            ...(on.length ? on.map(name => row(name, 'Show', 'show'))
                 : [el('div', { class: 'icx-hidden-empty', text: 'No one you’ve hidden is on cam.' })]),
             ...(off.length ? [
                 el('button', {
