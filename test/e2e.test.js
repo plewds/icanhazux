@@ -513,3 +513,70 @@ test('pages: the logged-in lobby shows every room tile, whatever the site does t
         await browser.close();
     }
 });
+
+// ── ICHUX Settings in the header ────────────────────────────────────────────
+
+test('header: ICHUX Settings opens from the header and changes the theme, logged in or out', async () => {
+    const browser = await chromium.launch();
+    try {
+        for (const [file, signedIn] of [['settings.html', true], ['messages.html', false]]) {
+            const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, colorScheme: 'light' });
+            await openPage(page, 'file://' + path.join(__dirname, 'mock', file));
+            await page.evaluate(() => localStorage.clear());
+            const where = await page.evaluate(() => {
+                const link = document.getElementById('icx-menu-link');
+                return {
+                    text: link?.textContent,
+                    lastInRow: link?.parentElement.classList.contains('header_links') && !link.nextElementSibling,
+                    inLinks: !!link?.closest('.page_header_userlinks'),
+                };
+            });
+            assert.strictEqual(where.text, 'ICHUX Settings', file);
+            assert.ok(where.inLinks, `${file}: in the header`);
+            if (signedIn) { assert.ok(where.lastInRow, 'last in the row of links'); }
+
+            await page.click('#icx-menu-link');
+            assert.ok(await page.isVisible('#icx-site-settings'));
+            await page.click('#icx-site-settings [data-pref="theme"] [data-value="dark"]');
+            const after = await page.evaluate(() => ({
+                theme: document.documentElement.dataset.icxTheme,
+                saved: localStorage.getItem('icx_theme'),
+                checked: document.querySelector('#icx-site-settings [data-value="dark"]').getAttribute('aria-checked'),
+            }));
+            assert.deepStrictEqual(after, { theme: 'dark', saved: '"dark"', checked: 'true' }, file);
+
+            await page.keyboard.press('Escape');
+            assert.ok(!(await page.isVisible('#icx-site-settings')), 'Esc closes it');
+            await page.evaluate(() => localStorage.clear());
+            await page.close();
+        }
+    } finally {
+        await browser.close();
+    }
+});
+
+test('header: ICHUX Settings holds appearance only; in a room it stays in step with the chat bar panel', async () => {
+    const browser = await chromium.launch();
+    try {
+        const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+        await openRoom(page);
+        await page.click('#icx-menu-link');
+        const prefs = await page.evaluate(() =>
+            [...document.querySelectorAll('#icx-site-settings [data-pref], #icx-site-settings .icx-swatches')]
+                .map(n => n.dataset.pref || 'accent'));
+        assert.deepStrictEqual(prefs, ['theme', 'accent'], 'no chat-only settings in the header panel');
+
+        await page.click('#icx-site-settings [data-accent="forest"]');
+        await page.click('#icx-site-settings [data-pref="theme"] [data-value="dark"]');
+        const r = await page.evaluate(() => ({
+            accent: document.documentElement.dataset.icxAccent,
+            theme: document.documentElement.dataset.icxTheme,
+            barAccent: document.querySelector('#icx-chat-settings [data-accent="forest"]').getAttribute('aria-checked'),
+            barTheme: document.querySelector('#icx-chat-settings [data-pref="theme"] [data-value="dark"]').getAttribute('aria-checked'),
+        }));
+        assert.deepStrictEqual(r, { accent: 'forest', theme: 'dark', barAccent: 'true', barTheme: 'true' });
+        await page.evaluate(() => localStorage.clear());
+    } finally {
+        await browser.close();
+    }
+});

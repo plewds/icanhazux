@@ -13,7 +13,7 @@
 (function () {
     'use strict';
 
-    const { el, ICONS, store, signal, onRetire, removeStale } = globalThis.ICX;
+    const { el, ICONS, signal, onRetire, removeStale } = globalThis.ICX;
 
     const bar = document.getElementById('room_command_bar');
     if (!bar) { return; }
@@ -109,55 +109,15 @@
         ]);
     }
 
-    // Timestamps (stamps.js): each choice with an example under it. Kept in
-    // this browser, not the site, so it has its own buttons (data-stamp).
-    const stamps = globalThis.ICX.stamps;
-    const STAMP_LABELS = { none: 'None', relative: 'Relative', absolute: 'Absolute' };
-    const stampSeg = el('div', { class: 'icx-seg icx-seg-2line', role: 'radiogroup', 'aria-label': 'Timestamps' });
-    function renderStamps() {
-        if (!stamps) { return; }
-        stampSeg.querySelectorAll('button').forEach(b => {
-            const on = b.dataset.stamp === stamps.get();
-            b.classList.toggle('icx-on', on);
-            b.setAttribute('aria-checked', String(on));
-            b.querySelector('.icx-seg-sub').textContent = stamps.example(b.dataset.stamp);
-        });
-    }
-    (stamps ? stamps.modes : []).forEach(mode => {
-        const b = el('button', { type: 'button', role: 'radio', 'data-stamp': mode }, [
-            el('span', { class: 'icx-seg-main', text: STAMP_LABELS[mode] }),
-            el('span', { class: 'icx-seg-sub' }),
-        ]);
-        b.addEventListener('click', () => { stamps.set(mode); renderStamps(); });
-        stampSeg.append(b);
-    });
-    // Chat colors: each person's color on their whole message (the site's
-    // way) or on their name only. Kept in this browser.
-    const CHAT_COLORS = [['all', 'Whole message'], ['name', 'Name only']];
-    let chatColor = CHAT_COLORS.some(([k]) => k === store.get('chatColor')) ? store.get('chatColor') : 'all';
-    const chatColorSeg = el('div', { class: 'icx-seg', role: 'radiogroup', 'aria-label': 'Chat colors' });
-    function renderChatColor() {
-        document.documentElement.dataset.icxChatColor = chatColor;
-        chatColorSeg.querySelectorAll('button').forEach(b => {
-            const on = b.dataset.chatColor === chatColor;
-            b.classList.toggle('icx-on', on);
-            b.setAttribute('aria-checked', String(on));
-        });
-    }
-    CHAT_COLORS.forEach(([key, text]) => {
-        const b = el('button', { type: 'button', role: 'radio', 'data-chat-color': key, text });
-        b.addEventListener('click', () => { chatColor = key; store.set('chatColor', key); renderChatColor(); });
-        chatColorSeg.append(b);
-    });
-    renderChatColor();
-    signal.addEventListener('abort', () => { delete document.documentElement.dataset.icxChatColor; });
-    const chatColorSetting = el('div', { class: 'icx-setting' }, [
-        el('div', { class: 'icx-setting-label', text: 'Chat colors' }), chatColorSeg,
-    ]);
-
-    const stampSetting = stamps ? el('div', { class: 'icx-setting' }, [
-        el('div', { class: 'icx-setting-label', text: 'Timestamps' }), stampSeg,
-    ]) : '';
+    // The extension's own settings (theme, accent, chat colors,
+    // timestamps): shared with the header's ICHUX Settings panel (controls.js).
+    const controls = globalThis.ICX.controls;
+    const shared = {
+        theme: controls.theme(),
+        accent: controls.accent(),
+        chatColor: controls.chatColor(),
+        timestamps: globalThis.ICX.stamps ? controls.timestamps() : null,
+    };
 
     // Mod tools (modtools.js): only for room mods and owners.
     const modSection = el('div', { class: 'icx-mod-tools', hidden: '' }, [
@@ -196,38 +156,7 @@
 
     const helpHref = document.querySelector('#showHelp a')?.href || '/help';
 
-    // Theme is this extension's own setting (theme.js), not the site's.
-    const themeApi = globalThis.ICX.theme;
-    const themeSeg = el('div', { class: 'icx-seg', role: 'radiogroup', 'aria-label': 'Theme' });
-    [['system', 'System'], ['light', 'Light'], ['dark', 'Dark']].forEach(([value, text]) => {
-        const b = el('button', { type: 'button', role: 'radio', 'data-theme': value, text });
-        b.addEventListener('click', () => themeApi?.set(value));
-        themeSeg.append(b);
-    });
-    const ACCENT_NAMES = {
-        grape: 'Grape', crimson: 'Crimson', tangerine: 'Tangerine', gold: 'Gold',
-        forest: 'Forest', aqua: 'Aqua', cobalt: 'Cobalt', pink: 'Pink',
-    };
-    const swatches = el('div', { class: 'icx-swatches', role: 'radiogroup', 'aria-label': 'Accent color' });
-    (themeApi?.accents || []).forEach(name => {
-        const b = el('button', {
-            type: 'button', role: 'radio', class: 'icx-swatch-btn', 'data-accent': name,
-            title: ACCENT_NAMES[name] || name, 'aria-label': ACCENT_NAMES[name] || name,
-        });
-        b.addEventListener('click', () => themeApi.setAccent(name));
-        swatches.append(b);
-    });
-    function renderTheme() {
-        const { pref, accent } = themeApi?.get() || {};
-        themeSeg.querySelectorAll('button').forEach(b => {
-            const on = b.dataset.theme === pref;
-            b.classList.toggle('icx-on', on);
-            b.setAttribute('aria-checked', String(on));
-        });
-        swatches.querySelectorAll('button').forEach(b => b.setAttribute('aria-checked', String(b.dataset.accent === accent)));
-    }
-    themeApi?.onChange(renderTheme);
-    themeApi?.onChange(() => renderColor(state?.color));
+    globalThis.ICX.theme?.onChange(() => renderColor(state?.color));
 
     // Two columns: how chat looks on the left, how it behaves on the right
     // (one column on a narrow window).
@@ -238,12 +167,8 @@
         el('div', { class: 'icx-panel-title', text: 'Settings' }),
         el('div', { class: 'icx-settings-cols' }, [
             column('Appearance', [
-                themeApi ? el('div', { class: 'icx-setting' }, [
-                    el('div', { class: 'icx-setting-label', text: 'Theme' }), themeSeg,
-                ]) : '',
-                themeApi ? el('div', { class: 'icx-setting' }, [
-                    el('div', { class: 'icx-setting-label', text: 'Accent' }), swatches,
-                ]) : '',
+                shared.theme?.node || '',
+                shared.accent?.node || '',
                 el('div', { class: 'icx-setting' }, [
                     el('div', { class: 'icx-setting-label', text: 'My color' }),
                     el('div', { class: 'icx-color-row' }, [colorSwatch, colorSample]),
@@ -253,8 +178,8 @@
                     el('div', { class: 'icx-stepper' }, [sizeDown, sizeValue, sizeUp]),
                 ]),
                 choice('lineStyle', 'Line style', [[3, 'Striped'], [1, 'Boxed'], [2, 'Plain']]),
-                chatColorSetting,
-                stampSetting,
+                shared.chatColor.node,
+                shared.timestamps?.node || '',
             ]),
             column('Chat', [
                 choice('pm', 'Currently accepting', [
@@ -272,7 +197,7 @@
     const setOpen = open => {
         panel.hidden = !open;
         gearBtn.setAttribute('aria-expanded', String(open));
-        if (open) { renderStamps(); document.dispatchEvent(new CustomEvent('icx:chat-get')); }
+        if (open) { shared.timestamps?.render(); document.dispatchEvent(new CustomEvent('icx:chat-get')); }
     };
     gearBtn.addEventListener('click', e => { e.stopPropagation(); setClosedOpen(false); setOpen(panel.hidden); });
     panel.addEventListener('click', e => e.stopPropagation());
@@ -348,6 +273,5 @@
     }
 
     render();
-    renderTheme();
     document.dispatchEvent(new CustomEvent('icx:chat-get'));
 })();

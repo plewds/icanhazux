@@ -1249,6 +1249,53 @@ html.icx-dragging-cam .icx-tools { opacity: 0 !important; }
 }
 #icx-chat-settings[hidden] { display: none; }
 
+/* ICHUX Settings (menu.js): the header link and its panel, on every page. */
+html.icx-site #icx-menu-link { white-space: nowrap; }
+html.icx-site #icx-menu-link.icx-open { color: var(--icx-accent-text) !important; }
+/* Logged out there's no row of links: it sits under Sign-In / Join. */
+html.icx-site .page_header_userlinks.icx-signed-out span[style*="font-size"] { font-size: 13px !important; }
+html.icx-site .page_header_userlinks.icx-signed-out #icx-menu-link { display: block; margin-top: 2px; text-align: right; }
+#icx-site-settings {
+    position: fixed;
+    right: 16px;
+    z-index: 2100;
+    width: min(340px, calc(100vw - 32px));
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+    padding: 16px;
+    box-sizing: border-box;
+    border: 1px solid var(--icx-border);
+    border-radius: var(--icx-radius);
+    background: var(--icx-surface);
+    box-shadow: var(--icx-shadow);
+    color: var(--icx-text);
+    font: 14px/1.4 var(--icx-font);
+    text-align: left;
+}
+#icx-site-settings[hidden] { display: none; }
+#icx-site-settings .icx-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+#icx-site-settings .icx-panel-title { margin: 0; }
+#icx-site-settings .icx-setting:last-child { margin-bottom: 0; }
+.icx-panel-close {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid var(--icx-border-strong);
+    border-radius: var(--icx-radius-btn);
+    background: transparent;
+    color: var(--icx-text-muted);
+    font: 400 20px/1 var(--icx-font);
+    cursor: pointer;
+}
+.icx-panel-close:hover { border-color: var(--icx-accent); background: var(--icx-surface-2); color: var(--icx-text); }
+.icx-panel-close:focus { outline: none; }
+.icx-panel-close:focus-visible { outline: 2px solid var(--icx-accent); outline-offset: 2px; }
+@media (max-width: 759px) {
+    #icx-site-settings { right: 8px; width: calc(100vw - 16px); max-height: 75vh; }
+}
+
 /* Closed PM conversations, to reopen (chat bar's Closed chip). */
 #icx-pm-closed-menu {
     position: absolute;
@@ -1948,9 +1995,11 @@ html.icx-site #lblDynamicFootLink a { color: var(--icx-text) !important; font-we
 html.icx .icx-chip,
 html.icx .icx-btn,
 html.icx .icx-seg button,
+html.icx-site #icx-site-settings .icx-seg button,
 html.icx .icx-step,
 html.icx .icx-switch,
 html.icx .icx-swatch-btn,
+html.icx-site #icx-site-settings .icx-swatch-btn,
 html.icx #icx-drawer-toggle,
 html.icx #icx-bar > div > a,
 html.icx #icx-hidden-btn,
@@ -1970,9 +2019,11 @@ html.icx #chat_container > #btn:hover { transform: translateY(-1px); }
 html.icx .icx-chip:active,
 html.icx .icx-btn:active,
 html.icx .icx-seg button:active:not(:disabled),
+html.icx-site #icx-site-settings .icx-seg button:active,
 html.icx .icx-step:active:not(:disabled),
 html.icx .icx-switch:active,
 html.icx .icx-swatch-btn:active,
+html.icx-site #icx-site-settings .icx-swatch-btn:active,
 html.icx #icx-drawer-toggle:active,
 html.icx #icx-bar > div > a:active,
 html.icx #icx-hidden-btn:active:not(:disabled),
