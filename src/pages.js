@@ -43,25 +43,44 @@
 
     // ── Layout: sidebar card + main card ────────────────────────────────────
     // The two-column pages are a Bootstrap row near the top of the panel with
-    // a narrow col-lg-* and a wide one.
+    // a narrow col-lg-* and a wide one. Most get two cards. A "sidebar"
+    // holding only the page's name (the groups list, a message thread) is
+    // a title over a single card instead.
+    //
+    // Known pages get their layout by kind, not by what the sidebar holds
+    // right now: the site's own scripts fill some sidebars in after load
+    // (the inbox's filters and shortcut keys), so a sidebar that looks bare
+    // at this moment may not be. Other pages are judged by content, again
+    // whenever their sidebar changes.
+    const LAYOUTS = {
+        settings: 'split', dashboard: 'split', home: 'split', profile: 'split',
+        messages: 'split', group: 'split', thread: 'titled', groups: 'titled',
+    };
     const cols = row => [...row.children].filter(c => /\bcol-lg-\d/.test(c.className));
     const split = [...paper.querySelectorAll(':scope > .row, :scope > div > .row, :scope > div > div > .row')]
         .find(row => cols(row).length === 2);
-    if (split) {
-        const [side, main] = cols(split);
-        // A "sidebar" holding only the page's name (groups, a message
-        // thread) is a title over a single card instead.
-        const thin = !side.querySelector('img, input, textarea, select, table, ul, a') &&
+    const [side, main] = split ? cols(split) : [];
+
+    function layout() {
+        const bare = !side.querySelector('img, input, textarea, select, table, ul, a') &&
             side.textContent.trim().length < 40;
-        if (thin) {
-            split.classList.add('icx-titled');
-            side.classList.add('icx-page-title');
-            paper.classList.add('icx-card');
-        } else {
-            split.classList.add('icx-split');
-            side.classList.add('icx-side', 'icx-card');
-            main.classList.add('icx-main', 'icx-card');
-            paper.classList.add('icx-paper-split');
+        const titled = (LAYOUTS[kind] || (bare ? 'titled' : 'split')) === 'titled';
+        split.classList.toggle('icx-titled', titled);
+        side.classList.toggle('icx-page-title', titled);
+        split.classList.toggle('icx-split', !titled);
+        side.classList.toggle('icx-side', !titled);
+        side.classList.toggle('icx-card', !titled);
+        main.classList.toggle('icx-main', !titled);
+        main.classList.toggle('icx-card', !titled);
+        paper.classList.toggle('icx-paper-split', !titled);
+        paper.classList.toggle('icx-card', titled);
+    }
+    if (split) {
+        layout();
+        if (!LAYOUTS[kind]) {
+            const sideObserver = new MutationObserver(frameThrottle(layout));
+            sideObserver.observe(side, { childList: true, subtree: true, characterData: true });
+            onRetire(() => sideObserver.disconnect());
         }
     } else {
         paper.classList.add('icx-card');
@@ -92,10 +111,9 @@
     // A profile's background picture (the owner's pick, which the theme
     // otherwise hides behind its plain page color) becomes a cover banner
     // across the top of the main card.
-    if (kind === 'profile' && split?.classList.contains('icx-split')) {
+    if (kind === 'profile' && split) {
         const m = /url\(["']?([^"')]+)["']?\)/.exec(document.body.style.backgroundImage || '');
         if (m) {
-            const main = split.querySelector(':scope > .icx-main');
             main.style.setProperty('--icx-cover', `url("${m[1].replace(/"/g, '%22')}")`);
             main.classList.add('icx-has-cover');
         }
@@ -165,12 +183,13 @@
     }
 
     function tame(node) {
-        if (node.matches(SKIP)) { return; }
+        // Cards are drawn whole by the CSS (fill, gradient edge); their old
+        // inline borders and backgrounds are overridden there.
+        if (node.matches(SKIP) || node.classList.contains('icx-card')) { return; }
         const cs = getComputedStyle(node);
 
         const bg = rgba(cs.backgroundColor);
-        if (bg && bg[3] > 0.08 && isNeutral(bg) && !bgTokens.has(cs.backgroundColor) &&
-                !node.classList.contains('icx-card')) {
+        if (bg && bg[3] > 0.08 && isNeutral(bg) && !bgTokens.has(cs.backgroundColor)) {
             const l = lightness(bg);
             if (l > 0.96) {
                 node.classList.add('icx-t-clear');                   // white (or a white haze): the card itself

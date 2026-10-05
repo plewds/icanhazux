@@ -434,3 +434,42 @@ for (const scheme of ['light', 'dark']) {
         assert.strictEqual(r.save, r.accent, 'primary button in the accent');
     });
 }
+
+test('pages: the inbox keeps its two columns when the site fills its sidebar in late', async () => {
+    const browser = await chromium.launch();
+    try {
+        const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+        await openPage(page, 'file://' + path.join(__dirname, 'mock', 'messages.html'));
+        const read = () => page.evaluate(() => {
+            const side = document.querySelector('.icx-paper .col-lg-2');
+            const main = document.getElementById('ctl00_ContentPlaceHolder1_divMessages');
+            return {
+                kind: document.documentElement.dataset.icxPage,
+                side: side.classList.contains('icx-side') && side.classList.contains('icx-card'),
+                main: main.classList.contains('icx-main') && main.classList.contains('icx-card'),
+                titled: !!document.querySelector('.icx-titled'),
+                edge: getComputedStyle(main).borderTopColor,
+                sideBox: side.getBoundingClientRect().toJSON(),
+                mainBox: main.getBoundingClientRect().toJSON(),
+            };
+        });
+
+        const before = await read();
+        assert.strictEqual(before.kind, 'messages');
+        assert.ok(before.side && before.main && !before.titled, 'two cards, even with a bare sidebar');
+        assert.ok(before.mainBox.left >= before.sideBox.right, 'side by side');
+        assert.strictEqual(before.edge, 'rgba(0, 0, 0, 0)', 'the card keeps its gradient edge');
+
+        // The site's inbox script fills the sidebar in.
+        await page.evaluate(() => {
+            document.getElementById('links').innerHTML =
+                'Showing<br><b class="rounded">recent</b><p><a href="#">unread</a></p><p><a href="#">all</a></p>';
+        });
+        await page.waitForTimeout(100);
+        const after = await read();
+        assert.ok(after.side && after.main && !after.titled);
+        assert.ok(after.mainBox.left >= after.sideBox.right);
+    } finally {
+        await browser.close();
+    }
+});

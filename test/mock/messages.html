@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<!-- A stand-in for the messages inbox. The sidebar starts out bare (just the
+     page name), as when the site's inbox script hasn't filled in its filters
+     and shortcut keys yet; the test fills it in later. Data is made up. -->
+<html lang="en">
+<head><meta charset="utf-8"><title>messages</title></head>
+<body>
+<form id="aspnetForm" class="container-fluid">
+    <div id="ctl00_panelHeader" class="row gray_back page_header rounded">
+        <div class="col-lg-2"><div class="page_header_logo" id="ichc-logo-header"><img id="ichc-logo" alt="logo"></div></div>
+        <div class="col-12 col-lg-10 txtright"><div class="page_header_userlinks"><span id="ctl00_labelSignInStatus">Hi someone</span></div></div>
+    </div>
+    <div class="row">
+        <div class="col-12 page_section_white rounded_top" style="margin-top:4px;">
+            <div class="row">
+                <div class="col-12 col-lg-2" align="center">
+                    <div>
+                        <div class="page_name" style="font-size:26pt;"><span id="ctl00_ContentPlaceHolder1_labelUserName">messages</span></div>
+                        <div id="links" style="line-height:12px;"></div>
+                    </div>
+                </div>
+                <div id="ctl00_ContentPlaceHolder1_divMessages" class="col-12 col-lg-10" style="padding-right:3%;">
+                    <span id="ctl00_ContentPlaceHolder1_labelMessageList">
+                        <div id="messages">
+                            <a href="#"><div id="0" class="row message_header message_link read hover">
+                                <div class="col-1 txtright message_state"></div>
+                                <div class="col-9">someone</div>
+                                <div class="col-2 right message_when">a while ago</div>
+                            </div></a>
+                        </div>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+</body>
+</html>
