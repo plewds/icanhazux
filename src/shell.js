@@ -14,7 +14,7 @@
 (function () {
     'use strict';
 
-    const { store, el } = globalThis.ICX;
+    const { store, el, signal, onRetire } = globalThis.ICX;
 
     const DEFAULT_FRACTION = 0.62;   // share of the stage width given to cams
     const MIN_CAMS_PX = 320;
@@ -23,6 +23,20 @@
     function init(body) {
         const root = document.documentElement;
         root.classList.add('icx');
+        // Nothing in a room submits its <form> on purpose: every button runs
+        // through the site's scripts. But most of them are submit buttons (no
+        // type), and the handlers that cancel that aren't always attached:
+        // the cam buttons get theirs only once a stream connects, and the
+        // broadcast panel's camera and mic buttons lose theirs after a camera
+        // error. A click then reloads the page. (Script calls to
+        // form.submit() don't fire this event, so they're unaffected.)
+        const form = body.closest('form');
+        if (form) { form.addEventListener('submit', e => e.preventDefault(), { signal }); }
+        // Pieces left by an older copy of the extension (see core.js). The
+        // site's own elements inside them get moved into the new ones below,
+        // then these go.
+        const stale = ['icx-divider', 'icx-bar', 'icx-drawer']
+            .flatMap(id => [...document.querySelectorAll(`#${id}`)]);
 
         const divider = el('div', {
             id: 'icx-divider',
@@ -44,6 +58,7 @@
         }
 
         initDrawer(body);
+        stale.forEach(n => n.remove());
 
         let fraction = clampFraction(store.get('camsFraction', DEFAULT_FRACTION));
         apply();
@@ -89,6 +104,7 @@
             dragging = false;
             root.classList.remove('icx-resizing');
             store.set('camsFraction', fraction);
+            document.dispatchEvent(new CustomEvent('icx:divider-end'));
         };
         divider.addEventListener('pointerup', finish);
         divider.addEventListener('pointercancel', finish);
@@ -112,7 +128,7 @@
             fitHeight();
             fraction = clampFraction(fraction);
             apply();
-        });
+        }, { signal });
         fitHeight();
         // The site's header can settle a moment after load (logo, topic).
         setTimeout(fitHeight, 500);
@@ -124,7 +140,8 @@
 
     // ── User list drawer ────────────────────────────────────────────────────
     // A bar under the chat showing the head count; clicking it opens the
-    // site's user list as a panel over the bottom of the chat.
+    // people panel (people.js) over the bottom of the chat. The site's own
+    // list moves in too, hidden: it's the panel's source.
     function initDrawer(body) {
         const list = document.getElementById('activeUserList');
         if (!list) { return; }
@@ -132,7 +149,7 @@
         const toggle = el('button', {
             type: 'button',
             id: 'icx-drawer-toggle',
-            'aria-controls': 'activeUserList',
+            'aria-controls': 'icx-people',
             'aria-expanded': 'false',
         }, [label, el('span', { class: 'icx-drawer-chevron', 'aria-hidden': 'true' })]);
         const drawer = el('div', { id: 'icx-drawer' }, [toggle]);
@@ -148,28 +165,29 @@
         toggle.addEventListener('click', () => setOpen(!drawer.classList.contains('icx-open')));
         document.addEventListener('keydown', e => {
             if (e.key === 'Escape' && drawer.classList.contains('icx-open')) { setOpen(false); }
-        });
+        }, { signal });
         // Clicking elsewhere closes it, but not clicks in the site's popups
         // (user info, gifts), which open from names in the list.
         document.addEventListener('pointerdown', e => {
             if (!drawer.classList.contains('icx-open') || drawer.contains(e.target)) { return; }
             if (e.target.closest('.ui-dialog, .ui-widget-overlay, [role="dialog"]')) { return; }
             setOpen(false);
-        });
+        }, { signal });
 
         // The site's list text starts "172 people (refresh) [click for details]: …".
         const syncCount = () => {
             const m = (list.textContent || '').match(/(\d+)\s+people/i);
             label.textContent = m ? `${m[1]} people` : 'People';
         };
-        new MutationObserver(syncCount).observe(list, { childList: true, subtree: true, characterData: true });
+        const countObserver = new MutationObserver(syncCount);
+        countObserver.observe(list, { childList: true, subtree: true, characterData: true });
+        onRetire(() => countObserver.disconnect());
         syncCount();
     }
 
-    // Content scripts run at document_idle, so a room page's markup is all
-    // there; anything else (lobby, profile pages) is left alone.
-    const body = document.getElementById('body_container');
-    if (body && document.getElementById('cams') && document.getElementById('chat_container')) {
-        init(body);
+    // Only rooms get the stage (site.js decides); the rest of the site just
+    // gets the shared header and footer.
+    if (globalThis.ICX.isRoom) {
+        init(document.getElementById('body_container'));
     }
 })();

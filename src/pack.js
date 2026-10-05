@@ -19,9 +19,10 @@
 (function (root) {
     'use strict';
 
-    // exts: per-item main-axis extent per unit cross. Returns the best line
-    // count and break points, or null when the strip is unusable.
-    function solveLines(exts, stripMain, stripCross, gap, maxLines) {
+    // exts: per-item main-axis extent per unit cross. Tries line counts
+    // minLines..maxLines and returns the best (by the DP cost) with its break
+    // points, or null when the strip is unusable.
+    function solveLines(exts, stripMain, stripCross, gap, maxLines, minLines = 1) {
         const m = exts.length;
         if (!m || !(stripMain > 0) || !(stripCross > 0)) { return null; }
         const pre = new Array(m + 1).fill(0);
@@ -29,7 +30,7 @@
         const crossOf = (i, j) => (stripMain - (j - i - 1) * gap) / (pre[j] - pre[i]);
         const lim = Math.min(m, Math.max(1, maxLines));
         let best = null;
-        for (let L = 1; L <= lim; L++) {
+        for (let L = Math.max(1, minLines); L <= lim; L++) {
             const target = (stripCross - (L - 1) * gap) / L;
             if (target <= 0) { break; }
             const dp = [new Array(m + 1).fill(Infinity)];
@@ -61,28 +62,42 @@
         return best;
     }
 
-    // Turn a line solution into rects inside `strip` ({x,y,w,h}).
+    // Lay items out in lines inside `strip` ({x,y,w,h}), as big as possible.
     // axis 'row': lines stack top→bottom, items flow left→right.
     // axis 'col': lines stack left→right, items flow top→bottom.
-    // Lines are only ever DOWN-scaled (upscaling would overflow the main axis);
-    // leftover cross space is spread evenly around the lines, and each line's
-    // main-axis slack centers it in the strip.
+    // Every line count up to maxLines is tried and the one giving the items
+    // the most total area wins: few long lines run out of width, many short
+    // ones run out of height, and the best is wherever those meet.
     function realizeStrip(items, strip, gap, axis, maxLines) {
-        if (!strip || !(strip.w > 0) || !(strip.h > 0)) { return null; }
+        if (!strip || !(strip.w > 0) || !(strip.h > 0) || !items.length) { return null; }
         const exts = items.map(it => axis === 'row' ? it.ar : 1 / it.ar);
         const main = axis === 'row' ? strip.w : strip.h;
         const cross = axis === 'row' ? strip.h : strip.w;
-        const solved = solveLines(exts, main, cross, gap, maxLines);
-        if (!solved) { return null; }
-        const L = solved.lines.length;
-        const sumCross = solved.lines.reduce((a, l) => a + l.cross, 0);
+        let best = null;
+        const lim = Math.min(items.length, Math.max(1, maxLines));
+        for (let L = 1; L <= lim; L++) {
+            const solved = solveLines(exts, main, cross, gap, L, L);
+            const rects = solved && placeLines(solved.lines, items, exts, strip, gap, axis, main, cross);
+            if (!rects) { continue; }
+            const area = rects.reduce((a, r) => a + r.w * r.h, 0);
+            if (!best || area > best.area + 1e-6) { best = { area, rects }; }
+        }
+        return best ? best.rects : null;
+    }
+
+    // Turn a line solution into rects. Lines are only ever DOWN-scaled
+    // (upscaling would overflow the main axis); leftover cross space is spread
+    // evenly around the lines, and each line's main-axis slack centers it.
+    function placeLines(lines, items, exts, strip, gap, axis, main, cross) {
+        const L = lines.length;
+        const sumCross = lines.reduce((a, l) => a + l.cross, 0);
         const usedCross = sumCross + (L - 1) * gap;
         const scale = usedCross > cross ? (cross - (L - 1) * gap) / sumCross : 1;
         if (!(scale > 0)) { return null; }
         const pad = Math.max(0, cross - (sumCross * scale + (L - 1) * gap)) / (L + 1);
         const rects = [];
         let crossPos = pad;
-        for (const line of solved.lines) {
+        for (const line of lines) {
             const lineCross = line.cross * scale;
             let mainLen = (line.end - line.start - 1) * gap;
             for (let i = line.start; i < line.end; i++) { mainLen += exts[i] * lineCross; }
@@ -104,7 +119,7 @@
     function packGrid(W, H, gap, ars) {
         if (!(W > 0) || !(H > 0) || !ars.length) { return null; }
         const items = ars.map((ar, index) => ({ index, ar }));
-        return realizeStrip(items, { x: 0, y: 0, w: W, h: H }, gap, 'row', Math.min(8, items.length));
+        return realizeStrip(items, { x: 0, y: 0, w: W, h: H }, gap, 'row', items.length);
     }
 
     // Focus mode: the focused cam is pinned top-left at its real aspect ratio
@@ -126,8 +141,6 @@
         if (!n) {
             return { focus: { x: 0, y: 0, w: fitW, h: fitW / focusAR }, rects: [] };
         }
-        const byTallness = thumbARs.map((ar, index) => ({ index, ar }))
-            .sort((a, b) => a.ar - b.ar || a.index - b.index);
         const all = thumbARs.map((ar, index) => ({ index, ar }));
         const FOCUS_WEIGHT = 3;
         const FOCUS_LEAD = 3;   // focus area vs. the biggest thumbnail
@@ -174,7 +187,10 @@
                 for (let s = sMin; s <= Math.max(sMin, sMax); s++) {
                     if (!right && s > 0) { break; }
                     if (!bottom && s < n) { continue; }
-                    const chosen = new Set(byTallness.slice(0, s).map(it => it.index));
+                    // The side column takes the first s cams in order (the
+                    // order you arrange by dragging), the rest go along the
+                    // bottom: a cam dropped onto a side cam lands there.
+                    const chosen = new Set(all.slice(0, s).map(it => it.index));
                     const rects = [];
                     // Line caps keep the strips reading as margins around the
                     // focus, unless a strip is the only region.

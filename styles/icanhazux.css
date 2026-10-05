@@ -1,32 +1,140 @@
 /* icanhazux — cam stage for icanhazchat.com rooms.
-   Everything is scoped under html.icx (set by shell.js) or the #cams.icx-cams
-   class (set by cams.js), so the site is untouched until the scripts run.
+   Everything is scoped under html.icx-site (every page: header, footer,
+   background, fonts; set by site.js), html.icx (rooms; set by shell.js) or
+   #cams.icx-cams (set by cams.js), so the site is untouched until the
+   scripts run.
    Most rules need !important: the site positions everything with inline
-   styles that it keeps rewriting. */
+   styles that it keeps rewriting.
 
-:root {
-    --icx-accent: #6d8dff;
-    --icx-stage-bg: #0d0e12;
-    --icx-surface: #17191f;
-    --icx-line: rgba(255, 255, 255, .09);
-    --icx-chrome-bg: rgba(14, 15, 19, .72);
-    --icx-chrome-fg: #eef0f5;
-    --icx-muted: #9aa0ad;
-    --icx-radius: 8px;
-    --icx-font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+   Colors come only from the tokens below. There are two themes, light and
+   dark, selected by html[data-icx-theme] (theme.js: follows the system
+   setting unless the user picks one in chat settings). Outside rooms, the
+   page's content panel (.icx-paper) keeps the light tokens in either theme:
+   only the header and footer are shared markup, the rest is per page. */
+
+/* ── Tokens ──────────────────────────────────────────────────────────────── */
+
+:root,
+html[data-icx-theme="light"],
+html.icx-site .icx-paper {
+    color-scheme: light;
+    /* Warm paper tones. */
+    --icx-bg: #f6f2ec;              /* page */
+    --icx-surface: #fffcf8;         /* cards: chat, headers, panels */
+    --icx-surface-2: #f0ebe4;       /* insets: tracks, hovers, inputs */
+    --icx-stage: #e9e3da;           /* behind the cams */
+    --icx-border: #e7e0d6;
+    --icx-border-strong: #d5ccbf;
+    --icx-text: #241f1c;
+    --icx-text-muted: #6f655b;
+    --icx-live: #e5484d;            /* broadcast, alerts */
+    --icx-live-fg: #ffffff;
+    --icx-live-soft: rgba(229, 72, 77, .1);
+    --icx-online: #2fa865;
+    --icx-row-alt: rgba(90, 60, 30, .04);
+    --icx-mention: color-mix(in srgb, var(--icx-accent) 13%, transparent);   /* lines that mention you (or @all): a tint of the accent */
+    --icx-mention-edge: var(--icx-accent);
+    --icx-shadow: 0 10px 30px rgba(60, 40, 20, .14), 0 1px 3px rgba(60, 40, 20, .08);
+    --icx-logo-filter: none;
+
+    /* Accent swatches (Settings → Accent): fill, text on the fill, and a
+       darker shade for links and text on cards. */
+    --icx-sw-grape:     #7c4dff;  --icx-sw-grape-fg:     #ffffff;  --icx-sw-grape-text:     #6236e8;
+    --icx-sw-crimson:   #a51c30;  --icx-sw-crimson-fg:   #ffffff;  --icx-sw-crimson-text:   #a51c30;
+    --icx-sw-tangerine: #f2711c;  --icx-sw-tangerine-fg: #1d1720;  --icx-sw-tangerine-text: #c1530b;
+    --icx-sw-gold:      #efc12f;  --icx-sw-gold-fg:      #1d1720;  --icx-sw-gold-text:      #8e6f0b;
+    --icx-sw-forest:    #23744a;  --icx-sw-forest-fg:    #ffffff;  --icx-sw-forest-text:    #23744a;
+    --icx-sw-aqua:      #22c5bf;  --icx-sw-aqua-fg:      #1d1720;  --icx-sw-aqua-text:      #167f7c;
+    --icx-sw-cobalt:    #2453d4;  --icx-sw-cobalt-fg:    #ffffff;  --icx-sw-cobalt-text:    #2453d4;
+    --icx-sw-pink:      #f25fa6;  --icx-sw-pink-fg:      #1d1720;  --icx-sw-pink-text:      #de1275;
 }
 
-/* ── Stage: full-window grid, cams | divider | chat ────────────────────────
-   The stage (cams + chat) fills the window below the header. Under the cams
-   is the cam bar; under the chat, the same height, the user-list drawer. The
-   footer sits below the stage, reached by scrolling. */
+html[data-icx-theme="dark"] {
+    color-scheme: dark;
+    /* Plum-tinted charcoal: warmer than neutral gray. */
+    --icx-bg: #221e24;
+    --icx-surface: #2b262d;
+    --icx-surface-2: #363039;
+    --icx-stage: #1b181c;
+    --icx-border: #3b353e;
+    --icx-border-strong: #4c4550;
+    --icx-text: #efe8ec;
+    --icx-text-muted: #a99fa8;
+    --icx-live: #f2555a;
+    --icx-live-fg: #ffffff;
+    --icx-live-soft: rgba(242, 85, 90, .15);
+    --icx-online: #3fce7f;
+    --icx-row-alt: rgba(255, 235, 250, .035);
+    --icx-mention: color-mix(in srgb, var(--icx-accent) 24%, transparent);
+    --icx-mention-edge: var(--icx-accent);
+    --icx-shadow: 0 12px 34px rgba(0, 0, 0, .5), 0 1px 3px rgba(0, 0, 0, .35);
+    --icx-logo-filter: brightness(0) invert(.92);   /* the site's logo is dark-on-light */
 
-:root {
-    --icx-stage-h: max(360px, calc(100vh - var(--icx-stage-top, 0px) - 4px));
-    --icx-bar-h: 42px;   /* bar under the cams, including its bottom margin */
+    --icx-sw-grape:     #a78bfa;  --icx-sw-grape-fg:     #1d1720;  --icx-sw-grape-text:     #b9a3ff;
+    --icx-sw-crimson:   #e05561;  --icx-sw-crimson-fg:   #1d1720;  --icx-sw-crimson-text:   #e36671;
+    --icx-sw-tangerine: #ff9a4d;  --icx-sw-tangerine-fg: #1d1720;  --icx-sw-tangerine-text: #ff9a4d;
+    --icx-sw-gold:      #f7d356;  --icx-sw-gold-fg:      #1d1720;  --icx-sw-gold-text:      #f7d356;
+    --icx-sw-forest:    #4fb37d;  --icx-sw-forest-fg:    #1d1720;  --icx-sw-forest-text:    #4fb37d;
+    --icx-sw-aqua:      #3fe0d0;  --icx-sw-aqua-fg:      #1d1720;  --icx-sw-aqua-text:      #3fe0d0;
+    --icx-sw-cobalt:    #6f95ff;  --icx-sw-cobalt-fg:    #1d1720;  --icx-sw-cobalt-text:    #6f95ff;
+    --icx-sw-pink:      #ff85bf;  --icx-sw-pink-fg:      #1d1720;  --icx-sw-pink-text:      #ff85bf;
 }
 
-html.icx #panelHeader,
+/* The chosen accent (theme.js sets html[data-icx-accent]; grape by default). */
+:root,
+html[data-icx-accent="grape"], html[data-icx-accent="grape"] .icx-paper { --icx-accent: var(--icx-sw-grape); --icx-accent-fg: var(--icx-sw-grape-fg); --icx-accent-text: var(--icx-sw-grape-text); }
+html[data-icx-accent="crimson"], html[data-icx-accent="crimson"] .icx-paper { --icx-accent: var(--icx-sw-crimson); --icx-accent-fg: var(--icx-sw-crimson-fg); --icx-accent-text: var(--icx-sw-crimson-text); }
+html[data-icx-accent="tangerine"], html[data-icx-accent="tangerine"] .icx-paper { --icx-accent: var(--icx-sw-tangerine); --icx-accent-fg: var(--icx-sw-tangerine-fg); --icx-accent-text: var(--icx-sw-tangerine-text); }
+html[data-icx-accent="gold"], html[data-icx-accent="gold"] .icx-paper { --icx-accent: var(--icx-sw-gold); --icx-accent-fg: var(--icx-sw-gold-fg); --icx-accent-text: var(--icx-sw-gold-text); }
+html[data-icx-accent="forest"], html[data-icx-accent="forest"] .icx-paper { --icx-accent: var(--icx-sw-forest); --icx-accent-fg: var(--icx-sw-forest-fg); --icx-accent-text: var(--icx-sw-forest-text); }
+html[data-icx-accent="aqua"], html[data-icx-accent="aqua"] .icx-paper { --icx-accent: var(--icx-sw-aqua); --icx-accent-fg: var(--icx-sw-aqua-fg); --icx-accent-text: var(--icx-sw-aqua-text); }
+html[data-icx-accent="cobalt"], html[data-icx-accent="cobalt"] .icx-paper { --icx-accent: var(--icx-sw-cobalt); --icx-accent-fg: var(--icx-sw-cobalt-fg); --icx-accent-text: var(--icx-sw-cobalt-text); }
+html[data-icx-accent="pink"], html[data-icx-accent="pink"] .icx-paper { --icx-accent: var(--icx-sw-pink); --icx-accent-fg: var(--icx-sw-pink-fg); --icx-accent-text: var(--icx-sw-pink-text); }
+
+:root,
+html.icx-site .icx-paper {
+    --icx-accent-soft: color-mix(in srgb, var(--icx-accent) 16%, transparent);
+    --icx-accent-glow: color-mix(in srgb, var(--icx-accent) 9%, transparent);   /* top of the cam and chat cards */
+
+    /* Same in both themes: controls drawn over video. */
+    --icx-overlay-bg: rgba(16, 12, 18, .72);   /* solid enough to read over video without a backdrop blur */
+    --icx-overlay-fg: #ffffff;
+
+    --icx-radius: 14px;             /* cards */
+    --icx-radius-sm: 10px;          /* cams, inputs, menus */
+    --icx-radius-btn: 8px;          /* buttons and chips: rounded rectangles, never pills */
+    --icx-gutter: 8px;
+    /* Interface: Nunito, rounded and friendly. Chat text: Source Sans 3,
+       built for reading. Both bundled, registered by shell.js. */
+    --icx-font: "Nunito", "Source Sans 3", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --icx-font-chat: "Source Sans 3", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --icx-spring: cubic-bezier(.34, 1.56, .64, 1);
+
+    --icx-stage-h: max(360px, calc(100vh - var(--icx-stage-top, 0px) - var(--icx-gutter)));
+    --icx-bar-h: 44px;              /* bar under the cams / drawer under the chat */
+}
+
+/* ── Page ─────────────────────────────────────────────────────────────────── */
+
+html.icx-site body {
+    background: var(--icx-bg) !important;
+    background-image: none !important;
+    color: var(--icx-text);
+}
+html.icx-site body,
+html.icx-site body *:not([class^="icon"]):not([class*=" icon-"]) {
+    font-family: var(--icx-font);
+}
+/* The conversation reads in Source Sans 3. Not !important: the site's own
+   chat-font setting (inline on #txt) still wins. */
+html.icx #txt,
+html.icx #txt *,
+html.icx #txtMsg,
+html.icx #tabs .pm_convo,
+html.icx #tabs .pm_convo * { font-family: var(--icx-font-chat); }
+html.icx-site a { color: var(--icx-accent-text); }
+
+html.icx-site :is(#panelHeader, #ctl00_panelHeader),
 html.icx #panelChat,
 html.icx #main,
 html.icx #header {
@@ -36,16 +144,166 @@ html.icx #header {
     margin-right: 0 !important;
 }
 
+/* The site's translucent backdrop panel, sized for its old fixed layout. */
+html.icx #back { display: none !important; }
+
+/* Site header (every page): logo and account links in a slim top bar.
+   Rooms call it #panelHeader, other pages #ctl00_panelHeader. */
+html.icx-site :is(#panelHeader, #ctl00_panelHeader) {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    height: 48px !important;
+    margin: 0 !important;
+    padding: 0 16px !important;
+    border: 0 !important;
+    border-bottom: 1px solid var(--icx-border) !important;
+    border-radius: 0 !important;
+    background: var(--icx-surface) !important;
+    box-shadow: none !important;
+}
+html.icx-site :is(#panelHeader, #ctl00_panelHeader) > div { flex: none; width: auto; max-width: none; padding: 0; }
+html.icx-site #ichc-logo-header { padding-top: 0 !important; height: auto !important; }
+html.icx-site #ichc-logo { display: block; height: 28px !important; filter: var(--icx-logo-filter); }
+html.icx-site .page_header_userlinks {
+    padding: 0 !important;
+    color: var(--icx-text-muted) !important;
+    font-size: 13px !important;
+    line-height: 1.35;
+    text-shadow: none !important;
+}
+html.icx-site .page_header_userlinks a,
+html.icx-site #userID { color: var(--icx-text) !important; font-size: 13px !important; text-decoration: none; }
+html.icx-site .page_header_userlinks a:hover { color: var(--icx-accent-text) !important; }
+/* The second row (messages posts groups settings dashboard) is only
+   spaces apart: a small muted dot between each, with room either side. */
+html.icx-site .page_header_userlinks .header_links br ~ a ~ a::before {
+    content: "";
+    display: inline-block;          /* keeps the link's underline off it */
+    width: 3px;
+    height: 3px;
+    margin: 0 .8em 0 .55em;
+    border-radius: 50%;
+    background: var(--icx-text-muted);
+    opacity: .6;
+    vertical-align: middle;
+    pointer-events: none;
+}
+html.icx-site :is(#labelSignInStatus, #ctl00_labelSignInStatus) { color: var(--icx-text-muted) !important; font-size: 13px !important; }
+
+/* Room header: topic on the left, Broadcast and Leave together on the right.
+   (The site positions these by percentages of its old 1024px width.)
+   The Broadcast button is matched by class: the page's original markup puts
+   id="broadcast" on the button, but when the site rebuilds it (after a cam
+   down or a cancelled start) the id lands on the icon inside instead. */
+html.icx #header {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    display: flex !important;
+    align-items: center;
+    gap: 12px;
+    height: auto !important;
+    min-height: 48px;
+    margin: 0 !important;
+    padding: 6px 16px !important;
+    box-sizing: border-box;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: var(--icx-text);
+}
+html.icx #topicContainer {
+    position: static !important;
+    display: block !important;
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto !important;
+    height: auto !important;
+    overflow: hidden;
+}
+html.icx #topic,
+html.icx #topic b {
+    position: static !important;
+    display: block;
+    height: auto !important;
+    margin: 0 !important;
+    color: var(--icx-text) !important;
+    font-size: 14px !important;
+    font-weight: 400 !important;
+    line-height: 19px !important;
+}
+html.icx #topic {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+html.icx #topic b { display: inline; }
+html.icx #topic a { color: var(--icx-accent-text) !important; }
+html.icx #camControl {
+    position: static !important;
+    flex: none;
+    width: auto !important;
+    left: auto !important;
+    top: auto !important;
+}
+html.icx #camControl > .btn {
+    display: inline-flex !important;
+    align-items: center;
+    width: auto !important;
+    height: 34px;
+    padding: 0 18px !important;
+    border: 0 !important;
+    border-radius: var(--icx-radius-btn) !important;
+    background: var(--icx-live) !important;
+    box-shadow: none !important;
+    font-size: 0;            /* swallows the &nbsp; between icon and link */
+    transition: filter .12s;
+}
+html.icx #camControl > .btn:hover { filter: brightness(1.08); }
+html.icx #camControl > .btn img { display: none; }
+html.icx #camControl > .btn a {
+    color: var(--icx-live-fg) !important;
+    font-size: 14px !important;
+    font-weight: 600;
+    line-height: 34px;
+    text-decoration: none !important;
+}
+html.icx #camPreview { left: auto !important; right: 16px; top: 52px !important; }
+html.icx #signout {
+    position: static !important;
+    flex: none;
+    left: auto !important;
+    top: auto !important;
+}
+html.icx #signout b { font-weight: inherit; }
+html.icx #signout a {
+    display: inline-flex;
+    align-items: center;
+    height: 34px;
+    padding: 0 14px;
+    border: 1px solid var(--icx-border-strong);
+    border-radius: var(--icx-radius-btn);
+    color: var(--icx-text) !important;
+    font-size: 14px !important;
+    font-weight: 600;
+    text-decoration: none !important;
+    box-sizing: border-box;
+}
+html.icx #signout a:hover { background: var(--icx-surface-2); }
+
+/* ── Stage: cams card | divider | chat card ─────────────────────────────── */
+
 html.icx #body_container {
     display: grid !important;
     grid-template-columns:
-        calc((100% - 10px) * var(--icx-cams-fraction, .62))
-        10px
+        calc((100% - 2 * var(--icx-gutter) - 12px) * var(--icx-cams-fraction, .62))
+        12px
         minmax(0, 1fr);
     grid-template-rows: calc(var(--icx-stage-h) - var(--icx-bar-h)) var(--icx-bar-h) auto;
     grid-template-areas:
-        "cams  div   chat"
-        "bar   div   drawer"
+        "cams   div    chat"
+        "bar    div    drawer"
         "footer footer footer";
     width: 100% !important;
     height: auto !important;
@@ -53,12 +311,13 @@ html.icx #body_container {
     left: auto !important;
     top: auto !important;
     margin: 0 !important;
-    padding: 0 !important;
+    padding: 0 var(--icx-gutter) !important;
     border: 0 !important;
     border-radius: 0 !important;
     box-sizing: border-box;
 }
 
+/* Cams card: the cam panel with its bar underneath. */
 html.icx #body_container > #cams {
     grid-area: cams;
     position: relative !important;
@@ -67,15 +326,18 @@ html.icx #body_container > #cams {
     width: auto !important;
     height: auto !important;
     min-height: 0 !important;
-    margin: 6px 0 0 6px !important;
-    padding: 6px !important;
+    margin: 0 !important;
+    padding: 8px !important;
     overflow: hidden !important;
-    border-radius: 12px !important;
-    background: var(--icx-stage-bg) !important;
-    color: var(--icx-chrome-fg);
+    border: 1px solid var(--icx-border) !important;
+    border-bottom: 0 !important;
+    border-radius: var(--icx-radius) var(--icx-radius) 0 0 !important;
+    background: var(--icx-stage) !important;
+    color: var(--icx-text);
     --icx-gap: 6px;
 }
 
+/* Chat card: log, message box and chat bar, with the drawer underneath. */
 html.icx #body_container > #chat_container {
     grid-area: chat;
     position: relative !important;
@@ -85,56 +347,263 @@ html.icx #body_container > #chat_container {
     height: auto !important;
     min-height: 0 !important;
     margin: 0 !important;
-    display: flex !important;
-    flex-direction: column !important;
+    padding: 0 0 8px !important;
+    /* Rows, in the site's DOM order: PM container (zero height), log,
+       message box + send, the two status lines, chat bar. */
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr) auto auto auto auto;
+    border: 1px solid var(--icx-border);
+    border-bottom: 0;
+    border-radius: var(--icx-radius) var(--icx-radius) 0 0 !important;
+    background: var(--icx-surface) !important;
     /* The site gives #txt z-index: 99, which as a flex item would lift it
-       over the user-list drawer. Contain it in the chat column. */
-    z-index: 1 !important;
+       over the drawer and popovers. Contain it in the chat column. Above
+       the header's Broadcast (10) and Leave (11), which the settings panel
+       can reach on short windows; below the drawer (30). */
+    z-index: 20 !important;
     isolation: isolate;
 }
+
+/* The cam and chat cards' border is a gradient: the accent along the top,
+   fading into the ordinary border color down the sides. Background-clip
+   method: the border is transparent and the gradient is a background
+   layer clipped to the border box, under the card's own fill clipped to
+   the padding box, so it follows the rounded corners. A soft accent glow
+   washes down from the top inside. */
+html.icx #body_container > #cams,
+html.icx #body_container > #chat_container {
+    border-color: transparent !important;
+    --icx-edge: linear-gradient(var(--icx-accent), color-mix(in srgb, var(--icx-accent) 45%, var(--icx-border)) 64px, var(--icx-border) 200px);
+}
+html.icx #body_container > #cams {
+    background:
+        linear-gradient(var(--icx-accent-glow), transparent 72px) padding-box,
+        linear-gradient(var(--icx-stage), var(--icx-stage)) padding-box,
+        var(--icx-edge) border-box !important;
+}
+html.icx #body_container > #chat_container {
+    background:
+        linear-gradient(var(--icx-accent-glow), transparent 72px) padding-box,
+        linear-gradient(var(--icx-surface), var(--icx-surface)) padding-box,
+        var(--icx-edge) border-box !important;
+}
+
+/* ── Chat ─────────────────────────────────────────────────────────────────── */
+
+html.icx #chat_container > * { grid-column: 1 / -1; }
+html.icx #chat_container > #txtMsg { grid-column: 1; }
+html.icx #chat_container > #btn { grid-column: 2; }
+html.icx #chat_container > #icx-memes { grid-column: auto; }   /* absolutely positioned */
 html.icx #chat_container > #txt {
-    flex: 1 1 auto !important;
+    width: 100% !important;
     min-height: 0 !important;
     height: auto !important;
+    margin: 0 !important;
+    padding: 8px 12px !important;
+    box-sizing: border-box !important;
     overflow-y: auto !important;
+    border: 0 !important;
+    border-radius: var(--icx-radius) var(--icx-radius) 0 0 !important;
+    background: transparent !important;
+    background-image: none !important;
+    color: var(--icx-text);
 }
-html.icx #chat_container > #txtMsg { flex: none; }
+html.icx #txt p.line {
+    /* The site's .line is weight 500, which its Calibri doesn't have (so it
+       reads as regular there); the chat font does. Regular, as on the site:
+       only mentions (<b>) are bold. */
+    font-weight: 400;
+    margin: 0 !important;
+    padding: 2px 6px !important;
+    border-radius: 6px;
+}
+html.icx #txt p b,
+html.icx #txt .bold_red { font-weight: 600; }
+/* Links in chat stay out of the accent: it would compete with everyone's
+   own colors. */
+html.icx #txt a:not(.userlink) {
+    color: inherit !important;
+    text-decoration: underline !important;
+    text-decoration-color: color-mix(in srgb, currentColor 45%, transparent) !important;
+    text-underline-offset: 2px;
+}
+html.icx #txt a:hover { text-decoration-color: currentColor !important; }
+/* A sender's name: their color (the site's inline style), no underline. */
+html.icx #txt a.userlink { text-decoration: none !important; }
+html.icx #txt a.userlink:hover { text-decoration: underline !important; }
+/* Settings → Chat colors → Name only: the message in the ordinary text
+   color, the name in theirs. */
+html.icx[data-icx-chat-color="name"] #txt p.line { color: var(--icx-text) !important; }
+/* The site forces your own message text black (<font color="black">
+   after your name), leaving only the name colored. Whole message means
+   your color on it too; Name only, the ordinary text color. */
+html.icx[data-icx-chat-color="all"] #txt p.line > a.userlink ~ font:is([color="black" i], [color="#000000"], [color="#000"]) { color: inherit !important; }
+html.icx[data-icx-chat-color="name"] #txt p.line > a.userlink ~ font:is([color="black" i], [color="#000000"], [color="#000"]) { color: var(--icx-text) !important; }
+/* The site's three line styles (Settings → Line style). */
+html.icx #txt p.line.odd_row1 {
+    background-color: var(--icx-row-alt) !important;
+    box-shadow: inset 0 0 0 1px var(--icx-border);
+}
+html.icx #txt p.line.odd_row2 { background-color: transparent !important; }
+html.icx #txt p.line.odd_row3 { background-color: var(--icx-row-alt) !important; }
+/* Site notices printed into the chat log. */
+html.icx #txt table { width: 100% !important; margin: 6px 0 !important; border-collapse: collapse; }
+html.icx #txt table td {
+    padding: 8px 10px !important;
+    border-left: 3px solid var(--icx-live);
+    border-radius: 6px;
+    background: var(--icx-live-soft) !important;
+    color: var(--icx-text) !important;
+    font-size: 13px;
+}
+
+html.icx #chat_container > #txtMsg {
+    width: auto !important;
+    height: 38px;
+    margin: 8px 6px 0 8px !important;
+    padding: 0 12px !important;
+    box-sizing: border-box !important;
+    border: 1px solid var(--icx-border-strong) !important;
+    border-radius: var(--icx-radius-sm) !important;
+    background: var(--icx-surface-2) !important;
+    color: var(--icx-text) !important;
+    font-size: 14px !important;
+    outline: none;
+    transition: border-color .12s, box-shadow .12s, background-color .12s;
+}
+html.icx #chat_container > #txtMsg:focus {
+    border-color: var(--icx-accent) !important;
+    background: var(--icx-surface) !important;
+    box-shadow: 0 0 0 3px var(--icx-accent-soft) !important;
+}
+html.icx #chat_container > #txtMsg::placeholder { color: var(--icx-text-muted); }
+
+/* Send: at the end of the message box's row (Enter sends too). The site
+   hides this button on desktop with no label (it only labels it "send" on
+   phones); it still works, so it's shown and labelled by chatbar.js. */
+html.icx #chat_container > #btn {
+    visibility: visible !important;
+    position: static !important;
+    align-self: end;
+    width: auto !important;
+    height: 38px;
+    margin: 8px 8px 0 0 !important;
+    padding: 0 18px !important;
+    border: 0 !important;
+    border-radius: var(--icx-radius-sm) !important;
+    background: var(--icx-accent) !important;
+    color: var(--icx-accent-fg) !important;
+    font: 600 14px/38px var(--icx-font) !important;
+    cursor: pointer;
+}
+html.icx #chat_container > #btn:hover { filter: brightness(1.06); }
+
+html.icx #lurkMessageDiv,
+html.icx #errorMessageDiv {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    width: auto !important;
+    margin: 6px 8px 0 !important;
+    padding: 6px 10px !important;
+    border-radius: var(--icx-radius-sm);
+    background: var(--icx-live) !important;
+    color: var(--icx-live-fg) !important;
+    font-size: 12px !important;
+    line-height: 16px !important;
+}
+html.icx .chat_error_message a { color: var(--icx-live-fg) !important; text-decoration: underline; }
+/* The site's "Scrolling has been paused" notice (its link calls cR()). The
+   chat bar's Pause chip already says so, with a count; real errors stay. */
+html.icx #errorMessageDiv:has(a[href*="cR()"]) { display: none !important; }
+/* Out of the layout unless showing. The site hides them with its stylesheet
+   (visibility: hidden) on a fresh page, and later by inline style; it shows
+   them only by setting visibility: visible inline. */
+html.icx #lurkMessageDiv:not([style*="visible"]),
+html.icx #errorMessageDiv:not([style*="visible"]),
+html.icx #lurkMessageDiv:empty,
+html.icx #errorMessageDiv:empty { display: none !important; }
+
+html.icx .room_command_bar {
+    position: relative !important;
+    z-index: 120 !important;        /* above #txt's z-index: 99, so its popovers show */
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 8px 8px 0 !important;
+    border: 0 !important;
+    color: var(--icx-text) !important;
+}
+/* The site's icon buttons are replaced by the chat bar (chatbar.js). The
+   color picker (#colorDiv) stays: the bar opens it. */
+html.icx .room_command_bar.icx-chatbar-host > .chat_button { display: none !important; }
+
+/* The site's color picker, opened from the chat bar, as a card above it. */
+html.icx .room_command_bar > .color_picker {
+    position: absolute !important;
+    right: 8px !important;
+    left: auto !important;
+    top: auto !important;
+    bottom: calc(100% + 6px) !important;
+    z-index: 60 !important;
+    width: 240px !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 14px !important;
+    border: 1px solid var(--icx-border) !important;
+    border-radius: var(--icx-radius) !important;
+    background: var(--icx-surface) !important;
+    box-shadow: var(--icx-shadow) !important;
+    color: var(--icx-text);
+}
+html.icx .color_picker input { color: var(--icx-text); }
+html.icx .color_picker input[type="text"],
+html.icx .color_picker #colorTxt {
+    border: 1px solid var(--icx-border-strong);
+    border-radius: 6px;
+    background: var(--icx-surface-2);
+    padding: 4px 8px;
+}
+html.icx .color_picker input[type="button"] {
+    margin: 8px 4px 0;
+    padding: 4px 14px;
+    border: 1px solid var(--icx-border-strong);
+    border-radius: var(--icx-radius-btn);
+    background: var(--icx-surface-2);
+    cursor: pointer;
+}
 
 /* ── User list drawer ─────────────────────────────────────────────────────── */
 
 #icx-drawer {
     grid-area: drawer;
     position: relative;
-    margin: 0 6px 6px 0;
     z-index: 30;
+    margin: 0 0 var(--icx-gutter);
 }
 #icx-drawer-toggle {
     display: flex;
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    height: calc(var(--icx-bar-h) - 6px);
+    height: calc(var(--icx-bar-h) - var(--icx-gutter));
     padding: 0 14px;
-    border: 0;
-    border-radius: 0 0 12px 12px;
-    background: var(--icx-stage-bg);
-    color: var(--icx-muted);
-    font: 600 12px/1 var(--icx-font);
+    box-sizing: border-box;
+    border: 1px solid var(--icx-border);
+    border-top-color: var(--icx-border);
+    border-radius: 0 0 var(--icx-radius) var(--icx-radius);
+    background: var(--icx-surface);
+    color: var(--icx-text-muted);
+    font: 600 13px/1 var(--icx-font);
     cursor: pointer;
-    transition: color .12s;
+    transition: color .12s, background-color .12s;
 }
 #icx-drawer-toggle:hover,
-#icx-drawer.icx-open #icx-drawer-toggle { color: var(--icx-chrome-fg); }
-/* The site's Bootstrap draws a focus ring on every clicked button; only show
-   ours for keyboard focus. */
-#icx-drawer-toggle:focus,
-#icx-hidden-btn:focus,
-.icx-btn:focus { outline: none !important; }
-#icx-drawer-toggle:focus-visible,
-#icx-hidden-btn:focus-visible { outline: 2px solid var(--icx-accent) !important; outline-offset: -2px; }
+#icx-drawer.icx-open #icx-drawer-toggle { color: var(--icx-text); background: var(--icx-surface-2); }
 .icx-drawer-chevron {
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-left: 2px solid currentColor;
     border-top: 2px solid currentColor;
     transform: translateY(2px) rotate(45deg);   /* points up: opens upward */
@@ -142,49 +611,120 @@ html.icx #chat_container > #txtMsg { flex: none; }
 }
 #icx-drawer.icx-open .icx-drawer-chevron { transform: translateY(-2px) rotate(225deg); }
 
-/* The site's list, as a panel rising from the bar over the bottom of the chat. */
-html.icx #icx-drawer > #activeUserList {
-    position: absolute !important;
-    left: 0 !important;
-    right: 0 !important;
-    top: auto !important;
-    bottom: 100% !important;
-    width: auto !important;
-    height: auto !important;
-    max-height: min(60vh, calc(var(--icx-stage-h) * .6)) !important;
-    margin: 0 0 6px !important;
-    padding: 10px 12px !important;
-    overflow-y: auto !important;
-    box-sizing: border-box !important;
-    border: 1px solid rgba(0, 0, 0, .15) !important;
-    border-radius: 10px !important;
-    box-shadow: 0 -10px 34px rgba(0, 0, 0, .35) !important;
+/* The people panel (people.js), rising from the bar over the bottom of the
+   chat. The site's own list sits in the drawer, hidden: it's the source. */
+html.icx #icx-drawer > #activeUserList { display: none !important; }
+#icx-people {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 100%;
+    display: flex;
+    flex-direction: column;
+    max-height: min(60vh, calc(var(--icx-stage-h) * .6));
+    margin: 0 0 6px;
+    box-sizing: border-box;
+    border: 1px solid var(--icx-border-strong);
+    border-radius: var(--icx-radius);
+    background: var(--icx-surface);
+    box-shadow: 0 -2px 0 var(--icx-accent), var(--icx-shadow), 0 0 0 1px rgba(0, 0, 0, .04);
+    color: var(--icx-text);
+    font: 13px/1.3 var(--icx-font);
     /* Closed: invisible and out of the tab order. Visibility flips after
        the fade so the panel can animate out. */
-    visibility: hidden !important;
+    visibility: hidden;
     opacity: 0;
     transform: translateY(8px);
     transition: opacity .16s ease, transform .16s ease, visibility 0s linear .16s;
 }
-html.icx #icx-drawer.icx-open > #activeUserList {
-    visibility: visible !important;
+#icx-drawer.icx-open > #icx-people {
+    visibility: visible;
     opacity: 1;
     transform: none;
     transition-delay: 0s;
 }
-
-/* The site's translucent backdrop panel, sized for its old fixed layout. */
-html.icx #back { display: none !important; }
-
-html.icx #body_container > #footer {
-    grid-area: footer;
-    margin: 8px 6px 6px !important;
+.icx-people-head { display: flex; gap: 6px; padding: 10px 10px 6px; }
+.icx-people-search {
+    flex: 1;
+    min-width: 0;
+    height: 30px;
+    padding: 0 10px;
     box-sizing: border-box;
-    position: relative !important;
-    left: auto !important;
-    top: auto !important;
-    width: auto !important;
+    border: 1px solid var(--icx-border-strong);
+    border-radius: var(--icx-radius-btn);
+    background: var(--icx-surface-2);
+    color: var(--icx-text);
+    font: 13px var(--icx-font);
+    outline: none;
 }
+.icx-people-search:focus { border-color: var(--icx-accent); box-shadow: 0 0 0 3px var(--icx-accent-soft); background: var(--icx-surface); }
+.icx-people-search::placeholder { color: var(--icx-text-muted); }
+.icx-people-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 10px 8px; border-bottom: 1px solid var(--icx-border); }
+.icx-people-view { flex: none; padding: 2px; }
+.icx-people-view button { min-height: 24px; padding: 2px 10px; }
+.icx-people-summary { color: var(--icx-text-muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.icx-people-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 4px 6px 8px;
+    /* Two columns when there's room: names are short. */
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    align-content: start;
+    column-gap: 4px;
+}
+.icx-people-group {
+    grid-column: 1 / -1;
+    padding: 10px 6px 4px;
+    color: var(--icx-text-muted);
+    font: 700 11px/1 var(--icx-font);
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+.icx-people-empty { grid-column: 1 / -1; padding: 16px 6px; color: var(--icx-text-muted); text-align: center; }
+.icx-person {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 5px 6px;
+    border: 0;
+    border-radius: var(--icx-radius-btn);
+    background: transparent;
+    color: var(--icx-text);
+    font: 600 13px/1.25 var(--icx-font);
+    text-align: left;
+    cursor: pointer;
+}
+.icx-person:hover,
+.icx-person:focus-visible { outline: none; background: var(--icx-surface-2); }
+.icx-person:hover .icx-person-name { color: var(--icx-accent-text); }
+.icx-person-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Active: a filled green dot. Idle: hollow, and the name dims. */
+.icx-person-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--icx-online); }
+.icx-person.icx-idle .icx-person-dot { background: transparent; box-shadow: inset 0 0 0 1.5px var(--icx-text-muted); }
+.icx-person.icx-idle .icx-person-name { color: var(--icx-text-muted); font-weight: 500; }
+.icx-person-tag { flex: none; display: inline-flex; color: var(--icx-text-muted); }
+.icx-person-tag svg { width: 14px; height: 14px; }
+.icx-tag-cam { color: var(--icx-live); }
+.icx-tag-mod { color: var(--icx-accent-text); }
+.icx-person-badge { flex: none; width: 16px; height: 16px; object-fit: contain; }
+
+/* While the list is open, dim the chat behind it so the panel reads as
+   its own layer instead of blending into the conversation. */
+html.icx #body_container > #chat_container::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 200;                   /* above #txt's z-index: 99 */
+    border-radius: inherit;
+    background: rgba(10, 6, 12, .45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .16s ease;
+}
+html.icx #body_container:has(#icx-drawer.icx-open) > #chat_container::after { opacity: 1; }
 
 /* ── Divider ──────────────────────────────────────────────────────────────── */
 
@@ -195,40 +735,25 @@ html.icx #body_container > #footer {
     touch-action: none;
     outline: none;
 }
-#icx-divider::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 4px;
-    width: 2px;
-    border-radius: 1px;
-    background: #8a8f9c;
-    opacity: .25;
-    transition: opacity .15s, background-color .15s;
-}
-#icx-divider:hover::before,
-#icx-divider:focus-visible::before,
-html.icx-resizing #icx-divider::before {
-    background: var(--icx-accent);
-    opacity: 1;
-}
-/* Grip in the middle so the divider reads as draggable. */
 #icx-divider::after {
     content: "";
     position: absolute;
     top: 50%;
-    left: 2px;
-    width: 6px;
-    height: 36px;
-    margin-top: -18px;
-    border-radius: 3px;
-    background: #8a8f9c;
-    opacity: .45;
-    transition: opacity .15s, background-color .15s;
+    left: 4px;
+    width: 4px;
+    height: 40px;
+    margin-top: -20px;
+    border-radius: 2px;
+    background: var(--icx-border-strong);
+    transition: background-color .15s, height .15s, margin .15s;
 }
 #icx-divider:hover::after,
-html.icx-resizing #icx-divider::after { background: var(--icx-accent); opacity: 1; }
+#icx-divider:focus-visible::after,
+html.icx-resizing #icx-divider::after {
+    height: 64px;
+    margin-top: -32px;
+    background: var(--icx-accent);
+}
 html.icx-resizing,
 html.icx-resizing * {
     cursor: col-resize !important;
@@ -242,18 +767,17 @@ html.icx-resizing * {
     display: flex;
     align-items: center;
     gap: 6px;
-    margin: 0 0 6px 6px;
+    height: calc(var(--icx-bar-h) - var(--icx-gutter));
+    margin: 0 0 var(--icx-gutter);
     padding: 0 8px;
-    height: calc(var(--icx-bar-h) - 6px);
     box-sizing: border-box;
-    border-radius: 0 0 12px 12px;
-    background: var(--icx-stage-bg);
-    color: var(--icx-muted);
-    font: 12px/1.2 var(--icx-font);
+    border: 1px solid var(--icx-border);
+    border-top: 0;
+    border-radius: 0 0 var(--icx-radius) var(--icx-radius);
+    background: var(--icx-stage);
+    color: var(--icx-text-muted);
+    font: 13px/1.2 var(--icx-font);
 }
-/* Pull the bar up flush under the cam panel so the two read as one unit. */
-html.icx #body_container > #cams { border-bottom-left-radius: 0 !important; border-bottom-right-radius: 0 !important; }
-
 /* The site's own cam buttons, restyled as chips. */
 #icx-bar > #camRefresh,
 #icx-bar > #camVisibility {
@@ -262,48 +786,44 @@ html.icx #body_container > #cams { border-bottom-left-radius: 0 !important; bord
     left: auto !important;
     display: inline-flex !important;
 }
-#icx-bar > div > a,
-#icx-hidden-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    border: 1px solid var(--icx-line);
-    border-radius: 999px;
-    background: transparent;
-    color: var(--icx-muted) !important;
-    font: 12px/1.2 var(--icx-font) !important;
-    text-decoration: none !important;
-    cursor: pointer;
-    transition: color .12s, border-color .12s, background-color .12s;
-}
-#icx-bar > div > a:hover,
-#icx-hidden-btn:hover:not(:disabled) {
-    color: var(--icx-chrome-fg) !important;
-    border-color: rgba(255, 255, 255, .22);
-    background: rgba(255, 255, 255, .05);
-}
-#icx-bar .smicon { width: 14px; height: 14px; filter: grayscale(1) brightness(1.6); opacity: .8; }
+#icx-bar .smicon { display: none; }
 #camRefresh > a::after { content: "Refresh all"; }
+/* Hide/show cams is a toggle. The site rewrites this link each time, and the
+   icon's title says what the next click does ("Hide Cams" / "Show Cams"),
+   including when it turns cams off by itself after inactivity. */
 #camVisibility > a::after { content: "Hide cams"; }
+#camVisibility:has(img[title^="Show"]) > a::after { content: "Show cams"; }
+#icx-bar > #camVisibility:has(img[title^="Show"]) > a {
+    color: var(--icx-accent-text) !important;
+    border-color: var(--icx-accent);
+    background: var(--icx-accent-soft);
+}
+html.icx #body_container:has(#camVisibility img[title^="Show"]) #cams.icx-cams.icx-empty::after {
+    content: "Cams are hidden. Use Show cams below to bring them back.";
+}
 
 #icx-hidden { position: relative; margin-left: auto; }
-#icx-hidden-btn:disabled { opacity: .4; cursor: default; }
 #icx-hidden-menu {
     position: absolute;
     right: 0;
     bottom: calc(100% + 6px);
     z-index: 1000;
-    min-width: 200px;
+    /* As wide as the longest name needs, not capped by the narrow spot it
+       hangs from; very long names are cut with an ellipsis at the screen's
+       edge. */
+    width: max-content;
+    min-width: 220px;
+    max-width: calc(100vw - 32px);
+    box-sizing: border-box;
     max-height: 50vh;
     overflow-y: auto;
-    padding: 4px;
-    border: 1px solid var(--icx-line);
-    border-radius: 10px;
+    padding: 6px;
+    border: 1px solid var(--icx-border);
+    border-radius: var(--icx-radius);
     background: var(--icx-surface);
-    color: var(--icx-chrome-fg);
-    font: 12px/1.3 var(--icx-font);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, .45);
+    box-shadow: var(--icx-shadow);
+    color: var(--icx-text);
+    font: 13px/1.3 var(--icx-font);
 }
 #icx-hidden-menu[hidden] { display: none; }
 .icx-hidden-row {
@@ -311,46 +831,149 @@ html.icx #body_container > #cams { border-bottom-left-radius: 0 !important; bord
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 4px 4px 4px 8px;
-    border-radius: 5px;
+    padding: 4px 4px 4px 10px;
+    border-radius: 6px;
 }
-.icx-hidden-row:hover { background: rgba(255, 255, 255, .06); }
+.icx-hidden-row:hover { background: var(--icx-surface-2); }
 .icx-hidden-row .icx-live::after {
     content: "";
     display: inline-block;
-    width: 6px;
-    height: 6px;
+    width: 7px;
+    height: 7px;
     margin-left: 6px;
     border-radius: 50%;
-    background: #3fce72;
+    background: var(--icx-online);
     vertical-align: middle;
 }
+.icx-hidden-row > span:first-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 .icx-hidden-row button {
+    flex: none;
+    white-space: nowrap;
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font: inherit;
-    padding: 2px 8px;
-    border: 0;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, .1);
-    color: inherit;
+    padding: 3px 10px;
+    border: 1px solid var(--icx-accent);
+    border-radius: var(--icx-radius-btn);
+    background: transparent;
+    color: var(--icx-accent-text);
+    font: 600 12px/1.2 var(--icx-font);
     cursor: pointer;
 }
-.icx-hidden-row button:hover { background: var(--icx-accent); }
+.icx-hidden-row button svg { width: 14px; height: 14px; }
+.icx-hidden-row button:hover { background: var(--icx-accent); color: var(--icx-accent-fg); }
+#icx-hidden-menu .icx-menu-title { padding: 4px 10px 6px; }
+.icx-hidden-actions { display: flex; align-items: center; flex: none; }
+.icx-perma {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-right: 10px;
+    color: var(--icx-text-muted);
+    font: 600 12px/1 var(--icx-font);
+    white-space: nowrap;
+    cursor: pointer;
+}
+.icx-perma:hover { color: var(--icx-text); }
+.icx-perma input { width: 14px; height: 14px; margin: 0; accent-color: var(--icx-accent); cursor: pointer; }
+.icx-nick-tag {
+    margin-left: 6px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: var(--icx-surface-2);
+    color: var(--icx-text-muted);
+    font: italic 600 10.5px/1.4 var(--icx-font);
+    vertical-align: 1px;
+}
+.icx-hidden-empty { padding: 4px 10px 8px; color: var(--icx-text-muted); font-size: 13px; white-space: nowrap; }
+/* "12 more, not on cam ▸" and "Unhide all": quiet text buttons. */
+.icx-hidden-more {
+    display: block;
+    width: 100%;
+    margin-top: 4px;
+    padding: 6px 10px;
+    border: 0;
+    border-top: 1px solid var(--icx-border);
+    border-radius: 0;
+    background: transparent;
+    color: var(--icx-text-muted);
+    font: 600 12px/1.2 var(--icx-font);
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.icx-hidden-more:hover { color: var(--icx-accent-text); }
+.icx-hidden-clear { border-top: 0; margin-top: 0; }
+/* Off cam: muted names, and Unhide as a quieter button than Show. */
+.icx-hidden-more[aria-expanded="true"] ~ .icx-hidden-row > span { color: var(--icx-text-muted); }
+.icx-hidden-more[aria-expanded="true"] ~ .icx-hidden-row button { border-color: var(--icx-border); color: var(--icx-text-muted); }
+.icx-hidden-more[aria-expanded="true"] ~ .icx-hidden-row button:hover { border-color: var(--icx-accent); }
+/* Nobody hidden is on cam: the button stays (for the rest), muted. */
+#icx-hidden-btn.icx-none-on:not(:disabled) { opacity: .7; }
+
+/* ── Chips (cam bar, chat bar) ────────────────────────────────────────────── */
+
+.icx-chip,
+#icx-bar > div > a,
+#icx-hidden-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 12px;
+    box-sizing: border-box;
+    border: 1px solid var(--icx-border-strong);
+    border-radius: var(--icx-radius-btn);
+    background: transparent;
+    color: var(--icx-text-muted) !important;
+    font: 600 12px/1 var(--icx-font) !important;
+    text-decoration: none !important;
+    cursor: pointer;
+    transition: color .12s, border-color .12s, background-color .12s;
+}
+.icx-chip[hidden] { display: none; }
+.icx-chip svg { width: 14px; height: 14px; color: var(--icx-accent-text); }
+.icx-chip-alert svg { color: inherit; }
+.icx-chip:hover,
+#icx-bar > div > a:hover,
+#icx-hidden-btn:hover:not(:disabled) {
+    color: var(--icx-text) !important;
+    border-color: var(--icx-accent);
+    background: var(--icx-surface-2);
+}
+#icx-hidden-btn:disabled { opacity: .45; cursor: default; }
+.icx-chip-icon { width: 30px; padding: 0; justify-content: center; }
+.icx-chip-icon svg { width: 16px; height: 16px; }
+.icx-chip[aria-expanded="true"] { color: var(--icx-accent-text) !important; border-color: var(--icx-accent); background: var(--icx-accent-soft); }
+.icx-chip-alert,
+.icx-chip-alert:hover { color: var(--icx-live-fg) !important; background: var(--icx-live); border-color: var(--icx-live); }
+
+/* Keyboard focus only: the site's Bootstrap rings every clicked button. */
+.icx-chip:focus, #icx-bar > div > a:focus, #icx-hidden-btn:focus, #icx-drawer-toggle:focus,
+.icx-btn:focus, .icx-seg button:focus, .icx-switch:focus, .icx-step:focus { outline: none !important; }
+.icx-chip:focus-visible, #icx-bar > div > a:focus-visible, #icx-hidden-btn:focus-visible,
+.icx-seg button:focus-visible, .icx-switch:focus-visible, .icx-step:focus-visible, .icx-btn:focus-visible {
+    outline: 2px solid var(--icx-accent) !important;
+    outline-offset: 2px;
+}
+#icx-drawer-toggle:focus-visible { outline: 2px solid var(--icx-accent) !important; outline-offset: -2px; }
 
 /* ── Cam slots ────────────────────────────────────────────────────────────── */
 
 /* Site chrome inside #cams that the stage replaces. */
-#cams.icx-cams > :not(.rounded_square) { display: none !important; }
+#cams.icx-cams > :not(.rounded_square):not(.icx-ghost) { display: none !important; }
 /* Start/disable/fullscreen are replaced by the cam controls; the logo
    watermark goes too. */
 #cams.icx-cams .cam-button1,
 #cams.icx-cams .cam-button2,
 #cams.icx-cams .cam-logo { display: none !important; }
 
-/* Name label: bottom-left over a soft gradient, instead of the site's
-   inline-sized text in the corner. */
+/* Name label: bottom-left over a soft gradient. */
 #cams.icx-cams .name-on-cam {
     position: absolute !important;
     left: 0 !important;
@@ -358,18 +981,18 @@ html.icx #body_container > #cams { border-bottom-left-radius: 0 !important; bord
     top: auto !important;
     bottom: 0 !important;
     z-index: 3 !important;
-    padding: 22px 10px 7px !important;
-    background: linear-gradient(transparent, rgba(0, 0, 0, .62)) !important;
+    padding: 24px 10px 8px !important;
+    background: linear-gradient(transparent, rgba(0, 0, 0, .6)) !important;
     color: #fff !important;
-    font: 600 12px/1.2 var(--icx-font) !important;
+    font: 600 13px/1.2 var(--icx-font) !important;
     text-align: left !important;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, .5) !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, .45) !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     pointer-events: none;
 }
-/* The site's report button: kept, but small and only on hover. */
+/* The site's report button: kept, small, on hover. */
 #cams.icx-cams .cam-report {
     position: absolute !important;
     top: 6px !important;
@@ -377,20 +1000,32 @@ html.icx #body_container > #cams { border-bottom-left-radius: 0 !important; bord
     left: auto !important;
     bottom: auto !important;
     z-index: 10 !important;
-    width: 20px !important;
-    height: 20px !important;
+    width: 22px !important;
+    height: 22px !important;
     padding: 0 !important;
     border: 0 !important;
-    border-radius: 50% !important;
-    background: var(--icx-chrome-bg) !important;
-    color: var(--icx-muted) !important;
-    font: 700 11px/20px var(--icx-font) !important;
+    border-radius: 5px !important;
+    background: var(--icx-overlay-bg) !important;
+    color: var(--icx-overlay-fg) !important;
+    font: 700 11px/22px var(--icx-font) !important;
     cursor: pointer;
     opacity: 0;
-    transition: opacity .12s;
+    transition: background-color .12s;   /* no opacity fade over live video */
 }
 #cams.icx-cams .rounded_square:hover .cam-report { opacity: 1; }
-#cams.icx-cams .cam-report:hover { color: #ff8a8a !important; }
+#cams.icx-cams .cam-report:hover { background: var(--icx-live) !important; }
+/* On a narrow cam the centered controls reach the top-right corner: the
+   report button moves to the bottom-right, and the name always stops short
+   of it (not only on hover: changing layout on hover made Chrome re-layer
+   the video, blanking feeds). */
+@container (max-width: 240px) {
+    #cams.icx-cams .cam-report { top: auto !important; bottom: 5px !important; right: 5px !important; }
+    #cams.icx-cams .name-on-cam { padding-right: 32px !important; }
+}
+@container (max-width: 150px) {
+    #cams.icx-cams .cam-report { width: 18px !important; height: 18px !important; line-height: 18px !important; bottom: 3px !important; right: 3px !important; }
+    #cams.icx-cams .name-on-cam { padding-right: 24px !important; }
+}
 
 /* Unplaced slots (empty, hidden, or not laid out yet) take no space. */
 #cams.icx-cams > .rounded_square { display: none !important; }
@@ -415,11 +1050,21 @@ html.icx #body_container > #cams { border-bottom-left-radius: 0 !important; bord
     max-height: none !important;
     overflow: hidden !important;
     border: 0 !important;
-    border-radius: var(--icx-radius) !important;
+    border-radius: var(--icx-radius-sm) !important;
     background: #000 !important;
-    box-shadow: 0 0 0 1px var(--icx-line) !important;
+    box-shadow: none !important;
     cursor: grab;
+    container-type: size;
+    contain: paint;      /* nothing paints outside the cam (see .icx-focused) */
     transition: left .18s ease, top .18s ease, width .18s ease, height .18s ease;
+}
+/* Hover: a thin ring drawn inside the cam's own edges. Nothing that moves,
+   blurs or spills outside the cam: over live video those make the browser
+   re-layer the feeds, and in Firefox a hover shadow overlapping the cams
+   above and below blanked the focused cam. */
+html:not(.icx-dragging-cam) #cams.icx-cams > .rounded_square[data-icx-placed]:not(.icx-focused):hover {
+    outline: 2px solid rgba(255, 255, 255, .35);
+    outline-offset: -2px;
 }
 #cams.icx-cams > .rounded_square.icx-hidden { display: none !important; }
 
@@ -437,8 +1082,14 @@ html.icx #body_container > #cams { border-bottom-left-radius: 0 !important; bord
     object-fit: contain !important;
 }
 
+/* Focused: an accent ring inside its own edges. Nothing about a cam may
+   paint outside its box: in Firefox, anything spilling onto a neighbour
+   (this used to be a 28px glow) blanked feeds when that neighbour changed,
+   and how much it spilled depended on the spacing, so it came and went
+   with the panel's width. */
 #cams.icx-cams > .rounded_square.icx-focused {
-    box-shadow: 0 0 0 2px var(--icx-accent) !important;
+    outline: 2px solid var(--icx-accent);
+    outline-offset: -2px;
     cursor: default;
 }
 
@@ -451,27 +1102,26 @@ html.icx-resizing #cams.icx-cams > .rounded_square { transition: none !important
     left: var(--icx-drag-x, var(--icx-x)) !important;
     top: var(--icx-drag-y, var(--icx-y)) !important;
     z-index: 20 !important;
-    opacity: .85;
+    opacity: .88;
     transition: none !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, .5) !important;
+    box-shadow: var(--icx-shadow) !important;
 }
-/* Drop marker: an accent bar on the side of the cam the dragged one will land. */
+/* Drop marker: an accent bar on the side the dragged cam will land. */
 #cams.icx-cams > .rounded_square.icx-drop-before::after,
 #cams.icx-cams > .rounded_square.icx-drop-after::after {
     content: "";
     position: absolute;
     top: 6px;
     bottom: 6px;
-    width: 4px;
     z-index: 15;
+    width: 4px;
     border-radius: 2px;
     background: var(--icx-accent);
-    box-shadow: 0 0 12px var(--icx-accent);
 }
 #cams.icx-cams > .rounded_square.icx-drop-before::after { left: 4px; }
 #cams.icx-cams > .rounded_square.icx-drop-after::after { right: 4px; }
 #cams.icx-cams > .rounded_square.icx-drop-before,
-#cams.icx-cams > .rounded_square.icx-drop-after { filter: brightness(.8); }
+#cams.icx-cams > .rounded_square.icx-drop-after { filter: brightness(.82); }
 
 html.icx-dragging-cam,
 html.icx-dragging-cam * {
@@ -485,66 +1135,798 @@ html.icx-dragging-cam * {
     inset: 0;
     display: grid;
     place-items: center;
-    color: var(--icx-muted);
-    font: 14px var(--icx-font);
+    color: var(--icx-text-muted);
+    font: 15px var(--icx-font);
 }
 
-/* ── Per-cam controls ─────────────────────────────────────────────────────── */
+/* Mod tools (modtools.js): cam time and last chat, top-left on each cam. */
+.icx-modtags {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    z-index: 9;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    pointer-events: none;
+}
+.icx-modtag {
+    display: inline-flex;
+    gap: 5px;
+    padding: 2px 6px;
+    border-radius: 5px;
+    background: var(--icx-overlay-bg);
+    color: var(--icx-overlay-fg);
+    font: 600 11px/1.3 var(--icx-font);
+    font-variant-numeric: tabular-nums;
+    pointer-events: auto;
+}
+.icx-modtag[hidden] { display: none; }
+.icx-modtag-k { opacity: .65; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: 10px; }
+/* Ten minutes or more seen without a word. */
+.icx-modtag-chat.icx-modtag-quiet { background: rgba(229, 72, 77, .85); }
+@container (max-width: 150px) { .icx-modtags { display: none; } }
+
+/* ── Per-cam controls (over video: same in both themes) ───────────────────── */
 
 .icx-tools {
     position: absolute;
     top: 6px;
-    left: 50%;     /* centered: the site's name label and report (!) button take the corners */
+    left: 50%;     /* centered: the name label and report button take the corners */
     transform: translateX(-50%);
     z-index: 10;
     display: flex;
     gap: 4px;
-    opacity: 0;
-    transition: opacity .12s ease;
+    opacity: 0;          /* no fade: an animating layer over live video is one more re-layering */
 }
+/* Shown on hover, or for keyboard focus. Not plain :focus-within: a mouse
+   click leaves focus on the button and kept the controls up afterwards. */
 .rounded_square:hover > .icx-tools,
-.icx-tools:focus-within { opacity: 1; }
+.icx-tools:has(:focus-visible) { opacity: 1; }
 html.icx-dragging-cam .icx-tools { opacity: 0 !important; }
 
 .icx-btn {
     display: grid;
     place-items: center;
-    width: 28px;
-    height: 28px;
+    width: 30px;
+    height: 30px;
     padding: 0;
     border: 0;
-    border-radius: 7px;
-    background: var(--icx-chrome-bg);
-    color: var(--icx-chrome-fg);
+    border-radius: 8px;
+    background: var(--icx-overlay-bg);
+    color: var(--icx-overlay-fg);
     cursor: pointer;
-    -webkit-backdrop-filter: blur(6px);
-    backdrop-filter: blur(6px);
     transition: background-color .12s;
 }
-.icx-btn[data-act="hide"]:hover { background: #c94a4a; }
-.icx-btn:hover { background: var(--icx-accent); }
-.icx-btn:focus-visible { outline: 2px solid var(--icx-accent) !important; outline-offset: 1px; }
+.icx-btn:hover { background: var(--icx-accent); color: var(--icx-accent-fg); }
+.icx-btn[data-act="hide"]:hover { background: var(--icx-live); color: var(--icx-live-fg); }
 
-/* Small cams get small buttons so all three always fit inside the cam. */
-#cams.icx-cams > .rounded_square[data-icx-placed] { container-type: size; }
+/* Small cams get small buttons so all of them always fit inside the cam. */
 @container (max-width: 150px) {
     .icx-tools { top: 3px; gap: 2px; }
-    .icx-btn { width: 22px; height: 22px; border-radius: 4px; }
+    .icx-btn { width: 22px; height: 22px; border-radius: 5px; }
     .icx-btn svg { width: 13px; height: 13px; }
 }
 @container (max-width: 100px) {
     .icx-btn { width: 19px; height: 19px; }
     .icx-btn svg { width: 12px; height: 12px; }
 }
-@container (max-width: 84px) {
-    .icx-btn[data-act="fullscreen"] { display: none; }
-}
-@container (max-width: 66px) {
-    .icx-btn[data-act="refresh"] { display: none; }
-}
+@container (max-width: 84px) { .icx-btn[data-act="fullscreen"] { display: none; } }
+@container (max-width: 66px) { .icx-btn[data-act="refresh"] { display: none; } }
 
 .icx-refreshing .icx-btn[data-act="refresh"] svg { animation: icx-spin .8s linear infinite; }
 @keyframes icx-spin { to { transform: rotate(360deg); } }
+
+/* ── Chat bar (chatbar.js) ────────────────────────────────────────────────── */
+
+#icx-chatbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+    font: 13px/1.2 var(--icx-font);
+    visibility: hidden;          /* until the first state arrives */
+}
+#icx-chatbar.icx-ready { visibility: visible; }
+.icx-chatbar-group { display: flex; align-items: center; gap: 6px; }
+
+#icx-chat-settings {
+    position: absolute;
+    right: 8px;
+    bottom: calc(100% + 6px);
+    z-index: 60;
+    /* Wide enough for two columns as roomy as the old single one; it
+       reaches left over the cams. One column on a narrow window. */
+    width: min(680px, calc(100vw - 32px));
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    padding: 16px;
+    box-sizing: border-box;
+    border: 1px solid var(--icx-border);
+    border-radius: var(--icx-radius);
+    background: var(--icx-surface);
+    box-shadow: var(--icx-shadow);
+    color: var(--icx-text);
+}
+#icx-chat-settings[hidden] { display: none; }
+
+/* Closed PM conversations, to reopen (chat bar's Closed chip). */
+#icx-pm-closed-menu {
+    position: absolute;
+    right: 8px;
+    bottom: calc(100% + 6px);
+    z-index: 60;
+    min-width: 200px;
+    max-width: calc(100% - 16px);
+    max-height: 50vh;
+    overflow-y: auto;
+    padding: 8px;
+    box-sizing: border-box;
+    border: 1px solid var(--icx-border);
+    border-radius: var(--icx-radius);
+    background: var(--icx-surface);
+    box-shadow: var(--icx-shadow);
+    color: var(--icx-text);
+}
+#icx-pm-closed-menu[hidden] { display: none; }
+.icx-menu-title { padding: 4px 8px 8px; color: var(--icx-text-muted); font: 600 12px/1.2 var(--icx-font); }
+.icx-menu-item {
+    display: block;
+    width: 100%;
+    padding: 7px 10px;
+    border: 0;
+    border-radius: var(--icx-radius-btn);
+    background: transparent;
+    color: var(--icx-text);
+    font: 700 13px/1.2 var(--icx-font);
+    text-align: left;
+    cursor: pointer;
+}
+.icx-menu-item:hover,
+.icx-menu-item:focus-visible { outline: none; background: var(--icx-surface-2); color: var(--icx-accent-text); }
+.icx-panel-title { margin-bottom: 14px; font: 700 15px/1 var(--icx-font); }
+.icx-settings-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 32px; }
+.icx-settings-col { min-width: 0; }
+.icx-settings-col + .icx-settings-col { position: relative; }
+.icx-settings-col + .icx-settings-col::before {   /* the line between the columns */
+    content: "";
+    position: absolute;
+    top: 0; bottom: 0; left: -16px;
+    border-left: 1px solid var(--icx-border);
+}
+.icx-settings-col-title {
+    margin-bottom: 12px;
+    color: var(--icx-accent-text);
+    font: 700 11px/1 var(--icx-font);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+@media (max-width: 759px) {
+    #icx-chat-settings { width: min(360px, calc(100vw - 32px)); max-height: 70vh; }
+    .icx-settings-cols { grid-template-columns: minmax(0, 1fr); }
+    .icx-settings-col + .icx-settings-col { margin-top: 4px; padding-top: 14px; border-top: 1px solid var(--icx-border); }
+    .icx-settings-col + .icx-settings-col::before { display: none; }
+}
+.icx-panel-subtitle { margin: 4px 0 12px; padding-top: 14px; border-top: 1px solid var(--icx-border); font: 700 13px/1 var(--icx-font); }
+.icx-mod-tools[hidden] { display: none; }
+.icx-setting { margin-bottom: 14px; }
+.icx-setting-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.icx-setting-label { margin-bottom: 6px; color: var(--icx-text-muted); font: 600 12px/1.2 var(--icx-font); }
+.icx-setting-row .icx-setting-label { margin-bottom: 0; color: var(--icx-text); font-size: 13px; }
+
+/* My color: a swatch that opens the site's picker, and a sample line. */
+.icx-color-row { display: flex; align-items: center; gap: 10px; }
+.icx-color-swatch {
+    flex: none;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 3px solid var(--icx-surface-2) !important;
+    border-radius: var(--icx-radius-btn);
+    box-shadow: 0 0 0 1px var(--icx-border-strong);
+    cursor: pointer;
+    transition: box-shadow .12s;
+}
+.icx-color-swatch:hover { box-shadow: 0 0 0 1px var(--icx-accent); }
+.icx-color-sample {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 10px;
+    border-radius: var(--icx-radius-btn);
+    background: var(--icx-surface-2);
+    font: 600 13px/1.3 var(--icx-font-chat);
+    overflow-wrap: anywhere;
+}
+
+/* Segmented choice: the current value is the filled one. */
+.icx-seg {
+    display: flex;
+    flex-wrap: nowrap;              /* one row: labels are kept short */
+    gap: 2px;
+    padding: 3px;
+    border-radius: 10px;
+    background: var(--icx-surface-2);
+}
+.icx-seg button {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 30px;
+    padding: 4px 8px;
+    white-space: nowrap;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--icx-text-muted);
+    font: 600 12px/1.15 var(--icx-font);
+    cursor: pointer;
+    transition: color .12s, background-color .12s;
+}
+.icx-seg button:hover:not(:disabled):not(.icx-on) { color: var(--icx-text); }
+.icx-seg button.icx-on {
+    background: var(--icx-accent);
+    color: var(--icx-accent-fg);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .12);
+}
+.icx-seg button:disabled { opacity: .4; cursor: not-allowed; }
+/* A choice with an example under its name (Timestamps). */
+.icx-seg-2line button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding-block: 5px; }
+.icx-seg-sub { font-weight: 500; font-size: 10.5px; opacity: .72; font-variant-numeric: tabular-nums; }
+
+/* Timestamps on chat lines (stamps.js): html[data-icx-stamps] picks one. */
+html.icx #txt .icx-stamp { display: none; }
+html.icx[data-icx-stamps="absolute"] #txt .icx-stamp-abs {
+    display: inline;
+    color: var(--icx-text-muted);
+    font: 500 .85em/1 var(--icx-font);
+    font-variant-numeric: tabular-nums;
+}
+/* The site's own [hh:mm] stamp: shown, restyled, for Absolute only. */
+html.icx #txt .icx-site-stamp { display: none; }
+html.icx[data-icx-stamps="absolute"] #txt .icx-site-stamp {
+    display: inline;
+    margin-right: .25em;
+    color: var(--icx-text-muted) !important;
+    font: 500 .85em/1 var(--icx-font);
+    font-variant-numeric: tabular-nums;
+}
+/* Relative: in its own column at the right of each line, level with the
+   first line of text; the message never runs under it. On a narrow chat
+   the column is slimmer, with short labels ("35m"). */
+html.icx #txt { container: icx-chat / inline-size; }
+html.icx[data-icx-stamps="relative"] #txt p.line:has(> .icx-stamp-rel) {
+    position: relative;
+    padding-right: 5.25em !important;
+}
+html.icx[data-icx-stamps="relative"] #txt .icx-stamp-rel {
+    display: block;
+    position: absolute;
+    top: 2px;
+    right: 6px;
+    font-size: .8em;
+    line-height: inherit;   /* the line's own px height: level with its first line */
+}
+html.icx #txt .icx-stamp-rel::after {
+    content: attr(data-ago);
+    color: var(--icx-text-muted);
+    font-family: var(--icx-font);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+@container icx-chat (max-width: 380px) {
+    html.icx[data-icx-stamps="relative"] #txt p.line:has(> .icx-stamp-rel) { padding-right: 2.75em !important; }
+    html.icx #txt .icx-stamp-rel::after { content: attr(data-short); }
+}
+
+/* On/off switch */
+.icx-switch {
+    position: relative;
+    flex: none;
+    width: 40px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: var(--icx-border-strong);
+    cursor: pointer;
+    transition: background-color .15s;
+}
+.icx-switch::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .25);
+    transition: transform .15s ease;
+}
+.icx-switch[aria-checked="true"] { background: var(--icx-accent); }
+.icx-switch[aria-checked="true"]::after { transform: translateX(16px); }
+
+.icx-stepper { display: inline-flex; align-items: center; gap: 2px; padding: 3px; border-radius: 10px; background: var(--icx-surface-2); }
+.icx-step {
+    width: 30px;
+    height: 28px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--icx-text);
+    font: 700 16px/1 var(--icx-font);
+    cursor: pointer;
+}
+.icx-step:hover:not(:disabled) { background: var(--icx-surface); }
+.icx-step:disabled { opacity: .35; cursor: default; }
+.icx-size-value { min-width: 46px; text-align: center; font: 600 13px/1 var(--icx-font); font-variant-numeric: tabular-nums; }
+
+.icx-panel-link { display: inline-block; margin-top: 2px; color: var(--icx-accent-text) !important; font-size: 13px; text-decoration: none !important; }
+.icx-panel-link:hover { text-decoration: underline !important; }
+
+/* ── Emotimeme autocomplete (memes.js) ────────────────────────────────────── */
+
+#icx-memes {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    z-index: 130;                /* above #txt's z-index: 99 */
+    max-height: min(360px, 50vh);
+    overflow-y: auto;
+    padding: 6px;
+    border: 1px solid var(--icx-border);
+    border-radius: var(--icx-radius);
+    background: var(--icx-surface);
+    box-shadow: var(--icx-shadow);
+    font: 14px/1.2 var(--icx-font);
+}
+#icx-memes[hidden] { display: none; }
+.icx-meme {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 10px 4px 4px;
+    border-radius: var(--icx-radius-sm);
+    color: var(--icx-text);
+    cursor: pointer;
+}
+.icx-meme.icx-active { background: var(--icx-accent-soft); }
+.icx-meme-thumb {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 48px;
+    height: 36px;
+    overflow: hidden;
+    border-radius: 6px;
+    background: var(--icx-surface-2);
+}
+.icx-meme-thumb img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.icx-meme-code { overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── Inline image and video previews (media.js) ─────────────────────────────
+   A marker on links that preview, and the preview itself: small, under the
+   message, until it's opened full size or hidden. */
+
+html.icx a[data-icx-media="image"]::after,
+html.icx a[data-icx-media="video"]::after {
+    content: "image";
+    display: inline-block;
+    margin-left: 5px;
+    padding: 0 5px;
+    border-radius: 4px;
+    background: var(--icx-accent-soft);
+    color: var(--icx-accent-text);
+    font: 700 10px/16px var(--icx-font);
+    letter-spacing: .02em;
+    text-decoration: none;
+    vertical-align: 1px;
+}
+html.icx a[data-icx-media="video"]::after { content: "video"; }
+html.icx a[data-icx-media][aria-expanded="true"]::after { background: var(--icx-accent); color: var(--icx-accent-fg); }
+.icx-media-preview {
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+    margin: 6px 0 4px;
+}
+.icx-media-frame {
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+    line-height: 0;
+    border: 1px solid var(--icx-border);
+    border-radius: var(--icx-radius-sm);
+    overflow: hidden;
+    background: var(--icx-surface-2);
+    text-decoration: none !important;
+}
+.icx-media-frame img,
+.icx-media-frame video {
+    display: block;
+    max-width: min(320px, 100%);
+    max-height: 180px;
+    width: auto;
+    height: auto;
+    cursor: zoom-in;
+}
+.icx-media-frame video { cursor: auto; }
+.icx-media-bar { display: flex; align-items: center; gap: 10px; margin-top: 4px; font: 600 12px/1.2 var(--icx-font); }
+html.icx :is(#txt, #tabs) .icx-media-bar a.icx-media-open { color: var(--icx-accent-text) !important; text-decoration: none !important; }
+html.icx :is(#txt, #tabs) .icx-media-bar a.icx-media-open:hover { text-decoration: underline !important; }
+.icx-media-close {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--icx-text-muted);
+    font: inherit;
+    cursor: pointer;
+}
+.icx-media-close:hover { color: var(--icx-text); }
+.icx-media-error { display: none; color: var(--icx-text-muted); }
+.icx-media-preview.icx-media-failed .icx-media-frame { display: none; }
+.icx-media-preview.icx-media-failed .icx-media-error { display: inline; }
+
+/* ── Private messages (the site's jQuery UI tabs) ───────────────────────────
+   Docked at the top of the chat card (pms.js): the first row of its grid,
+   so the chat log shrinks below it and the newest lines stay in view. The
+   site positions the window for its old fixed layout and keeps setting
+   inline offsets and sizes (dragging, resizing), all overridden here. */
+
+html.icx #chat_container > #pm_container {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    z-index: auto !important;
+    min-width: 0;
+    box-sizing: border-box !important;
+}
+html.icx #pm_container > #tabs {
+    position: relative !important;
+    inset: auto !important;
+    display: flex !important;
+    flex-direction: column;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-bottom: 1px solid var(--icx-border) !important;
+    border-radius: var(--icx-radius) var(--icx-radius) 0 0 !important;
+    background: var(--icx-surface-2) !important;
+    box-shadow: none !important;
+    color: var(--icx-text) !important;
+    font-size: 13px !important;
+    cursor: auto !important;
+}
+/* Hidden (Hide PMs), no conversations, or all of them closed from their
+   tabs (pms.js keeps those, hidden, to reopen): no space at all. */
+html.icx #pm_container > #tabs[style*="hidden"],
+html.icx #pm_container > #tabs[style*="display: none"],
+html.icx #pm_container > #tabs.icx-pm-none { display: none !important; }
+html.icx #tabs > ul > li.icx-pm-closed { display: none !important; }
+/* The site's own resize grips and drag cursor: replaced by the split. */
+html.icx #tabs > .ui-resizable-handle { display: none !important; }
+
+/* Tab strip, across the top. */
+html.icx #tabs > ul.ui-tabs-nav {
+    position: static !important;
+    order: -1;
+    display: flex !important;
+    align-items: center;
+    gap: 4px;
+    overflow-x: auto;
+    margin: 0 !important;
+    padding: 6px 8px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    scrollbar-width: thin;
+}
+html.icx #tabs > ul.ui-tabs-nav::before,
+html.icx #tabs > ul.ui-tabs-nav::after { content: none; }   /* clearfix */
+html.icx #tabs .ui-tabs-nav li {
+    float: none !important;
+    position: relative !important;
+    top: auto !important;
+    display: inline-flex !important;
+    align-items: center;
+    flex: none;
+    margin: 0 !important;
+    padding: 0 4px 0 0 !important;
+    border: 1px solid transparent !important;
+    border-radius: var(--icx-radius-btn) !important;
+    background: transparent !important;
+    color: var(--icx-text-muted) !important;
+    white-space: nowrap;
+    transition: background-color .12s, color .12s, border-color .12s;
+}
+html.icx #tabs .ui-tabs-nav li a.ui-tabs-anchor {
+    float: none !important;
+    padding: 5px 4px 5px 10px !important;
+    color: inherit !important;
+    font: 700 12px/1.2 var(--icx-font) !important;
+    text-decoration: none !important;
+    outline: none;
+}
+html.icx #tabs .ui-tabs-nav li:hover { border-color: var(--icx-border-strong) !important; color: var(--icx-text) !important; }
+/* The open conversation. */
+html.icx #tabs .ui-tabs-nav li[aria-selected="true"] {
+    border-color: var(--icx-accent) !important;
+    background: var(--icx-accent) !important;
+    color: var(--icx-accent-fg) !important;
+}
+/* Unread: the site paints the tab red (inline); shown as a dot instead. */
+html.icx #tabs .ui-tabs-nav li[style*="red"]:not([aria-selected="true"]) { color: var(--icx-text) !important; }
+html.icx #tabs .ui-tabs-nav li[style*="red"]:not([aria-selected="true"]) a.ui-tabs-anchor::before {
+    content: "";
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-right: 6px;
+    border-radius: 50%;
+    background: var(--icx-live);
+    vertical-align: 1px;
+}
+/* Close: an ×, in place of the site's sprite. */
+html.icx #tabs .ui-tabs-nav li .ui-icon-close {
+    float: none !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 18px !important;
+    height: 18px !important;
+    margin: 0 !important;
+    border-radius: 5px;
+    background: none !important;
+    color: inherit;
+    font-size: 0 !important;
+    text-indent: 0 !important;
+    opacity: .55;
+    cursor: pointer;
+}
+html.icx #tabs .ui-tabs-nav li .ui-icon-close::before { content: "\00d7"; font: 400 16px/1 var(--icx-font); }
+html.icx #tabs .ui-tabs-nav li .ui-icon-close:hover { opacity: 1; background: color-mix(in srgb, currentColor 18%, transparent) !important; }
+/* Minimized (the open tab clicked again): just the strip, and it says so. */
+html.icx #tabs:not(:has(> .ui-tabs-panel[aria-hidden="false"])) > ul.ui-tabs-nav::after {
+    content: "minimized";
+    margin-left: auto;
+    padding: 0 4px;
+    color: var(--icx-text-muted);
+    font: 600 11px/1 var(--icx-font);
+}
+
+/* The open conversation's panel: messages, then the reply box. */
+html.icx #tabs > .ui-tabs-panel[aria-hidden="true"] { display: none !important; }
+html.icx #tabs > .ui-tabs-panel[aria-hidden="false"] {
+    display: flex !important;
+    flex-direction: column;
+    gap: 6px;
+    height: min(var(--icx-pm-h, 220px), 55vh) !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 8px 8px !important;
+    box-sizing: border-box;
+    border: 0 !important;
+    background: transparent !important;
+    overflow: hidden !important;
+}
+html.icx #tabs .pm_convo {
+    flex: 1 1 auto;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0;
+    padding: 6px 10px !important;
+    box-sizing: border-box;
+    overflow-y: auto !important;
+    border: 1px solid var(--icx-border) !important;
+    border-radius: var(--icx-radius-sm) !important;
+    background: var(--icx-surface) !important;
+    color: var(--icx-text) !important;
+    font-size: 14px !important;
+}
+/* "Click on the tab name to minimize, drag to move…": the strip's tooltip
+   says it now, and there's no dragging. */
+html.icx #tabs .pm_convo > div[style*="text-align:center"]:first-child { display: none; }
+html.icx #tabs .pm_outgoing {
+    position: static !important;
+    flex: none;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    top: auto !important;
+}
+html.icx #tabs .pm_outgoing input[type="text"] {
+    width: 100% !important;
+    height: 34px;
+    padding: 0 10px !important;
+    box-sizing: border-box;
+    border: 1px solid var(--icx-border-strong) !important;
+    border-radius: var(--icx-radius-sm) !important;
+    background: var(--icx-surface) !important;
+    color: var(--icx-text) !important;
+    font: 14px var(--icx-font-chat) !important;
+    outline: none;
+}
+html.icx #tabs .pm_outgoing input[type="text"]:focus { border-color: var(--icx-accent) !important; box-shadow: 0 0 0 3px var(--icx-accent-soft); }
+
+/* The handle between the PMs and the chat log, while a conversation is open. */
+/* Its own strip, not overlapping: the site gives the chat log z-index: 99,
+   which as a grid item it keeps, so anything over the log is under it. */
+#icx-pm-resize {
+    display: none;
+    position: relative;
+    height: 10px;
+    z-index: 100;
+    cursor: row-resize;
+    touch-action: none;
+    outline: none;
+}
+html.icx #pm_container:has(> #tabs:not([style*="hidden"]):not([style*="display: none"]):not(.icx-pm-none) > .ui-tabs-panel[aria-hidden="false"]) > #icx-pm-resize { display: block; }
+#icx-pm-resize::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 3px;
+    width: 40px;
+    height: 4px;
+    margin-left: -20px;
+    border-radius: 2px;
+    background: var(--icx-border-strong);
+    transition: background-color .15s, width .15s, margin .15s;
+}
+#icx-pm-resize:hover::after,
+#icx-pm-resize:focus-visible::after,
+html.icx-resizing-pm #icx-pm-resize::after { width: 64px; margin-left: -32px; background: var(--icx-accent); }
+html.icx-resizing-pm,
+html.icx-resizing-pm * { cursor: row-resize !important; user-select: none !important; }
+
+/* ── Site dialogs (jQuery UI): user info, gifts, pictures ─────────────────── */
+
+html.icx .ui-dialog {
+    padding: 0 !important;
+    border: 1px solid var(--icx-border) !important;
+    border-radius: var(--icx-radius) !important;
+    background: var(--icx-surface) !important;
+    box-shadow: var(--icx-shadow) !important;
+    color: var(--icx-text) !important;
+}
+html.icx .ui-dialog .ui-dialog-titlebar {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 10px 10px 16px !important;
+    border: 0 !important;
+    border-bottom: 1px solid var(--icx-border) !important;
+    border-radius: var(--icx-radius) var(--icx-radius) 0 0 !important;
+    background: transparent !important;
+    color: var(--icx-text) !important;
+}
+html.icx .ui-dialog .ui-dialog-title {
+    float: none !important;
+    flex: 1;
+    width: auto !important;
+    min-width: 0;
+    margin: 0 !important;
+    font: 800 16px/1.2 var(--icx-font) !important;
+}
+/* Close: the chip shape, with an × in place of the site's sprite. */
+html.icx .ui-dialog .ui-dialog-titlebar-close {
+    position: static !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 30px !important;
+    height: 30px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 1px solid var(--icx-border-strong) !important;
+    border-radius: var(--icx-radius-btn) !important;
+    background: transparent !important;
+    color: var(--icx-text-muted) !important;
+    font-size: 0 !important;            /* the hidden "Close" label */
+    text-indent: 0 !important;
+    cursor: pointer;
+    transition: color .12s, border-color .12s, background-color .12s;
+}
+html.icx .ui-dialog .ui-dialog-titlebar-close::before { content: "\00d7"; font: 400 22px/1 var(--icx-font); }
+html.icx .ui-dialog .ui-dialog-titlebar-close:hover {
+    border-color: var(--icx-accent) !important;
+    background: var(--icx-surface-2) !important;
+    color: var(--icx-text) !important;
+}
+html.icx .ui-dialog .ui-dialog-titlebar-close > span { display: none !important; }
+html.icx .ui-dialog .ui-dialog-content {
+    padding: 14px 16px 16px !important;
+    background: transparent !important;
+    color: var(--icx-text) !important;
+    font-size: 14px;
+}
+html.icx .ui-dialog .ui-dialog-content a { color: var(--icx-accent-text) !important; }
+html.icx .ui-dialog .ui-dialog-content hr { border: 0; border-top: 1px solid var(--icx-border); opacity: 1; }
+/* "Gift Trophies to Them" and the like: an accent button. */
+html.icx .ui-dialog .ui-dialog-content a.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    margin: 10px 0 4px;
+    padding: 6px 14px;
+    box-sizing: border-box;
+    border: 0;
+    border-radius: var(--icx-radius-btn);
+    background: var(--icx-accent);
+    color: var(--icx-accent-fg) !important;
+    font: 700 13px/1.25 var(--icx-font);
+    text-align: center;
+    white-space: normal;
+    text-decoration: none !important;
+}
+html.icx .ui-dialog .ui-dialog-content a.btn:hover { filter: brightness(1.06); }
+/* The action list (profile, message, whisper, ignore, follow…). */
+html.icx #userinfo_dialog ul { margin: 6px 0 0; padding: 0; list-style: none; }
+html.icx #userinfo_dialog li { margin: 0; line-height: 1; }
+html.icx #userinfo_dialog li a {
+    display: block;
+    padding: 4px 8px;
+    border-radius: var(--icx-radius-btn);
+    font: 600 13px/1.3 var(--icx-font);
+    text-decoration: none !important;
+}
+/* Mods and room owners get a second list (kick, silence, ban…), after a
+   rule: labelled, and close under the first. */
+html.icx #userinfo_dialog hr { margin: 8px 0 4px; }
+html.icx #userinfo_dialog hr + ul { margin-top: 0; }
+html.icx #userinfo_dialog hr + ul::before {
+    content: "Mod actions";
+    display: block;
+    padding: 2px 8px 4px;
+    color: var(--icx-text-muted);
+    font: 700 11px/1 var(--icx-font);
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+html.icx #userinfo_dialog li a:hover { background: var(--icx-surface-2); }
+html.icx .ui-widget-overlay { background: rgba(20, 14, 22, .45) !important; opacity: 1 !important; }
+
+/* ── Footer ───────────────────────────────────────────────────────────────── */
+
+html.icx #body_container > #footer {
+    grid-area: footer;
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    width: auto !important;
+    margin: 4px 0 12px !important;
+    padding: 8px 4px !important;
+    box-sizing: border-box;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: none !important;
+    text-align: center;
+}
+/* Link rows, on every page (#ctl00_panelFooter outside rooms). The room
+   paints them with an inline rgba(0,0,0,.7) band. */
+html.icx-site :is(#footer, #ctl00_panelFooter),
+html.icx-site :is(#footer, #ctl00_panelFooter) * { background: transparent !important; background-color: transparent !important; }
+html.icx-site :is(#footer, #ctl00_panelFooter) br { display: none; }
+html.icx-site :is(#footer, #ctl00_panelFooter) .row { margin: 0 !important; padding: 2px 0 !important; justify-content: center; box-shadow: none !important; }
+html.icx-site :is(#footer, #ctl00_panelFooter),
+html.icx-site :is(#footer, #ctl00_panelFooter) div,
+html.icx-site :is(#footer, #ctl00_panelFooter) span { color: var(--icx-text-muted) !important; font-size: 13px !important; }
+html.icx-site :is(#footer, #ctl00_panelFooter) a {
+    display: inline-block;
+    margin: 0 8px !important;
+    color: var(--icx-text-muted) !important;
+    font-size: 13px !important;
+    text-decoration: none !important;
+}
+html.icx-site :is(#footer, #ctl00_panelFooter) a:hover { color: var(--icx-accent-text) !important; }
+html.icx-site #lblDynamicFootLink { display: block; margin-bottom: 4px; }
+html.icx-site #lblDynamicFootLink a { color: var(--icx-text) !important; font-weight: 600; }
 
 /* ── Narrow windows: stack cams above chat ────────────────────────────────── */
 
@@ -555,9 +1937,410 @@ html.icx-dragging-cam .icx-tools { opacity: 0 !important; }
         grid-template-areas: "cams" "bar" "chat" "drawer" "footer";
     }
     #icx-divider { display: none; }
-    #icx-drawer { margin-left: 6px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    #cams.icx-cams > .rounded_square[data-icx-placed] { transition: none; }
+    #cams.icx-cams > .rounded_square[data-icx-placed],
+    #icx-people { transition: none; }
 }
+
+
+/* ── Personality: squish, motion, live, mentions ──────────────────────────── */
+
+/* Squishy buttons: a springy press on everything clickable. */
+html.icx .icx-chip,
+html.icx .icx-btn,
+html.icx .icx-seg button,
+html.icx .icx-step,
+html.icx .icx-switch,
+html.icx .icx-swatch-btn,
+html.icx #icx-drawer-toggle,
+html.icx #icx-bar > div > a,
+html.icx #icx-hidden-btn,
+html.icx .icx-hidden-row button,
+html.icx #camControl > .btn,
+html.icx #signout a,
+html.icx #chat_container > #btn {
+    transition: transform .28s var(--icx-spring), color .12s, background-color .12s,
+        border-color .12s, box-shadow .12s, filter .12s;
+}
+html.icx .icx-chip:hover,
+html.icx #icx-bar > div > a:hover,
+html.icx #icx-hidden-btn:hover:not(:disabled),
+html.icx #camControl > .btn:hover,
+html.icx #signout a:hover,
+html.icx #chat_container > #btn:hover { transform: translateY(-1px); }
+html.icx .icx-chip:active,
+html.icx .icx-btn:active,
+html.icx .icx-seg button:active:not(:disabled),
+html.icx .icx-step:active:not(:disabled),
+html.icx .icx-switch:active,
+html.icx .icx-swatch-btn:active,
+html.icx #icx-drawer-toggle:active,
+html.icx #icx-bar > div > a:active,
+html.icx #icx-hidden-btn:active:not(:disabled),
+html.icx .icx-hidden-row button:active,
+html.icx #camControl > .btn:active,
+html.icx #signout a:active,
+html.icx #chat_container > #btn:active {
+    /* A 1px press, not a shrink: a shrinking button pulls its edges out
+       from under the pointer, and a click that ends outside doesn't count. */
+    transform: translateY(1px);
+    transition-duration: .08s;
+}
+
+/* Cams pop in when someone goes live… */
+#cams.icx-cams > .rounded_square.icx-enter { animation: icx-pop-in .36s var(--icx-spring) both; }
+@keyframes icx-pop-in {
+    from { opacity: 0; transform: scale(.82); }
+    to   { opacity: 1; transform: none; }
+}
+/* …and a stand-in tile fades away where they were when they leave. */
+#cams.icx-cams > .icx-ghost {
+    position: absolute;
+    z-index: 5;
+    overflow: hidden;
+    border-radius: var(--icx-radius-sm);
+    background: #000;
+    pointer-events: none;
+    animation: icx-pop-out .3s ease-in both;
+}
+#cams.icx-cams > .icx-ghost span {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 24px 10px 8px;
+    background: linear-gradient(transparent, rgba(0, 0, 0, .6));
+    color: #fff;
+    font: 700 13px/1.2 var(--icx-font);
+}
+@keyframes icx-pop-out {
+    from { opacity: 1; transform: none; }
+    to   { opacity: 0; transform: scale(.86); }
+}
+
+/* Live: while you broadcast, the site swaps the Broadcast button for its
+   "cam down" controls (both kinds carry a stopCam link). Show them as a
+   pill with a pulsing dot. */
+html.icx #camControl:has(a[href*="stopCam"]) {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 8px;
+    height: 34px;
+    padding: 0 14px 0 12px !important;
+    border-radius: var(--icx-radius-btn);
+    background: var(--icx-live-soft);
+    color: var(--icx-text);
+    font-size: 13px;
+    box-sizing: border-box;
+}
+html.icx #camControl:has(a[href*="stopCam"])::before {
+    content: "";
+    flex: none;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--icx-live);
+    animation: icx-live-pulse 1.6s ease-out infinite;
+}
+html.icx #camControl:has(a[href*="stopCam"]) > div { margin: 0 !important; display: flex; align-items: center; gap: 6px; }
+html.icx #camControl:has(a[href*="stopCam"]) > div::before {
+    content: "LIVE";
+    color: var(--icx-live);
+    font: 800 12px/1 var(--icx-font);
+    letter-spacing: .08em;
+    margin-right: 4px;
+}
+html.icx #camControl a { color: var(--icx-accent-text) !important; font-weight: 700; }
+/* "Click HERE to Cam Down" → "Cam down". */
+html.icx #camControl a[href*="stopCam"] { font-size: 0 !important; text-decoration: none !important; }
+html.icx #camControl a[href*="stopCam"]::after { content: "Cam down"; font-size: 13px; }
+@keyframes icx-live-pulse {
+    0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--icx-live) 60%, transparent); }
+    70%  { box-shadow: 0 0 0 9px transparent; }
+    100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* Mentions: the site wraps "@yourname" (and "@all") in .bold_red; light up
+   the whole line. */
+html.icx #txt p.line:has(.bold_red) {
+    background: var(--icx-mention) !important;
+    box-shadow: inset 3px 0 0 var(--icx-mention-edge) !important;
+}
+html.icx #txt .bold_red { color: var(--icx-text) !important; font-weight: 700; }
+
+/* Accent swatches in Settings. */
+.icx-swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+.icx-swatch-btn {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12);
+}
+.icx-swatch-btn[aria-checked="true"] { box-shadow: 0 0 0 2px var(--icx-surface), 0 0 0 4px var(--icx-text); }
+.icx-swatch-btn:focus { outline: none !important; }
+.icx-swatch-btn:focus-visible { outline: 2px solid var(--icx-accent) !important; outline-offset: 4px; }
+.icx-swatch-btn[data-accent="grape"] { background: var(--icx-sw-grape); }
+.icx-swatch-btn[data-accent="crimson"] { background: var(--icx-sw-crimson); }
+.icx-swatch-btn[data-accent="tangerine"] { background: var(--icx-sw-tangerine); }
+.icx-swatch-btn[data-accent="gold"] { background: var(--icx-sw-gold); }
+.icx-swatch-btn[data-accent="forest"] { background: var(--icx-sw-forest); }
+.icx-swatch-btn[data-accent="aqua"] { background: var(--icx-sw-aqua); }
+.icx-swatch-btn[data-accent="cobalt"] { background: var(--icx-sw-cobalt); }
+.icx-swatch-btn[data-accent="pink"] { background: var(--icx-sw-pink); }
+
+@media (prefers-reduced-motion: reduce) {
+    #cams.icx-cams > .rounded_square.icx-enter,
+    #cams.icx-cams > .icx-ghost,
+    html.icx #camControl:has(a[href*="stopCam"])::before { animation: none; }
+    html.icx *:active { transform: none !important; }
+}
+
+/* Accent touches around the interface. */
+#icx-drawer-toggle .icx-drawer-label::before {
+    content: "";
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-right: 8px;
+    border-radius: 50%;
+    background: var(--icx-accent);
+    vertical-align: 1px;
+}
+html.icx #txt,
+html.icx .icx-people-list,
+html.icx #icx-chat-settings,
+html.icx #icx-memes,
+html.icx #icx-hidden-menu {
+    scrollbar-color: color-mix(in srgb, var(--icx-accent) 55%, transparent) transparent;
+    scrollbar-width: thin;
+}
+html.icx ::selection { background: color-mix(in srgb, var(--icx-accent) 30%, transparent); }
+
+/* ── Broadcast setup (the site's WebRTC panel) ───────────────────────────────
+   Clicking Broadcast opens the site's camera/mic setup: aD(1) in
+   scripts110725.js makes #rtc-broadcaster position:absolute and visible;
+   aD(0) only makes it invisible and leaves it in the page flow, which kept
+   its whole height as a gap under the footer. So: out of the page unless
+   it's open, and a floating card in the theme when it is. */
+html.icx #rtc-broadcaster:not([style*="absolute"]) { display: none !important; }
+html.icx #rtc-broadcaster[style*="absolute"] {
+    position: fixed !important;
+    top: 72px !important;
+    right: 16px !important;
+    left: auto !important;
+    z-index: 2000 !important;
+    width: min(760px, calc(100vw - 32px)) !important;
+    max-height: calc(100vh - 96px);
+    overflow-y: auto;
+    margin: 0 !important;
+    padding: 16px !important;
+    box-sizing: border-box;
+    border: 1px solid var(--icx-border);
+    border-radius: var(--icx-radius);
+    background: var(--icx-surface);
+    box-shadow: var(--icx-shadow);
+    color: var(--icx-text);
+}
+html.icx #rtc-broadcaster #publish-content { margin: 0 !important; padding: 0 !important; max-width: none; }
+html.icx #rtc-broadcaster #publish-settings {
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 0 0 8px !important;
+}
+html.icx #rtc-broadcaster #publisher-video {
+    border-radius: var(--icx-radius-sm) !important;
+    background: #000 !important;
+}
+html.icx #rtc-broadcaster label { color: var(--icx-text-muted); font: 600 12px/1.2 var(--icx-font); margin-bottom: 6px; }
+html.icx #rtc-broadcaster select.form-control {
+    height: 38px;
+    border: 1px solid var(--icx-border-strong) !important;
+    border-radius: var(--icx-radius-sm) !important;
+    background-color: var(--icx-surface-2) !important;
+    color: var(--icx-text) !important;
+}
+html.icx #rtc-broadcaster .control-button {
+    display: grid;
+    place-items: center;
+    width: 38px !important;
+    height: 38px;
+    margin-top: 22px;
+    border: 1px solid var(--icx-border-strong) !important;
+    border-radius: var(--icx-radius-sm) !important;
+    background: var(--icx-surface-2) !important;
+}
+html[data-icx-theme="dark"] #rtc-broadcaster .control-button img { filter: invert(.9); }
+html.icx #rtc-broadcaster #publish-toggle {
+    width: 100%;
+    height: 40px;
+    margin-top: 6px;
+    border: 0 !important;
+    border-radius: var(--icx-radius-btn) !important;
+    background: var(--icx-live) !important;
+    color: var(--icx-live-fg) !important;
+    font: 700 15px/40px var(--icx-font) !important;
+    transition: transform .28s var(--icx-spring), filter .12s;
+}
+html.icx #rtc-broadcaster #publish-toggle:hover { filter: brightness(1.08); }
+html.icx #rtc-broadcaster #publish-toggle:active { transform: translateY(1px); transition-duration: .08s; }
+html.icx #rtc-broadcaster #publish-toggle + br { display: none; }
+html.icx #rtc-broadcaster a[href*="stopCam"] {
+    display: inline-block;
+    margin-top: 10px;
+    color: var(--icx-text-muted) !important;
+    font-size: 13px;
+}
+html.icx #rtc-broadcaster #error-panel.invisible { display: none !important; }
+html.icx #rtc-broadcaster .alert { border-radius: var(--icx-radius-sm); }
+/* Card layout of its own (not dependent on the site's Bootstrap grid):
+   preview on the left, settings on the right; stacks when narrow. */
+html.icx #rtc-broadcaster #publish-content > .row {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.4fr) minmax(220px, 1fr);
+    gap: 16px;
+    margin: 0 !important;
+}
+html.icx #rtc-broadcaster #publish-content > .row > div {
+    width: auto !important;
+    max-width: none !important;
+    flex: none !important;
+    padding: 0 !important;
+}
+html.icx #rtc-broadcaster #publisher-video { width: 100% !important; left: 0 !important; transform: none !important; }
+html.icx #rtc-broadcaster #publish-settings .row {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 8px;
+    margin: 0 0 12px !important;
+}
+html.icx #rtc-broadcaster #publish-settings .row > div { width: auto !important; max-width: none !important; flex: none !important; padding: 0 !important; }
+html.icx #rtc-broadcaster #publish-settings .row:last-child { grid-template-columns: 1fr; margin-bottom: 0 !important; }
+html.icx #rtc-broadcaster .form-group { margin: 0 !important; }
+html.icx #rtc-broadcaster label { display: block; }
+html.icx #rtc-broadcaster select.form-control { width: 100% !important; padding: 0 10px; }
+html.icx #rtc-broadcaster .control-button { margin-top: 0 !important; }
+@media (max-width: 640px) {
+    html.icx #rtc-broadcaster #publish-content > .row { grid-template-columns: 1fr; }
+}
+
+
+/* ── Other pages (lobby, profiles, settings…) ─────────────────────────────
+   The shared header and footer (above) and the themed background; the
+   content panel becomes a light card (.icx-paper, set by site.js). */
+
+/* Header edge to edge; the card centered with a gutter either side. */
+html.icx-site:not(.icx) #aspnetForm { padding: 0 0 8px !important; }
+html.icx-site:not(.icx) #aspnetForm > .row { margin-left: 0 !important; margin-right: 0 !important; }
+html.icx-site .icx-paper {
+    max-width: min(1200px, calc(100% - 32px)) !important;
+    margin: 16px auto 0 !important;
+    padding: 16px 24px 40px !important;
+    border: 1px solid var(--icx-border);
+    border-radius: var(--icx-radius) !important;
+    background: var(--icx-surface) !important;
+    color: var(--icx-text);
+    box-shadow: var(--icx-shadow) !important;
+}
+html.icx-site .icx-paper .page_name {
+    margin-top: 8px;
+    padding: 8px 20px 16px 0;
+    color: var(--icx-text-muted);
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -.01em;
+}
+html.icx-site #ctl00_panelFooter {
+    margin: 12px 0 0;
+    padding: 8px 4px 16px;
+    text-align: center;
+}
+@media (max-width: 767px) {
+    html.icx-site .icx-paper { max-width: calc(100% - 16px) !important; margin-top: 8px !important; padding: 12px 12px 32px !important; border-radius: var(--icx-radius-sm) !important; }
+}
+
+
+/* ── Room emotimemes page (memespage.js) ───────────────────────────────────
+   Inside the page's light card (.icx-paper), so the tokens here are always
+   the light ones; the accent still follows the user's pick. */
+
+/* The site's gray frame and white box around the list, inside the card. */
+html.icx-memes-page .icx-paper div[style*="background-color:#e8e8e8"],
+html.icx-memes-page .icx-paper div[style*="background-color:#fff"] { background: transparent !important; padding: 0 !important; }
+
+/* "be patient" note under the instructions. */
+html.icx-memes-page #ctl00_ContentPlaceHolder1_divEmotiMemesPage center > div[style*="color:#ccc"] { display: none; }
+
+.icx-meme-filter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin: 12px 0 16px;
+}
+.icx-meme-filter-input {
+    width: min(320px, 70vw);
+    height: 36px;
+    padding: 0 12px;
+    border: 1px solid var(--icx-border-strong);
+    border-radius: 10px;
+    background: var(--icx-surface-2);
+    color: var(--icx-text);
+    font: 15px/1 var(--icx-font);
+    outline: none;
+}
+.icx-meme-filter-input:focus { border-color: var(--icx-accent); box-shadow: 0 0 0 3px var(--icx-accent-soft); background: var(--icx-surface); }
+.icx-meme-count { color: var(--icx-text-muted); font: 13px var(--icx-font); }
+
+.icx-meme-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+    text-align: center;
+}
+.icx-meme-grid > .icx-meme-card {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 8px 8px !important;
+    border: 1px solid var(--icx-border) !important;
+    border-radius: 12px !important;
+    background: var(--icx-surface);
+    transition: transform .2s var(--icx-spring), box-shadow .2s ease;
+}
+.icx-meme-grid > .icx-meme-card[hidden] { display: none !important; }
+.icx-meme-grid > .icx-meme-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(60, 40, 20, .12); }
+.icx-meme-card > br { display: none; }
+.icx-meme-card > img {
+    order: 1;
+    width: 100%;
+    height: 120px;
+    object-fit: contain;
+    border: 0 !important;
+    border-radius: 8px;
+    cursor: pointer;
+}
+.icx-meme-card > b {
+    order: 2;
+    max-width: 100%;
+    overflow: hidden;
+    color: var(--icx-text);
+    font: 700 14px/1.2 var(--icx-font);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.icx-meme-card > a {
+    order: 3;
+    color: var(--icx-text-muted) !important;
+    font: 12px/1 var(--icx-font) !important;
+    text-decoration: none !important;
+}
+.icx-meme-card > a:hover { color: var(--icx-accent-text) !important; text-decoration: underline !important; }

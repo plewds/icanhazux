@@ -43,7 +43,22 @@
         };
         replacement.__icx = true;
         window.onChatHistoryScroll = replacement;
+        keepNewestInView();
         return true;
+    }
+
+    // The log changes size (PMs docking above it, the window resizing), and a
+    // shrinking scroll box keeps its scroll position, sliding the newest
+    // lines out of view until the next message. While chat is following,
+    // stay on the newest line. Started only once the handler above is in
+    // place: the site's own would take this scroll as scrolling up.
+    function keepNewestInView() {
+        const log = document.getElementById('txt');
+        if (!log || log.__icxPinned || typeof ResizeObserver !== 'function') { return; }
+        log.__icxPinned = true;
+        new ResizeObserver(() => {
+            if (window.du && window.du.eo) { log.scrollTop = log.scrollHeight; }
+        }).observe(log);
     }
 
     // ── Chat steals focus from whatever you're typing in ───────────────────
@@ -69,9 +84,361 @@
         return true;
     }
 
+    // ── Chat settings bridge ───────────────────────────────────────────────
+    // The site keeps its chat settings in its own globals and changes them
+    // through toggle functions that cycle states and only report the result
+    // as a line in chat. The chat bar (chatbar.js, isolated world) can't see
+    // page globals, so it talks to this over DOM events with JSON strings:
+    //   icx:chat-get             → reply with icx:chat-state
+    //   icx:chat-set {key,value} → change one setting, then reply
+    // Settings are changed through the site's own functions, so it saves them
+    // (cookies / server) and posts its usual confirmation line.
+    //
+    // du fields, from scripts110725.js:
+    //   eo  1 = chat following, 0 = paused          (scrollOff / cR)
+    //   fe  0 PMs+whispers, 1 whispers only, 2 PMs only, 3 neither (togglePMPrefs)
+    //   ee  you're a room mod (can't pick "neither")
+    //   et  0 no notices, 1 all, 2 nick changes only (toggleNotifications)
+    //   ev  notification sounds                      (toggleChatSound)
+    //   eK  graphical emoticons                      (toggleEmoticons)
+    //   fM  line style 1 striped+box, 2 plain, 3 striped (setLineStyles)
+    //   eY  your text color, hex without '#'      (pickColor / onColorSave)
+    //   eI  your username
+    const call = (name, ...args) => {
+        if (typeof window[name] === 'function') { window[name](...args); return true; }
+        return false;
+    };
+
+    function readChatState() {
+        const du = window.du;
+        if (!du) { return null; }
+        const log = du.fp || document.getElementById('txt');
+        const pmToggle = document.getElementById('togglePMViewing');
+        const pmText = pmToggle ? pmToggle.textContent : '';
+        const pms = readPms();
+        return {
+            following: !!du.eo,
+            pm: Number(du.fe) || 0,
+            isMod: !!du.ee,
+            notices: Number(du.et) || 0,
+            sound: !!du.ev,
+            emoticons: !!du.eK,
+            lineStyle: Number(du.fM) || 2,
+            fontSize: log ? parseInt(log.style.fontSize, 10) || null : null,
+            color: du.eY ? '#' + String(du.eY).replace(/^#/, '') : null,
+            name: du.eI || null,
+            // Messages the site is holding back while paused (buffered in du.en).
+            held: du.eo ? 0 : ((String(du.en || '').match(/<p[\s>]/g) || []).length),
+            // Show/Hide applies once there are open conversations. (The site
+            // leaves its link saying "Hide" after hiding the window itself.)
+            pmsVisible: !pms.open ? null : /hide private/i.test(pmText) ? true : /show private/i.test(pmText) ? false : null,
+            // Conversations closed from their tab (pms.js keeps them, hidden).
+            closedPms: pms.closed,
+        };
+    }
+
+    // PM conversations: one tab each in #tabs. Closing one from its tab only
+    // hides it (pms.js marks it .icx-pm-closed), so it can be reopened.
+    function readPms() {
+        const win = document.getElementById('tabs');
+        const tabs = win && win.style.display !== 'none' ? [...win.querySelectorAll(':scope > ul > li')] : [];
+        const closed = tabs.filter(li => li.classList.contains('icx-pm-closed'));
+        return { open: tabs.length - closed.length, closed: closed.map(li => li.id.replace(/^pm_/, '')) };
+    }
+
+    function emitChatState() {
+        const state = readChatState();
+        if (state) { document.dispatchEvent(new CustomEvent('icx:chat-state', { detail: JSON.stringify(state) })); }
+    }
+
+    function setChatSetting(key, value) {
+        const du = window.du;
+        if (!du) { return; }
+        switch (key) {
+            case 'following': call(value ? 'cR' : 'scrollOff'); break;
+            case 'clear': call('clearChatHistory'); break;
+            case 'pm':
+                if (![0, 1, 2, 3].includes(value) || (value === 3 && du.ee)) { return; }
+                du.fe = value - 1;          // togglePMPrefs() steps once, onto value
+                call('togglePMPrefs');
+                break;
+            case 'notices':
+                if (![0, 1, 2].includes(value)) { return; }
+                du.et = (value + 2) % 3;    // toggleNotifications() steps once, onto value
+                call('toggleNotifications');
+                break;
+            case 'sound': if (!!du.ev !== !!value) { call('toggleChatSound'); } break;
+            case 'emoticons': if (!!du.eK !== !!value) { call('toggleEmoticons'); } break;
+            case 'lineStyle':
+                if (![1, 2, 3].includes(value)) { return; }
+                du.fM = value - 1;          // setLineStyles(true) steps once, onto value
+                call('setLineStyles', true);
+                break;
+            case 'fontSize': {
+                const size = Math.round(Number(value));
+                const log = du.fp || document.getElementById('txt');
+                if (!(size >= 9 && size <= 32) || !log) { return; }
+                // The site's '/font name size' command saves it server-side.
+                // Keep the current family; the command takes a single-word name.
+                const family = (log.style.fontFamily || '').replace(/["']/g, '').split(',')[0].trim();
+                call('send_command', `/font ${family && !/\s/.test(family) ? family : 'calibri'} ${size}`);
+                log.style.fontSize = size + 'px';
+                log.style.lineHeight = (size * 1.4) + 'px';
+                break;
+            }
+            case 'color': {
+                // Open the site's picker (color wheel and hex box). pickColor()
+                // toggles it, so only call it while it's closed; and if it
+                // fails or doesn't open it, show it anyway.
+                const picker = document.getElementById('colorDiv');
+                const isOpen = () => !!picker && getComputedStyle(picker).display !== 'none';
+                if (!isOpen()) {
+                    try { call('pickColor'); } catch (e) { console.warn('icanhazux: the site\'s color picker failed to open', e); }
+                }
+                if (picker && !isOpen()) { picker.style.display = 'block'; }
+                document.getElementById('colorTxt')?.focus();
+                break;
+            }
+            case 'pmsVisible': value ? call('show_pms', 1) : call('hide_pms'); break;
+            case 'refreshPeople': {
+                // What the list's own "refresh" link does.
+                const list = document.getElementById('activeUserList');
+                if (list) { list.innerHTML = ''; }
+                call('updateMembers', true);
+                return;
+            }
+            default: return;
+        }
+        emitChatState();
+    }
+
+    // ── PM conversations closed from their tab ──────────────────────────────
+    // bO() delivers every PM, and opens a conversation from a profile
+    // ("Send Private Message", explicit). For a conversation that was closed
+    // it only appends to the hidden tab, so tell pms.js to bring it back.
+    // bM() is alt+1, alt+2…: count only the conversations on screen.
+    function patchPms() {
+        if (typeof window.bO !== 'function' || typeof window.bM !== 'function') { return false; }
+        if (window.bO.__icx) { return true; }
+        const deliver = window.bO;
+        const wrappedDeliver = function (color, from, msg, tab, explicit) {
+            const out = deliver.apply(this, arguments);
+            const name = tab === undefined ? from : tab;
+            document.dispatchEvent(new CustomEvent('icx:pm', { detail: JSON.stringify({ name: String(name), explicit: !!explicit }) }));
+            return out;
+        };
+        wrappedDeliver.__icx = true;
+        window.bO = wrappedDeliver;
+        const goTo = window.bM;
+        window.bM = function (index) {
+            const tabs = [...document.querySelectorAll('#tabs > ul > li')];
+            const target = tabs.filter(li => !li.classList.contains('icx-pm-closed'))[index];
+            // Out of range does nothing (bM checks against its own count).
+            return goTo.call(this, target ? tabs.indexOf(target) : tabs.length + 1);
+        };
+        return true;
+    }
+
+    // ── Who's broadcasting ──────────────────────────────────────────────────
+    // The cam grid only shows cams you're watching: hide cams (or idle out)
+    // and the site empties it, and stops tracking cams at all. The server
+    // keeps telling it, though: a full list (c~ → bi), a cam up (c+ → cu)
+    // and a cam down (c- → cv). Those are read here, whatever you're
+    // watching, and the names reported to the people list.
+    //   WebRTC entry: "<stream>-<app>-<host>-<nick>[-x]"; a cam down
+    //   names the stream ("<stream>-…"). Flash entry (old): one letter,
+    //   12-character id, then "<nick>.<flags>".
+    const broadcasting = new Map();   // entry → nick
+    function entryNick(entry) {
+        const e = String(entry || '');
+        if (!e) { return ''; }
+        if (window.du && window.du.dU) { return e.split('-')[3] || ''; }
+        return e.substring(13).split('.')[0];
+    }
+    let lastBroadcasters = '';
+    function emitBroadcasters() {
+        const names = [...new Set(broadcasting.values())].filter(Boolean).sort();
+        const now = JSON.stringify(names);
+        if (now === lastBroadcasters) { return; }
+        lastBroadcasters = now;
+        document.dispatchEvent(new CustomEvent('icx:broadcasters', { detail: now }));
+    }
+    function patchBroadcasters() {
+        const du = window.du;
+        if (!du || ['bi', 'cu', 'cv'].some(f => typeof window[f] !== 'function')) { return false; }
+        if (window.bi.__icx) { return true; }
+        const wrap = (name, before) => {
+            const orig = window[name];
+            const wrapped = function (data) {
+                try { before(data); } catch (_) {}
+                const out = orig.apply(this, arguments);
+                emitBroadcasters();
+                return out;
+            };
+            wrapped.__icx = true;
+            window[name] = wrapped;
+        };
+        wrap('bi', list => {
+            broadcasting.clear();
+            String(list || '').split('|').filter(Boolean).forEach(e => broadcasting.set(e, entryNick(e)));
+        });
+        wrap('cu', entry => { if (entry) { broadcasting.set(String(entry), entryNick(entry)); } });
+        wrap('cv', down => {
+            const id = du.dU ? String(down || '').split('-')[0] : String(down || '');
+            if (!id) { return; }
+            [...broadcasting.keys()].filter(e => e.indexOf(id) === 0 || (!du.dU && e.substring(1, 13) === id)).forEach(e => broadcasting.delete(e));
+        });
+        // Cams already up when this loaded: the site's own list, if it's
+        // tracking them (cams shown).
+        (du.fu || []).forEach((entry, i) => broadcasting.set(String(entry), (du.ft || [])[i] || entryNick(entry)));
+        document.addEventListener('icx:broadcasters-get', () => {
+            lastBroadcasters = '';
+            emitBroadcasters();
+        });
+        emitBroadcasters();
+        return true;
+    }
+
+    // ── Nickname changes ───────────────────────────────────────────────────
+    // The server tells every browser in the room when someone changes their
+    // nick ("nick" message → cq([old, new, …])); the site relabels their cam
+    // and PM tab. Pass the two names on (icx:nick) so a hidden cam stays
+    // hidden under its new name. Only what the room was told: nothing here
+    // links a nick to an account.
+    function patchNicks() {
+        if (typeof window.cq !== 'function') { return false; }
+        if (window.cq.__icx) { return true; }
+        const orig = window.cq;
+        const bare = name => {   // the site's bU(): drop the mod marker
+            const n = String(name || '');
+            const at = window.du && window.du.gc ? n.indexOf(window.du.gc) : -1;
+            return at >= 0 ? n.substring(0, at) : n;
+        };
+        const wrapped = function (a) {
+            const out = orig.apply(this, arguments);
+            try {
+                const from = bare(a && a[0]);
+                const to = bare(a && a[1]);
+                if (from && to && from !== to) {
+                    broadcasting.forEach((nick, entry) => { if (nick === from) { broadcasting.set(entry, to); } });
+                    emitBroadcasters();
+                    document.dispatchEvent(new CustomEvent('icx:nick', { detail: JSON.stringify({ from, to }) }));
+                }
+            } catch (_) {}
+            return out;
+        };
+        wrapped.__icx = true;
+        window.cq = wrapped;
+        return true;
+    }
+
+    // ── Is this name a nickname? ───────────────────────────────────────────
+    // Asked when you hide a cam (cams.js: icx:nick-check). The same request
+    // the site makes when you open that profile, from this page, as you.
+    // Only one thing is read from the reply: whether the profile says it's
+    // using a nickname. Nothing else (account_name included) is looked at
+    // or kept.
+    function installNickCheck() {
+        document.addEventListener('icx:nick-check', e => {
+            let name;
+            try { name = JSON.parse(e.detail).name; } catch (_) { return; }
+            if (!name) { return; }
+            const answer = nick => document.dispatchEvent(new CustomEvent('icx:nick-result', { detail: JSON.stringify({ name, nick }) }));
+            fetch(`/profile.aspx?embed=1&user=${encodeURIComponent(name)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json;charset=utf-8' },
+                body: '{}',
+                credentials: 'same-origin',
+            }).then(r => r.json()).then(f => {
+                const doc = new DOMParser().parseFromString(String((f && f.html) || ''), 'text/html');
+                answer(/using a nickname/i.test(doc.body.textContent || ''));
+            }).catch(() => answer(null));
+        });
+        return true;
+    }
+
+    // ── Refresh after the idle timeout ─────────────────────────────────────
+    // When you've been idle a while the site hides the cams (toggleCams(),
+    // as the Hide cams button does) and says so in #lurkMessageDiv, with a
+    // Restart link (hideLurkMessage(); toggleCams()). refreshCams() only asks
+    // the server for the cam list again, which shows nothing while they're
+    // hidden. So while that notice is up, refresh restarts them the way the
+    // link does. Cams you hid yourself stay hidden.
+    function patchIdleRefresh() {
+        const refresh = window.refreshCams;
+        if (typeof refresh !== 'function' || typeof window.toggleCams !== 'function') { return false; }
+        if (refresh.__icx) { return true; }
+        const wrapped = function () {
+            const notice = document.getElementById('lurkMessageDiv');
+            const idledOut = notice && notice.style.visibility === 'visible' && notice.textContent.trim() && window.du && window.du.eA;
+            if (idledOut) {
+                call('hideLurkMessage');
+                window.toggleCams();
+                return undefined;
+            }
+            return refresh.apply(this, arguments);
+        };
+        wrapped.__icx = true;
+        window.refreshCams = wrapped;
+        return true;
+    }
+
+    function installChatBridge() {
+        if (!window.du || typeof window.togglePMPrefs !== 'function') { return false; }
+        if (window.__icxChatBridge) { return true; }
+        window.__icxChatBridge = true;
+        document.addEventListener('icx:chat-get', emitChatState);
+        document.addEventListener('icx:chat-set', e => {
+            let req;
+            try { req = JSON.parse(e.detail); } catch (_) { return; }
+            if (req && typeof req.key === 'string') { setChatSetting(req.key, req.value); }
+        });
+        // Pausing and resuming happen all the time (scrolling, sending), so
+        // report them as they happen. Both are looked up by global name.
+        for (const name of ['scrollOff', 'cR']) {
+            const orig = window[name];
+            if (typeof orig !== 'function' || orig.__icxEmit) { continue; }
+            const wrapped = function () {
+                const out = orig.apply(this, arguments);
+                emitChatState();
+                return out;
+            };
+            wrapped.__icxEmit = true;
+            Object.keys(orig).forEach(k => { wrapped[k] = orig[k]; });
+            window[name] = wrapped;
+        }
+        // While paused, the held-message count grows as messages arrive.
+        let lastHeld = -1;
+        setInterval(() => {
+            const du = window.du;
+            if (!du || du.eo) { lastHeld = -1; return; }
+            const held = (String(du.en || '').match(/<p[\s>]/g) || []).length;
+            if (held !== lastHeld) { lastHeld = held; emitChatState(); }
+        }, 1000);
+        // The PM-window toggle and color change outside our calls.
+        const pmToggle = document.getElementById('togglePMViewing');
+        if (pmToggle) { new MutationObserver(emitChatState).observe(pmToggle, { childList: true, subtree: true }); }
+        // Conversations opening, closing and reopening, and the window shown
+        // or hidden. Tab classes also change on hover, so only report a change.
+        const pmWindow = document.getElementById('tabs');
+        if (pmWindow) {
+            let last = '';
+            const pmObserver = new MutationObserver(() => {
+                const now = JSON.stringify([readPms(), pmWindow.style.visibility, pmWindow.style.display]);
+                if (now !== last) { last = now; emitChatState(); }
+            });
+            pmObserver.observe(pmWindow, { attributes: true, attributeFilter: ['style'] });
+            const list = pmWindow.querySelector(':scope > ul');
+            if (list) { pmObserver.observe(list, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] }); }
+        }
+        emitChatState();
+        return true;
+    }
+
     // The site's scripts normally load before this runs (document_idle);
-    // retry for a while in case they're late.
-    let pending = [patchChatScroll, patchFocusSteal].filter(p => !p());
+    // retry for a while in case they're late. The chat bridge goes last so it
+    // wraps the already-patched functions.
+    let pending = [patchChatScroll, patchFocusSteal, patchPms, patchIdleRefresh, patchBroadcasters, patchNicks, installNickCheck, installChatBridge].filter(p => !p());
     let tries = 0;
     const timer = pending.length && setInterval(() => {
         pending = pending.filter(p => !p());

@@ -8,22 +8,57 @@
       "id": "icanhazux@icanhazux",
       "strict_min_version": "128.0",
       "data_collection_permissions": {
-        "required": ["none"]
+        "required": [
+          "none"
+        ]
       }
     }
   },
   "content_scripts": [
     {
-      "matches": ["https://www.icanhazchat.com/*"],
-      "css": ["styles/icanhazux.css"],
-      "js": ["src/core.js", "src/pack.js", "src/shell.js", "src/cams.js"],
+      "matches": [
+        "https://www.icanhazchat.com/*"
+      ],
+      "css": [
+        "styles/icanhazux.css"
+      ],
+      "js": [
+        "src/core.js",
+        "src/pack.js",
+        "src/theme.js",
+        "src/site.js",
+        "src/shell.js",
+        "src/cams.js",
+        "src/stamps.js",
+        "src/chatbar.js",
+        "src/pms.js",
+        "src/people.js",
+        "src/modtools.js",
+        "src/memes.js",
+        "src/media.js",
+        "src/memespage.js"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://www.icanhazchat.com/*"],
-      "js": ["src/page.js"],
+      "matches": [
+        "https://www.icanhazchat.com/*"
+      ],
+      "js": [
+        "src/page.js"
+      ],
       "run_at": "document_idle",
       "world": "MAIN"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "fonts/*.woff2"
+      ],
+      "matches": [
+        "https://www.icanhazchat.com/*"
+      ]
     }
   ]
 }

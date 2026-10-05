@@ -19,7 +19,7 @@
 (function () {
     'use strict';
 
-    const { store, frameThrottle, el, ICONS } = globalThis.ICX;
+    const { store, frameThrottle, el, ICONS, alive, signal, onRetire } = globalThis.ICX;
     const { packGrid, packFocused, quantize } = globalThis.ICX_PACK;
 
     const DEFAULT_AR = 4 / 3;
@@ -38,12 +38,33 @@
 
     const state = {
         hidden: new Set(loadHidden()),
+        // Nicknames: hiding one lasts only while you're here (the name can
+        // pass to someone else later). See "Nicknames" below.
+        // Perma-nicks: nicknames you've said someone always uses (the
+        // checkbox in the Hidden menu). Their hides are saved like any name.
+        permaNicks: new Set(store.get('permaNicks', []) || []),
+        nicks: new Set(loadSession('nicks')),
+        sessionHidden: new Set(loadSession('hiddenNicks')),
         order: store.get('order', []),
         focus: store.get('focus', null),
         focusMissingSince: 0,
         drag: null,
         menuOpen: false,
+        offCamOpen: false,
+        seen: new Set(),       // cam ids that have been placed, for the pop-in
+        lastPlaced: new Map(), // key → { rect, name } from the previous layout
+        laidOut: false,
     };
+
+    // Per-visit lists, in this tab's sessionStorage (gone when it closes).
+    function loadSession(key) {
+        try { const v = JSON.parse(sessionStorage.getItem(`icx_${key}`) || '[]'); return Array.isArray(v) ? v : []; } catch (_) { return []; }
+    }
+    function saveSession(key, set) {
+        try { sessionStorage.setItem(`icx_${key}`, JSON.stringify([...set])); } catch (_) {}
+    }
+    const isHidden = key => state.hidden.has(key) || state.sessionHidden.has(key);
+    const isNick = key => state.nicks.has(key) || state.permaNicks.has(key);
 
     function loadHidden() {
         const saved = store.get('hidden', null);
@@ -81,10 +102,19 @@
         return Math.min(2.4, Math.max(0.5, ar));
     }
 
+    // Press one of the site's own cam buttons. They sit inside the page's
+    // <form> with no type, so to the browser they're submit buttons. The
+    // site's click handlers cancel that, but they're only attached once the
+    // stream connects; pressing earlier submitted the form and reloaded the
+    // page (and with a hidden cam in the room, the retry loop kept doing it).
+    // So the form submit is always blocked here; the site's handler, when
+    // it's there, still runs.
     function clickNative(id) {
         const btn = document.getElementById(id);
-        if (btn) { btn.click(); return true; }
-        return false;
+        if (!btn) { return false; }
+        btn.addEventListener('click', e => e.preventDefault(), { capture: true, once: true });
+        btn.click();
+        return true;
     }
 
     // ── Per-cam controls ────────────────────────────────────────────────────
@@ -121,11 +151,27 @@
     }
 
     function setHidden(key, hidden) {
-        if (hidden) { state.hidden.add(key); } else { state.hidden.delete(key); }
+        if (hidden && state.permaNicks.has(key)) { state.hidden.add(key); }
+        else if (hidden && state.nicks.has(key)) { state.sessionHidden.add(key); }
+        else if (hidden) { state.hidden.add(key); checkNick(key); }
+        else { state.hidden.delete(key); state.sessionHidden.delete(key); state.permaNicks.delete(key); }
         store.set('hidden', [...state.hidden]);
+        store.set('permaNicks', [...state.permaNicks]);
+        saveSession('hiddenNicks', state.sessionHidden);
         if (hidden && state.focus === key) { setFocus(null); }
         renderMenu();
         schedule();
+    }
+
+    // Perma-nick on: a nickname's hide is saved for future visits. Off:
+    // back to this visit only.
+    function setPerma(key, on) {
+        if (on) { state.permaNicks.add(key); state.sessionHidden.delete(key); state.hidden.add(key); }
+        else { state.permaNicks.delete(key); state.hidden.delete(key); state.sessionHidden.add(key); state.nicks.add(key); saveSession('nicks', state.nicks); }
+        store.set('hidden', [...state.hidden]);
+        store.set('permaNicks', [...state.permaNicks]);
+        saveSession('hiddenNicks', state.sessionHidden);
+        renderMenu();
     }
 
     function setFocus(key) {
@@ -144,7 +190,7 @@
     // Keep hidden cams hidden (and stopped) as they come and go. Returns true
     // while a stop is still pending, so the caller can check back.
     function applyHidden(cam) {
-        const hidden = state.hidden.has(cam.key);
+        const hidden = isHidden(cam.key);
         cam.slot.classList.toggle('icx-hidden', hidden);
         if (!STOP_HIDDEN_STREAMS) { return false; }
         const stopped = isStopped(cam);
@@ -170,6 +216,19 @@
     let menuBtn = null;
     let menu = null;
 
+    // Who's broadcasting, as the server reports it (page.js): right even
+    // with the site's cams hidden. Lowercased; null until the first report.
+    let broadcasters = null;
+    document.addEventListener('icx:broadcasters', e => {
+        try { broadcasters = new Set(JSON.parse(e.detail).map(n => String(n).toLowerCase())); } catch (_) { return; }
+        renderMenu();
+    }, { signal });
+    document.dispatchEvent(new CustomEvent('icx:broadcasters-get'));
+
+    // The hidden list is kept across rooms. The menu splits it by whether
+    // Show can do anything: people on cam here now (Show), and the rest,
+    // folded away (Unhide: off the list, so they show next time they cam
+    // up). The button counts only the first group.
     function buildMenu() {
         const bar = globalThis.ICX.shell?.bar;
         if (!bar || menuBtn) { return; }
@@ -180,31 +239,162 @@
             state.menuOpen = !state.menuOpen;
             renderMenu();
         });
+        menu.addEventListener('change', e => {
+            const box = e.target.closest('[data-perma]');
+            if (box) { setPerma(box.dataset.perma, box.checked); }
+        });
         menu.addEventListener('click', e => {
             e.stopPropagation();
-            const btn = e.target.closest('[data-show]');
-            if (btn) { setHidden(btn.dataset.show, false); }
+            const show = e.target.closest('[data-show]');
+            if (show) { setHidden(show.dataset.show, false); return; }
+            if (e.target.closest('[data-offcam-toggle]')) { state.offCamOpen = !state.offCamOpen; renderMenu(); return; }
+            if (e.target.closest('[data-unhide-all]')) {
+                const { off } = splitHidden();
+                off.forEach(name => { state.hidden.delete(name); state.sessionHidden.delete(name); state.permaNicks.delete(name); });
+                store.set('hidden', [...state.hidden]);
+                store.set('permaNicks', [...state.permaNicks]);
+                saveSession('hiddenNicks', state.sessionHidden);
+                renderMenu();
+            }
         });
-        document.addEventListener('click', () => {
-            if (state.menuOpen) { state.menuOpen = false; renderMenu(); }
-        });
+        // Only real clicks close it: stopping a hidden cam presses the site's
+        // own button for it, which would otherwise shut the menu.
+        document.addEventListener('click', e => {
+            if (e.isTrusted && state.menuOpen) { state.menuOpen = false; renderMenu(); }
+        }, { signal });
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && state.menuOpen) { state.menuOpen = false; renderMenu(); menuBtn.focus(); }
+        }, { signal });
         bar.append(el('div', { id: 'icx-hidden' }, [menuBtn, menu]));
         renderMenu();
     }
 
+    // Hidden names on cam here now, and the rest; each A–Z.
+    function splitHidden(live = null) {
+        live = live || new Set(readCams(document.getElementById('cams')).map(c => c.key));
+        const onCam = name => live.has(name) || !!broadcasters?.has(name.toLowerCase());
+        const names = [...new Set([...state.hidden, ...state.sessionHidden])].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+        return { on: names.filter(onCam), off: names.filter(n => !onCam(n)) };
+    }
+
     function renderMenu(live = null) {
         if (!menuBtn) { return; }
-        live = live || new Set(readCams(document.getElementById('cams')).map(c => c.key));
-        const names = [...state.hidden].sort((a, b) =>
-            (live.has(b) - live.has(a)) || a.localeCompare(b));
-        menuBtn.textContent = `Hidden · ${names.length}`;
-        menuBtn.disabled = names.length === 0;
-        menuBtn.setAttribute('aria-expanded', String(state.menuOpen && names.length > 0));
-        menu.hidden = !(state.menuOpen && names.length > 0);
-        menu.replaceChildren(...names.map(name => el('div', { class: 'icx-hidden-row' }, [
-            el('span', { class: live.has(name) ? 'icx-live' : '', text: name, title: live.has(name) ? 'On cam now' : '' }),
-            el('button', { type: 'button', 'data-show': name, html: ICONS.show + '<span>Show</span>' }),
-        ])));
+        const { on, off } = splitHidden(live);
+        const any = on.length + off.length > 0;
+        if (!any) { state.menuOpen = false; }   // nothing to list: closed, so the button opens it next time
+        menuBtn.textContent = `Hidden · ${on.length}`;
+        menuBtn.title = off.length ? `${off.length} more hidden, not on cam` : '';
+        menuBtn.disabled = !any;
+        menuBtn.classList.toggle('icx-none-on', on.length === 0);
+        menuBtn.setAttribute('aria-expanded', String(state.menuOpen && any));
+        menu.hidden = !(state.menuOpen && any);
+        // This runs on every layout pass, many times a second in a busy room.
+        // Only rebuild the rows when they actually change: replacing them
+        // between a press and its release swallowed the click.
+        const signature = `${on.join('|')}/${off.join('|')}/${state.offCamOpen ? 1 : 0}/${[...state.nicks].join('|')}/${[...state.permaNicks].join('|')}`;
+        if (menu.dataset.signature === signature) { return; }
+        menu.dataset.signature = signature;
+        // A nickname gets a "nick" pill and the Perma-nick box.
+        const row = (name, label, icon) => el('div', { class: 'icx-hidden-row' }, [
+            el('span', { text: name }, isNick(name) ? [el('em', { class: 'icx-nick-tag', text: 'nick' })] : []),
+            el('span', { class: 'icx-hidden-actions' }, [
+                isNick(name) ? el('label', {
+                    class: 'icx-perma',
+                    title: 'They always use this nickname: keep them hidden on future visits. Unchecked, hidden only while you’re here, since someone else could use it later.',
+                }, [
+                    el('input', { type: 'checkbox', 'data-perma': name, ...(state.permaNicks.has(name) ? { checked: '' } : {}) }),
+                    'Perma-nick',
+                ]) : '',
+                el('button', { type: 'button', 'data-show': name, html: icon + `<span>${label}</span>` }),
+            ]),
+        ]);
+        menu.replaceChildren(
+            el('div', { class: 'icx-menu-title', text: 'Hidden, on cam now' }),
+            ...(on.length ? on.map(name => row(name, 'Show', ICONS.show))
+                : [el('div', { class: 'icx-hidden-empty', text: 'No one you’ve hidden is on cam.' })]),
+            ...(off.length ? [
+                el('button', {
+                    type: 'button', class: 'icx-hidden-more', 'data-offcam-toggle': '',
+                    'aria-expanded': String(!!state.offCamOpen),
+                    text: `${off.length} more, not on cam ${state.offCamOpen ? '▾' : '▸'}`,
+                }),
+                ...(state.offCamOpen ? [
+                    ...off.map(name => row(name, 'Unhide', '')),
+                    el('button', { type: 'button', class: 'icx-hidden-more icx-hidden-clear', 'data-unhide-all': '', text: 'Unhide all not on cam' }),
+                ] : []),
+            ] : []),
+        );
+    }
+
+    // ── Nicknames ───────────────────────────────────────────────────────────
+    // Hiding is by the name on the cam. A nickname can change, and can pass
+    // to someone else later, so:
+    //   - when the room is told "jeff is now bob" (page.js: icx:nick), a hide
+    //     on jeff moves to bob, and both count as nicknames;
+    //   - hiding a name checks its profile (as opening it would), and a
+    //     profile you open that says it's a nickname marks that name too;
+    //   - hiding a nickname lasts only while you're here (this tab).
+    // Only what the site already shows you; nothing links a nick to an
+    // account.
+    function markNick(name) {
+        if (!name || state.nicks.has(name)) { return; }
+        state.nicks.add(name);
+        saveSession('nicks', state.nicks);
+        renderMenu();
+    }
+    document.addEventListener('icx:nick', e => {
+        let n;
+        try { n = JSON.parse(e.detail); } catch (_) { return; }
+        if (!n.from || !n.to) { return; }
+        const wasHidden = isHidden(n.from);
+        state.nicks.add(n.from);
+        markNick(n.to);
+        if (wasHidden) {
+            // A saved hide on the old name stays (it may be their own name);
+            // the new one is hidden while you're here.
+            state.sessionHidden.delete(n.from);
+            state.sessionHidden.add(n.to);
+            saveSession('hiddenNicks', state.sessionHidden);
+            if (state.focus === n.to) { setFocus(null); }
+        }
+        renderMenu();
+        schedule();
+    }, { signal });
+    // Hiding a name not yet known as a nickname asks its profile (page.js),
+    // once per visit; if it is one, the hide becomes this visit's only.
+    const checked = new Set(loadSession('nickChecked'));
+    function checkNick(name) {
+        if (checked.has(name)) { return; }
+        document.dispatchEvent(new CustomEvent('icx:nick-check', { detail: JSON.stringify({ name }) }));
+    }
+    document.addEventListener('icx:nick-result', e => {
+        let r;
+        try { r = JSON.parse(e.detail); } catch (_) { return; }
+        if (!r.name || r.nick === null) { return; }   // couldn't tell: left as it was
+        checked.add(r.name);
+        saveSession('nickChecked', checked);
+        if (!r.nick) { return; }
+        markNick(r.name);
+        if (state.hidden.has(r.name) && !state.permaNicks.has(r.name)) {
+            state.hidden.delete(r.name);
+            state.sessionHidden.add(r.name);
+            store.set('hidden', [...state.hidden]);
+            saveSession('hiddenNicks', state.sessionHidden);
+            renderMenu();
+        }
+    }, { signal });
+
+    // The site's profile popup says so when someone is using a nickname.
+    const profile = document.getElementById('userinfo_dialog');
+    if (profile) {
+        const readProfile = () => {
+            if (!/using a nickname/i.test(profile.textContent || '')) { return; }
+            const title = profile.parentElement?.querySelector('.ui-dialog-title')?.textContent.trim();
+            markNick(title);
+        };
+        const profileWatch = new MutationObserver(readProfile);
+        profileWatch.observe(profile, { childList: true, subtree: true, characterData: true });
+        onRetire(() => profileWatch.disconnect());
     }
 
     // ── Layout ──────────────────────────────────────────────────────────────
@@ -212,7 +402,7 @@
     function orderedVisible(cams) {
         const all = readCams(cams);
         const rank = new Map(state.order.map((k, i) => [k, i]));
-        const visible = all.filter(c => !state.hidden.has(c.key));
+        const visible = all.filter(c => !isHidden(c.key));
         // Known names keep their saved order; newcomers follow in slot order.
         visible.sort((a, b) => (rank.get(a.key) ?? Infinity) - (rank.get(b.key) ?? Infinity) ||
             all.indexOf(a) - all.indexOf(b));
@@ -221,7 +411,7 @@
 
     function update() {
         const cams = document.getElementById('cams');
-        if (!cams) { return; }
+        if (!cams || !alive()) { return; }
         const { all, visible } = orderedVisible(cams);
         all.forEach(decorate);
         const stopPending = all.map(applyHidden).some(Boolean);
@@ -229,7 +419,7 @@
 
         // Focus survives short absences (a cam reconnecting) but not long ones.
         let focused = state.focus ? visible.find(c => c.key === state.focus) : null;
-        if (state.focus && !focused && !state.hidden.has(state.focus)) {
+        if (state.focus && !focused && !isHidden(state.focus)) {
             if (!state.focusMissingSince) { state.focusMissingSince = Date.now(); }
             else if (Date.now() - state.focusMissingSince > FOCUS_ABSENT_MS) { setFocus(null); }
         } else {
@@ -237,6 +427,11 @@
         }
         all.forEach(cam => syncFocusButton(cam, cam === focused));
         cams.classList.toggle('icx-has-focus', !!focused);
+
+        // While the cams/chat divider is being dragged, the cams stay put:
+        // re-packing at every pixel flickers. They settle once on release
+        // (shell.js sends icx:divider-end).
+        if (document.documentElement.classList.contains('icx-resizing')) { return; }
 
         const cs = getComputedStyle(cams);
         const padL = parseFloat(cs.paddingLeft) || 0;
@@ -263,6 +458,7 @@
         }
 
         const placedSlots = new Set();
+        const nowPlaced = new Map();
         placed.forEach((r, cam) => {
             const q = quantize(r, W, H);
             const s = cam.slot.style;
@@ -273,7 +469,32 @@
             cam.slot.dataset.icxPlaced = '';
             cam.slot.classList.toggle('icx-focused', cam === focused);
             placedSlots.add(cam.slot);
+            nowPlaced.set(cam.key, { rect: { x: q.x + padL, y: q.y + padT, w: q.w, h: q.h }, name: cam.name });
+            // Pop in the first time a cam appears (not on the first layout,
+            // where everything would pop at once).
+            if (!state.seen.has(cam.camId)) {
+                state.seen.add(cam.camId);
+                if (state.laidOut) {
+                    cam.slot.classList.add('icx-enter');
+                    cam.slot.addEventListener('animationend', () => cam.slot.classList.remove('icx-enter'), { once: true });
+                }
+            }
         });
+        // Cams that were on screen and are gone now: fade a stand-in out.
+        if (state.laidOut) {
+            state.lastPlaced.forEach((prev, key) => {
+                if (nowPlaced.has(key)) { return; }
+                const ghost = el('div', { class: 'icx-ghost', 'aria-hidden': 'true' }, [el('span', { text: prev.name })]);
+                Object.assign(ghost.style, {
+                    left: `${prev.rect.x}px`, top: `${prev.rect.y}px`, width: `${prev.rect.w}px`, height: `${prev.rect.h}px`,
+                });
+                cams.append(ghost);
+                ghost.addEventListener('animationend', () => ghost.remove(), { once: true });
+                setTimeout(() => ghost.remove(), 1000);   // in case animations are off
+            });
+        }
+        state.lastPlaced = nowPlaced;
+        state.laidOut = true;
         cams.querySelectorAll(':scope > .rounded_square').forEach(slot => {
             if (placedSlots.has(slot)) { return; }
             delete slot.dataset.icxPlaced;
@@ -294,14 +515,14 @@
     }
 
     function bindDrag(cams) {
-        cams.addEventListener('dragstart', e => e.preventDefault());
+        cams.addEventListener('dragstart', e => e.preventDefault(), { signal });
 
         cams.addEventListener('pointerdown', e => {
             if (e.button !== 0 || e.target.closest('button, a, input, .icx-tools')) { return; }
             const slot = e.target.closest('.rounded_square[data-icx-placed]');
             if (!slot || slot.classList.contains('icx-focused')) { return; }
             state.drag = { slot, startX: e.clientX, startY: e.clientY, active: false, target: null, after: false };
-        });
+        }, { signal });
 
         document.addEventListener('pointermove', e => {
             const d = state.drag;
@@ -337,7 +558,7 @@
                 d.target = target;
                 d.after = after;
             }
-        });
+        }, { signal });
 
         const end = () => {
             const d = state.drag;
@@ -362,8 +583,8 @@
             }
             schedule();
         };
-        document.addEventListener('pointerup', end);
-        document.addEventListener('pointercancel', end);
+        document.addEventListener('pointerup', end, { signal });
+        document.addEventListener('pointercancel', end, { signal });
     }
 
     // ── Wiring ──────────────────────────────────────────────────────────────
@@ -383,29 +604,34 @@
             else if (act === 'refresh') { refresh(cam); }
             else if (act === 'fullscreen') { cam.slot.requestFullscreen?.().catch(() => {}); }
             else if (act === 'hide') { setHidden(cam.key, true); }
-        });
+        }, { signal });
         cams.addEventListener('dblclick', e => {
             if (e.target.closest('button, a')) { return; }
             const cam = readSlot(e.target.closest('.rounded_square') || document.body);
             if (cam) { setFocus(state.focus === cam.key ? null : cam.key); }
-        });
+        }, { signal });
         bindDrag(cams);
 
         // Cams arriving/leaving and names filling in are child-list and text
         // changes. Attributes are NOT observed: the site rewrites slot styles
         // constantly, and our own placement writes would feed back.
-        new MutationObserver(schedule).observe(cams, { childList: true, subtree: true, characterData: true });
-        new ResizeObserver(schedule).observe(cams);
+        const mo = new MutationObserver(schedule);
+        mo.observe(cams, { childList: true, subtree: true, characterData: true });
+        const ro = new ResizeObserver(schedule);
+        document.addEventListener('icx:divider-end', schedule, { signal });
+        ro.observe(cams);
+        onRetire(() => { mo.disconnect(); ro.disconnect(); });
         // Media events don't bubble, but a capturing listener on an ancestor
         // still sees them. `resize` fires when a feed changes dimensions.
         for (const type of ['loadedmetadata', 'resize']) {
-            cams.addEventListener(type, schedule, true);
+            cams.addEventListener(type, schedule, { capture: true, signal });
         }
         // Re-check an absent focus now and then even if nothing else changes.
-        setInterval(() => { if (state.focusMissingSince) { schedule(); } }, 15000);
+        const focusTimer = setInterval(() => { if (state.focusMissingSince) { schedule(); } }, 15000);
+        onRetire(() => clearInterval(focusTimer));
 
         buildMenu();
-        document.addEventListener('icx:shell-ready', buildMenu);
+        document.addEventListener('icx:shell-ready', buildMenu, { signal });
         schedule();
     }
 
