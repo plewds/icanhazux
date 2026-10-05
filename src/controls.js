@@ -4,6 +4,7 @@
 //   accent       the accent swatch          (theme.js)     chat bar + header
 //   chatColor    a person's color on their whole message or name only (chat bar)
 //   timestamps   none / relative / absolute (stamps.js)    (chat bar)
+//   pmWindow     PMs docked in the chat or floating (pms.js) (chat bar)
 //
 // The chat bar's settings panel (chatbar.js) and the header's ICHUX
 // Settings panel (menu.js) build theirs from here, so the two can't drift
@@ -139,11 +140,28 @@
         return { node: setting('Timestamps', seg.group), render };
     }
 
+    // ── PM window ───────────────────────────────────────────────────────────
+    // Docked at the top of the chat, or a floating window (pms.js owns it).
+
+    const PM_MODES = [['docked', 'Docked'], ['floating', 'Floating']];
+    const pmGet = () => (store.get('pmMode') === 'floating' ? 'floating' : 'docked');
+
+    function pmWindowControl() {
+        const seg = segmented('PM window', PM_MODES, pmGet, value => {
+            if (globalThis.ICX.pms) { globalThis.ICX.pms.setMode(value); } else { store.set('pmMode', value); changed('pmMode'); }
+        });
+        seg.group.dataset.pref = 'pmMode';
+        onChanged('pmMode', seg.render);
+        return { node: setting('PM window', seg.group), render: seg.render };
+    }
+
     globalThis.ICX.controls = {
         setting,
         theme: themeControl,
         accent: accentControl,
         chatColor: chatColorControl,
         timestamps: timestampsControl,
+        pmWindow: pmWindowControl,
+        changed,
     };
 })();

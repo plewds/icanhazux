@@ -1858,6 +1858,113 @@ html.icx-resizing-pm #icx-pm-resize::after { width: 64px; margin-left: -32px; ba
 html.icx-resizing-pm,
 html.icx-resizing-pm * { cursor: row-resize !important; user-select: none !important; }
 
+/* Pop out / dock (pms.js): at the end of the tab strip. */
+#icx-pm-mode {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 26px;
+    height: 26px;
+    margin-left: auto;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--icx-radius-btn);
+    background: transparent;
+    color: var(--icx-text-muted);
+    cursor: pointer;
+    transition: color .12s, border-color .12s, background-color .12s;
+}
+#icx-pm-mode[hidden] { display: none; }
+#icx-pm-mode svg { width: 15px; height: 15px; }
+#icx-pm-mode:hover { border-color: var(--icx-border-strong); background: var(--icx-surface); color: var(--icx-text); }
+#icx-pm-mode:focus { outline: none; }
+#icx-pm-mode:focus-visible { outline: 2px solid var(--icx-accent); outline-offset: 1px; }
+/* Last in the strip; when minimized, the "minimized" label (which takes
+   the free space) comes just before it. */
+html.icx #tabs > ul.ui-tabs-nav::after { order: 1; }
+html.icx #tabs > ul.ui-tabs-nav > #icx-pm-mode { order: 2; }
+html.icx #tabs:not(:has(> .ui-tabs-panel[aria-hidden="false"])) > ul.ui-tabs-nav > #icx-pm-mode { margin-left: 6px; }
+
+/* Floating: the same element, fixed over the room at --icx-pmf-x/y/w/h
+   (pms.js). Above the chat log (the site's z-index 99 on #txt), within the
+   chat card. Docked again on narrow windows, where the room is one column. */
+#icx-pm-grip { display: none; }
+@media (min-width: 901px) {
+    html.icx[data-icx-pm="floating"] #pm_container > #tabs {
+        position: fixed !important;
+        left: var(--icx-pmf-x) !important;
+        top: var(--icx-pmf-y) !important;
+        right: auto !important;
+        bottom: auto !important;
+        z-index: 150 !important;
+        width: var(--icx-pmf-w) !important;
+        box-sizing: border-box !important;
+        border: 1px solid var(--icx-border-strong) !important;
+        border-radius: var(--icx-radius) !important;
+        box-shadow: var(--icx-shadow) !important;
+        overflow: hidden;
+    }
+    html.icx[data-icx-pm="floating"] #pm_container > #tabs:has(> .ui-tabs-panel[aria-hidden="false"]) { height: var(--icx-pmf-h) !important; }
+    html.icx[data-icx-pm="floating"] #tabs > .ui-tabs-panel[aria-hidden="false"] { flex: 1 1 auto; height: auto !important; min-height: 0; }
+    /* Moved by its tab strip. */
+    html.icx[data-icx-pm="floating"] #tabs > ul.ui-tabs-nav { cursor: grab; touch-action: none; }
+    html.icx[data-icx-pm="floating"] #tabs > ul.ui-tabs-nav li { cursor: pointer; }
+    html.icx[data-icx-pm="floating"] #tabs > ul.ui-tabs-nav :is(a, img) { -webkit-user-drag: none; user-select: none; }
+    html.icx-moving-pm,
+    html.icx-moving-pm * { cursor: grabbing !important; user-select: none !important; }
+    /* The split handle is for docked PMs. */
+    html.icx[data-icx-pm="floating"] #pm_container > #icx-pm-resize { display: none !important; }
+
+    /* Resize grip: the window's bottom-right corner, while a conversation is open. */
+    html.icx[data-icx-pm="floating"] #pm_container:has(> #tabs:not([style*="hidden"]):not([style*="display: none"]):not(.icx-pm-none) > .ui-tabs-panel[aria-hidden="false"]) > #icx-pm-grip {
+        display: block;
+        position: fixed;
+        left: calc(var(--icx-pmf-x) + var(--icx-pmf-w) - 18px);
+        top: calc(var(--icx-pmf-y) + var(--icx-pmf-h) - 18px);
+        z-index: 151;
+        width: 16px;
+        height: 16px;
+        cursor: nwse-resize;
+        touch-action: none;
+        outline: none;
+        border-radius: 0 0 var(--icx-radius-sm) 0;
+        background:
+            linear-gradient(135deg, transparent 50%, var(--icx-border-strong) 50%, var(--icx-border-strong) 58%, transparent 58%,
+                transparent 70%, var(--icx-border-strong) 70%, var(--icx-border-strong) 78%, transparent 78%);
+    }
+    html.icx[data-icx-pm="floating"] #icx-pm-grip:hover,
+    html.icx[data-icx-pm="floating"] #icx-pm-grip:focus-visible,
+    html.icx-resizing-pmf #icx-pm-grip {
+        background:
+            linear-gradient(135deg, transparent 50%, var(--icx-accent) 50%, var(--icx-accent) 58%, transparent 58%,
+                transparent 70%, var(--icx-accent) 70%, var(--icx-accent) 78%, transparent 78%) !important;
+    }
+    html.icx-resizing-pmf,
+    html.icx-resizing-pmf * { cursor: nwse-resize !important; user-select: none !important; }
+
+    /* Dragged over the top of the chat: drop to dock. */
+    html.icx #body_container > #chat_container.icx-pm-dock-target::after {
+        content: "Drop to dock";
+        position: absolute;
+        left: 8px;
+        right: 8px;
+        top: 8px;
+        z-index: 140;
+        display: grid;
+        place-items: center;
+        height: 72px;
+        border: 2px dashed var(--icx-accent);
+        border-radius: var(--icx-radius-sm);
+        background: var(--icx-accent-soft);
+        color: var(--icx-accent-text);
+        font: 700 13px/1 var(--icx-font);
+        pointer-events: none;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    #icx-pm-mode { transition: none; }
+}
+
 /* ── Site dialogs (jQuery UI): user info, gifts, pictures ─────────────────── */
 
 html.icx .ui-dialog {

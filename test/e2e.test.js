@@ -15,8 +15,9 @@ const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'manifest.json'), 'u
 const ROOM = 'file://' + path.join(__dirname, 'mock', 'room.html');
 const SHOTS = process.env.ICX_SHOTS;
 
-async function openRoom(page) {
+async function openRoom(page, { setup } = {}) {
     await page.goto(ROOM);
+    if (setup) { await page.evaluate(setup); }
     for (const css of manifest.content_scripts[0].css) {
         await page.addStyleTag({ path: path.join(ROOT, css) });
     }
@@ -593,6 +594,165 @@ test('header: ICHUX Settings holds appearance only; in a room it stays in step w
             barTheme: document.querySelector('#icx-chat-settings [data-pref="theme"] [data-value="dark"]').getAttribute('aria-checked'),
         }));
         assert.deepStrictEqual(r, { accent: 'forest', theme: 'dark', barAccent: 'true', barTheme: 'true' });
+        await page.evaluate(() => localStorage.clear());
+    } finally {
+        await browser.close();
+    }
+});
+
+// ── PMs: docked or floating ─────────────────────────────────────────────────
+
+// The site's PM window, as its jQuery UI tabs widget leaves it: absolutely
+// positioned where the old layout wanted it, two conversations, alice open.
+// Tab clicks are recorded (the widget's job on the real site).
+function addPmWindow() {
+    const convo = (name, open) => `
+        <div id="pmtab_${name}" class="ui-tabs-panel ui-widget-content" aria-hidden="${!open}">
+          <div class="pm_convo"><div><b>${name}:</b> hi there</div></div>
+          <div class="pm_outgoing"><input type="text" id="txt_to_${name}"></div>
+        </div>`;
+    document.getElementById('pm_container').innerHTML = `
+      <div id="tabs" class="ui-tabs ui-widget ui-widget-content" style="position:absolute; left:600px; top:80px; width:400px; height:300px;">
+        <ul class="ui-tabs-nav ui-helper-reset ui-widget-header" role="tablist">
+          <li id="pm_alice" role="tab" aria-selected="true"><a href="#pmtab_alice" class="ui-tabs-anchor">alice</a><span class="ui-icon ui-icon-close">Remove Tab</span></li>
+          <li id="pm_bob" role="tab" aria-selected="false"><a href="#pmtab_bob" class="ui-tabs-anchor">bob</a><span class="ui-icon ui-icon-close">Remove Tab</span></li>
+        </ul>${convo('alice', true)}${convo('bob', false)}
+      </div>`;
+    window.__tabClicks = [];
+    document.querySelectorAll('#tabs .ui-tabs-anchor').forEach(a => a.addEventListener('click', e => {
+        e.preventDefault();
+        window.__tabClicks.push(a.textContent);
+    }));
+}
+
+function pmBox(page) {
+    return page.evaluate(() => {
+        const t = document.getElementById('tabs').getBoundingClientRect();
+        const log = document.getElementById('txt').getBoundingClientRect();
+        return {
+            x: Math.round(t.left), y: Math.round(t.top), w: Math.round(t.width), h: Math.round(t.height),
+            position: getComputedStyle(document.getElementById('tabs')).position,
+            log: Math.round(log.height),
+            mode: document.documentElement.dataset.icxPm || 'docked',
+            clicks: [...window.__tabClicks],
+        };
+    });
+}
+
+test('pms: pop out into a floating window that the site can\'t move, and it\'s remembered', async () => {
+    const browser = await chromium.launch();
+    try {
+        const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+        await page.goto(ROOM);
+        await page.evaluate(() => localStorage.clear());
+        await openRoom(page, { setup: addPmWindow });
+        const docked = await pmBox(page);
+        assert.strictEqual(docked.mode, 'docked');
+        assert.notStrictEqual(docked.position, 'fixed');
+
+        await page.click('#icx-pm-mode');
+        const floating = await pmBox(page);
+        assert.strictEqual(floating.mode, 'floating');
+        assert.strictEqual(floating.position, 'fixed');
+        assert.ok(floating.log > docked.log + 50, `the chat log takes back the space (${docked.log} → ${floating.log})`);
+        assert.ok(floating.w >= 260 && floating.h >= 200, 'a usable size');
+
+        // The site rewrites the window's inline position and size.
+        await page.evaluate(() => Object.assign(document.getElementById('tabs').style, { left: '5px', top: '5px', width: '120px', height: '90px' }));
+        const after = await pmBox(page);
+        assert.deepStrictEqual([after.x, after.y, after.w, after.h], [floating.x, floating.y, floating.w, floating.h], 'the site can\'t move it');
+
+        // Reload: still floating, in the same place.
+        await openRoom(page, { setup: addPmWindow });
+        const again = await pmBox(page);
+        assert.strictEqual(again.mode, 'floating');
+        assert.deepStrictEqual([again.x, again.y, again.w, again.h], [floating.x, floating.y, floating.w, floating.h]);
+        await page.evaluate(() => localStorage.clear());
+    } finally {
+        await browser.close();
+    }
+});
+
+test('pms: drag the strip to move it, the corner to resize it; a tab click is still a click', async () => {
+    const browser = await chromium.launch();
+    try {
+        const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+        await page.goto(ROOM);
+        await page.evaluate(() => localStorage.clear());
+        await openRoom(page, { setup: addPmWindow });
+        await page.click('#icx-pm-mode');
+        const start = await pmBox(page);
+
+        // A plain click on a tab reaches the site.
+        await page.click('#pm_bob a');
+        assert.deepStrictEqual((await pmBox(page)).clicks, ['bob']);
+
+        // Dragging from that same tab moves the window and isn't a click.
+        const tab = await page.locator('#pm_bob a').boundingBox();
+        await page.mouse.move(tab.x + 10, tab.y + 8);
+        await page.mouse.down();
+        await page.mouse.move(tab.x - 60, tab.y + 48, { steps: 6 });
+        await page.mouse.move(tab.x - 110, tab.y + 88, { steps: 6 });
+        await page.mouse.up();
+        const moved = await pmBox(page);
+        assert.deepStrictEqual([moved.x - start.x, moved.y - start.y], [-120, 80], 'moved with the pointer');
+        assert.deepStrictEqual(moved.clicks, ['bob'], 'the drag was not a tab click');
+
+        // The corner grip resizes it, no smaller than its minimum.
+        const grip = await page.locator('#icx-pm-grip').boundingBox();
+        await page.mouse.move(grip.x + 8, grip.y + 8);
+        await page.mouse.down();
+        await page.mouse.move(grip.x + 8 + 60, grip.y + 8 + 40, { steps: 5 });
+        await page.mouse.up();
+        const bigger = await pmBox(page);
+        assert.deepStrictEqual([bigger.w - moved.w, bigger.h - moved.h], [60, 40]);
+        await page.mouse.move(grip.x + 68, grip.y + 48);
+        await page.mouse.down();
+        await page.mouse.move(grip.x - 900, grip.y - 900, { steps: 5 });
+        await page.mouse.up();
+        const smallest = await pmBox(page);
+        assert.deepStrictEqual([smallest.w, smallest.h], [260, 200]);
+        await page.evaluate(() => localStorage.clear());
+    } finally {
+        await browser.close();
+    }
+});
+
+test('pms: drop it on the top of the chat to dock; the chat bar\'s setting follows; narrow windows dock', async () => {
+    const browser = await chromium.launch();
+    try {
+        const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+        await page.goto(ROOM);
+        await page.evaluate(() => localStorage.clear());
+        await openRoom(page, { setup: addPmWindow });
+        await page.click('#icx-pm-mode');
+        const chosen = () => page.evaluate(() =>
+            document.querySelector('#icx-chat-settings [data-pref="pmMode"] [aria-checked="true"]')?.dataset.value);
+        assert.strictEqual(await chosen(), 'floating');
+
+        // Drag it by the strip's empty end onto the top of the chat card.
+        const strip = await page.locator('#tabs > ul').boundingBox();
+        const chat = await page.locator('#chat_container').boundingBox();
+        await page.mouse.move(strip.x + strip.width - 60, strip.y + strip.height / 2);
+        await page.mouse.down();
+        await page.mouse.move(chat.x + chat.width / 2, chat.y + 300, { steps: 8 });
+        await page.mouse.move(chat.x + chat.width / 2, chat.y + 30, { steps: 8 });
+        assert.ok(await page.evaluate(() => document.getElementById('chat_container').classList.contains('icx-pm-dock-target')), 'shows where it will dock');
+        await page.mouse.up();
+        const docked = await pmBox(page);
+        assert.strictEqual(docked.mode, 'docked');
+        assert.notStrictEqual(docked.position, 'fixed');
+        assert.strictEqual(await chosen(), 'docked');
+
+        // Floating again, then a narrow window: docked layout, no pop-out button.
+        await page.click('#icx-pm-mode');
+        await page.setViewportSize({ width: 800, height: 900 });
+        await page.waitForTimeout(100);
+        const narrow = await page.evaluate(() => ({
+            position: getComputedStyle(document.getElementById('tabs')).position,
+            button: !document.getElementById('icx-pm-mode').hidden,
+        }));
+        assert.deepStrictEqual(narrow, { position: 'relative', button: false });
         await page.evaluate(() => localStorage.clear());
     } finally {
         await browser.close();

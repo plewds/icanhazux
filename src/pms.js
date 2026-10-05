@@ -11,10 +11,13 @@
 // again, or when you start a PM with them from their profile (page.js tells
 // this script about every PM delivered). The site's own PM code (sending,
 // receiving, unread marking) is otherwise untouched.
+//
+// The window can also float (Floating, below): the same element, never
+// moved out of the page, positioned by the stylesheet over the room.
 (function () {
     'use strict';
 
-    const { store, el, signal, removeStale } = globalThis.ICX;
+    const { store, el, signal, onRetire, removeStale, ICONS } = globalThis.ICX;
 
     const container = document.getElementById('pm_container');
     const tabs = document.getElementById('tabs');
@@ -153,4 +156,190 @@
         const fitted = clamp(height);
         if (fitted !== height) { height = fitted; apply(); }
     }, { signal });
+
+    // ── Floating ────────────────────────────────────────────────────────────
+    // Docked (above) or floating over the room: html[data-icx-pm="floating"]
+    // and the window's place and size in --icx-pmf-x/y/w/h on <html>. The
+    // stylesheet does the rest: as with the cam grid, a stylesheet
+    // !important rule outranks the site's inline rewrites of #tabs, and the
+    // element stays where the site put it, so its PM code keeps working.
+    //
+    // Moved by its tab strip (a few pixels of slack, so a click on a tab is
+    // still a click), resized from the corner grip, docked again by dropping
+    // it on the top of the chat or with the button at the end of the strip.
+    // On narrow windows the room is one column, and the PMs stay docked.
+
+    const root = document.documentElement;
+    const narrow = window.matchMedia('(max-width: 900px)');
+    const MIN_W = 260;
+    const MIN_H = 200;
+    const DRAG_SLACK = 5;
+    const DOCK_ZONE = 90;         // px from the top of the chat card that docks on drop
+
+    let mode = store.get('pmMode') === 'floating' ? 'floating' : 'docked';
+    let rect = store.get('pmFloat', null);
+    const floating = () => mode === 'floating' && !narrow.matches;
+
+    // Pop out / dock: a button at the end of the tab strip. Not a tab (the
+    // site's tabs widget only counts <li>s), re-added if the site rebuilds
+    // the strip.
+    removeStale('icx-pm-mode');
+    const modeBtn = el('button', { type: 'button', id: 'icx-pm-mode' });
+    modeBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        setMode(mode === 'floating' ? 'docked' : 'floating');
+    });
+    function placeButton() {
+        const strip = tabs.querySelector(':scope > ul');
+        if (strip && modeBtn.parentElement !== strip) { strip.append(modeBtn); }
+    }
+    const stripObserver = new MutationObserver(placeButton);
+    stripObserver.observe(tabs, { childList: true });
+    onRetire(() => stripObserver.disconnect());
+    placeButton();
+
+    removeStale('icx-pm-grip');
+    const grip = el('div', {
+        id: 'icx-pm-grip',
+        role: 'separator',
+        tabindex: '0',
+        'aria-label': 'Resize private messages',
+        title: 'Drag to resize',
+    });
+    tabs.after(grip);
+
+    function defaultRect() {
+        const c = chat.getBoundingClientRect();
+        const w = Math.round(Math.min(420, Math.max(MIN_W, c.width - 32)));
+        return { x: Math.round(c.right - w - 16), y: Math.round(c.top + 16), w, h: 360 };
+    }
+    // Keep it on screen, and at least its minimum size.
+    function fit(r) {
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const w = Math.round(Math.min(Math.max(MIN_W, r.w), vw - 8));
+        const h = Math.round(Math.min(Math.max(MIN_H, r.h), vh - 8));
+        return {
+            w, h,
+            x: Math.round(Math.min(Math.max(4, r.x), vw - w - 4)),
+            y: Math.round(Math.min(Math.max(4, r.y), vh - Math.min(h, 48) - 4)),
+        };
+    }
+    function applyFloat() {
+        const on = floating();
+        if (on) {
+            rect = fit(rect || defaultRect());
+            root.style.setProperty('--icx-pmf-x', `${rect.x}px`);
+            root.style.setProperty('--icx-pmf-y', `${rect.y}px`);
+            root.style.setProperty('--icx-pmf-w', `${rect.w}px`);
+            root.style.setProperty('--icx-pmf-h', `${rect.h}px`);
+        }
+        if (mode === 'floating') { root.dataset.icxPm = 'floating'; } else { delete root.dataset.icxPm; }
+        const label = on ? 'Dock in the chat' : 'Pop out into a window';
+        modeBtn.innerHTML = on ? ICONS.dock : ICONS.popout;
+        modeBtn.title = label;
+        modeBtn.setAttribute('aria-label', label);
+        modeBtn.hidden = narrow.matches;
+    }
+    function setMode(next) {
+        mode = next === 'floating' ? 'floating' : 'docked';
+        store.set('pmMode', mode);
+        applyFloat();
+        globalThis.ICX.controls?.changed('pmMode');
+    }
+    globalThis.ICX.pms.setMode = setMode;
+    applyFloat();
+    narrow.addEventListener('change', applyFloat, { signal });
+    window.addEventListener('resize', () => { if (floating()) { applyFloat(); } }, { signal });
+    signal.addEventListener('abort', () => {
+        delete root.dataset.icxPm;
+        ['x', 'y', 'w', 'h'].forEach(k => root.style.removeProperty(`--icx-pmf-${k}`));
+    });
+
+    const save = () => store.set('pmFloat', rect);
+
+    // Moving: by the tab strip, tabs included, past a little slack.
+    let move = null;
+    let swallowClick = false;
+    function overDock(e) {
+        const c = chat.getBoundingClientRect();
+        return e.clientX >= c.left && e.clientX <= c.right && e.clientY >= c.top && e.clientY <= c.top + DOCK_ZONE;
+    }
+    tabs.addEventListener('pointerdown', e => {
+        if (!floating() || e.button !== 0) { return; }
+        const strip = e.target.closest('ul');
+        if (!strip || strip.parentElement !== tabs || e.target.closest('#icx-pm-mode, .ui-icon-close')) { return; }
+        move = { x: e.clientX, y: e.clientY, from: { ...rect }, id: e.pointerId, moving: false };
+    }, { signal });
+    tabs.addEventListener('pointermove', e => {
+        if (!move || e.pointerId !== move.id) { return; }
+        const dx = e.clientX - move.x;
+        const dy = e.clientY - move.y;
+        if (!move.moving) {
+            if (Math.hypot(dx, dy) < DRAG_SLACK) { return; }
+            move.moving = true;
+            tabs.setPointerCapture(e.pointerId);
+            root.classList.add('icx-moving-pm');
+        }
+        rect = fit({ ...move.from, x: move.from.x + dx, y: move.from.y + dy });
+        applyFloat();
+        chat.classList.toggle('icx-pm-dock-target', overDock(e));
+    }, { signal });
+    const endMove = e => {
+        if (!move) { return; }
+        const moved = move.moving;
+        move = null;
+        root.classList.remove('icx-moving-pm');
+        chat.classList.remove('icx-pm-dock-target');
+        if (!moved) { return; }
+        swallowClick = true;           // the click that ends a drag isn't a tab click
+        setTimeout(() => { swallowClick = false; }, 0);
+        if (e && e.type === 'pointerup' && overDock(e)) { setMode('docked'); } else { save(); }
+    };
+    // The tabs are links: dragging one would start the browser's own
+    // drag-and-drop, which cancels the move.
+    tabs.addEventListener('dragstart', e => {
+        if (floating() && e.target.closest?.('ul')?.parentElement === tabs) { e.preventDefault(); }
+    }, { signal });
+    tabs.addEventListener('pointerup', endMove, { signal });
+    tabs.addEventListener('pointercancel', endMove, { signal });
+    tabs.addEventListener('click', e => {
+        if (!swallowClick) { return; }
+        swallowClick = false;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+    }, { capture: true, signal });
+
+    // Resizing: the corner grip, or its arrow keys.
+    let size = null;
+    grip.addEventListener('pointerdown', e => {
+        if (e.button !== 0) { return; }
+        size = { x: e.clientX, y: e.clientY, from: { ...rect } };
+        grip.setPointerCapture(e.pointerId);
+        root.classList.add('icx-resizing-pmf');
+        e.preventDefault();
+    });
+    grip.addEventListener('pointermove', e => {
+        if (!size) { return; }
+        rect = fit({ ...size.from, w: size.from.w + e.clientX - size.x, h: size.from.h + e.clientY - size.y });
+        applyFloat();
+    });
+    const endSize = () => {
+        if (!size) { return; }
+        size = null;
+        root.classList.remove('icx-resizing-pmf');
+        save();
+    };
+    grip.addEventListener('pointerup', endSize);
+    grip.addEventListener('pointercancel', endSize);
+    grip.addEventListener('lostpointercapture', endSize);
+    grip.addEventListener('keydown', e => {
+        const step = e.shiftKey ? 40 : 10;
+        const d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
+        if (!d) { return; }
+        e.preventDefault();
+        rect = fit({ ...rect, w: rect.w + d[0], h: rect.h + d[1] });
+        applyFloat();
+        save();
+    });
 })();

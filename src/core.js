@@ -62,6 +62,9 @@
         message: svg('<path d="M21 12a8 8 0 0 1-11.8 7L4 20l1.1-4.6A8 8 0 1 1 21 12z"/>'),
         cam: svg('<rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10.5l6-3.5v10l-6-3.5z"/>'),
         mod: svg('<path d="M12 3l8 3v6c0 4.6-3.4 8.3-8 9-4.6-.7-8-4.4-8-9V6z"/>'),
+        // PM window: pop out to float, or dock back into the chat.
+        popout: svg('<path d="M14 4h6v6M20 4l-8 8"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>'),
+        dock: svg('<rect x="4" y="4" width="16" height="16" rx="1.5"/><path d="M4 10h16"/>'),
     };
 
     // ── One live copy at a time ──────────────────────────────────────────

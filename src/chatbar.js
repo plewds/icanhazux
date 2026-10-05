@@ -117,6 +117,7 @@
         accent: controls.accent(),
         chatColor: controls.chatColor(),
         timestamps: globalThis.ICX.stamps ? controls.timestamps() : null,
+        pmWindow: controls.pmWindow(),
     };
 
     // Mod tools (modtools.js): only for room mods and owners.
@@ -188,6 +189,7 @@
                 choice('notices', 'Join & leave notices', [[1, 'All'], [2, 'Name changes'], [0, 'Off']]),
                 toggle('sound', 'Notification sounds'),
                 toggle('emoticons', 'Show emotimemes (GIFs)'),
+                shared.pmWindow.node,
                 modSection,
                 el('a', { class: 'icx-panel-link', href: helpHref, target: '_blank', rel: 'noopener', text: 'Chat commands help ↗' }),
             ]),

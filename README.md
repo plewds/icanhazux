@@ -33,7 +33,8 @@ icanhazux builds on [icanhazbetter](https://github.com/sardistic/icanhazbetter) 
 **People and PMs**
 
 - **People drawer.** Under the chat: everyone in the room as a list, with who's idle, on cam, a mod or a site supporter. Search it, or show only who's on cam. Click a name for their profile, as before.
-- **PMs docked in the chat.** Private messages open at the top of the chat instead of floating over the page. Drag to resize. Closing a PM tab hides it instead of deleting it; reopen it from **Closed** on the chat bar.
+- **PMs docked or floating.** Private messages open at the top of the chat instead of wherever the site's old layout put them; drag the bar under them to resize. Or pop them out (the button at the end of the PM tabs, or **PM window** in the chat bar's ⚙) into a window you can move by its tabs, resize from the corner and park anywhere over the room. Drop it on the top of the chat to dock it again. It's remembered, and on narrow windows the PMs stay docked.
+- **Closed, not deleted.** Closing a PM tab hides it instead of deleting the conversation; reopen it from **Closed** on the chat bar.
 
 **Mod tools** (room mods and owners only)
 
@@ -82,7 +83,7 @@ src/
   controls.js  settings controls shared by the chat bar and header panels
   chatbar.js   chat bar and its settings panel
   menu.js      ichux settings in the site header
-  pms.js       PMs docked in the chat
+  pms.js       PMs docked in the chat, or floating
   people.js    people drawer
   modtools.js  cam time and last chat, for mods
   memes.js     emotimeme autocomplete
