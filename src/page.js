@@ -383,6 +383,183 @@
         return true;
     }
 
+    // ── Picking a camera (or mic) to broadcast ─────────────────────────────
+    // The broadcast panel's camera list (ichc-rtc.js, ichcWebRTCPublish.js)
+    // asks for the chosen device as a preference, not a requirement:
+    //     video: { deviceId: id, width: { min: 240, ideal: 320, max: 480 },
+    //              height: { min: 180, ideal: 240, max: 360 }, frameRate: 8 }
+    // The size limits are hard, the device isn't. A camera that can't offer
+    // a size in that range on its own (OBS's virtual camera only runs at
+    // its output size) doesn't qualify, so the browser quietly opens one
+    // that does: in Firefox, which honors the limits strictly, that's the
+    // default camera whatever you pick.
+    // So when the site names a device, it becomes required, with the site's
+    // size limits as they were: an ordinary webcam opens in the same small
+    // mode it always did. Only if that device can't meet the limits is it
+    // asked for again with them as a preference (their ideal), and then it
+    // runs at its own size. It's never resized once running: changing a live
+    // camera's mode in Firefox can hang it (light on, no picture) until it's
+    // unplugged. If the device can't be opened either way, the site's own
+    // request runs unchanged.
+    //
+    // The frame rate (the server's, 5 to 8) isn't asked of the camera: on a
+    // Mac that sets the device itself to run that slowly, and OBS's virtual
+    // camera then stutters in OBS too, until OBS is restarted (other apps
+    // ask for ~30 and are smooth). The camera runs at its own rate and the
+    // broadcast is held to the site's rate when it's sent instead (the
+    // connection's maxFramerate, set as the site adds the camera to it).
+    //
+    // The list also reads each device's id back out of the option's id
+    // ("CameraMobile_<id>") by splitting on "_", which cuts short any id
+    // that has an underscore in it; such an id is matched back to its device.
+    function patchCameraChoice() {
+        const md = navigator.mediaDevices;
+        if (!md || typeof md.getUserMedia !== 'function') { return false; }
+        if (md.getUserMedia.__icx) { return true; }
+        const orig = md.getUserMedia.bind(md);
+
+        // The id the site meant, given what it passed.
+        async function fullId(id, kind) {
+            try {
+                const devices = (await md.enumerateDevices()).filter(d => d.kind === kind);
+                if (devices.some(d => d.deviceId === id)) { return id; }
+                const cut = devices.find(d => d.deviceId.startsWith(id + '_'));
+                return cut ? cut.deviceId : id;
+            } catch (_) {
+                return id;
+            }
+        }
+        const named = c => c && typeof c === 'object' && typeof c.deviceId === 'string' &&
+            c.deviceId && c.deviceId !== 'screen';
+        const asIdeal = c => (c && typeof c === 'object' && !Array.isArray(c))
+            ? { ideal: c.ideal ?? c.max ?? c.min } : c;
+
+        // Camera tracks opened here → the frame rate the site wanted.
+        const rates = new WeakMap();
+        const wanted = c => {
+            const n = parseFloat(c && typeof c === 'object' ? (c.ideal ?? c.max ?? c.exact) : c);
+            return n > 0 ? n : 0;
+        };
+        const opened = (stream, fps) => {
+            const track = fps && stream.getVideoTracks()[0];
+            if (track) { rates.set(track, fps); }
+            return stream;
+        };
+
+        const wrapped = async function (constraints) {
+            const video = constraints && constraints.video;
+            const audio = constraints && constraints.audio;
+            if (!named(video) && !named(audio)) { return orig(constraints); }
+            const asked = { ...constraints };
+            let fps = 0;
+            if (named(video)) {
+                asked.video = { ...video, deviceId: { exact: await fullId(video.deviceId, 'videoinput') } };
+                fps = wanted(video.frameRate);
+                delete asked.video.frameRate;
+            }
+            if (named(audio)) {
+                asked.audio = { ...audio, deviceId: { exact: await fullId(audio.deviceId, 'audioinput') } };
+            }
+            // Permission refused is the answer for the site's request too.
+            const refused = e => e && e.name === 'NotAllowedError';
+            try {
+                return opened(await orig(asked), fps);
+            } catch (e) {
+                if (refused(e)) { throw e; }
+                if (!named(video) || e.name !== 'OverconstrainedError') { return orig(constraints); }
+            }
+            // The camera can't do the site's sizes: take it at its own.
+            const relaxed = { ...asked, video: { ...asked.video } };
+            for (const k of ['width', 'height']) { relaxed.video[k] = asIdeal(video[k]); }
+            try {
+                return opened(await orig(relaxed), fps);
+            } catch (e) {
+                if (refused(e)) { throw e; }
+                return orig(constraints);
+            }
+        };
+        wrapped.__icx = true;
+        md.getUserMedia = wrapped;
+
+        // Holding the broadcast to that rate. The publisher adds the camera
+        // with addTrack() and swaps it with replaceTrack(). Best effort: if
+        // the browser won't take it, the site's own bitrate limit still holds
+        // the stream down, just at more frames of lower quality.
+        async function cap(sender, track) {
+            const fps = track && rates.get(track);
+            if (!fps || !sender || typeof sender.getParameters !== 'function') { return; }
+            try {
+                const params = sender.getParameters();
+                if (!params.encodings || !params.encodings.length) { return; }
+                params.encodings.forEach(enc => { enc.maxFramerate = fps; });
+                await sender.setParameters(params);
+            } catch (_) {}
+        }
+        const PC = window.RTCPeerConnection;
+        if (PC && PC.prototype.addTrack && !PC.prototype.addTrack.__icx) {
+            const addTrack = PC.prototype.addTrack;
+            const add = function (track) {
+                const sender = addTrack.apply(this, arguments);
+                if (track && rates.has(track)) {
+                    cap(sender, track);
+                    // Some browsers only fill in the encodings once connected.
+                    this.addEventListener('connectionstatechange', () => {
+                        if (this.connectionState === 'connected') { cap(sender, sender.track); }
+                    });
+                }
+                return sender;
+            };
+            add.__icx = true;
+            PC.prototype.addTrack = add;
+        }
+        const Sender = window.RTCRtpSender;
+        if (Sender && Sender.prototype.replaceTrack && !Sender.prototype.replaceTrack.__icx) {
+            const replaceTrack = Sender.prototype.replaceTrack;
+            const replace = function (track) {
+                return replaceTrack.apply(this, arguments).then(out => { cap(this, track); return out; });
+            };
+            replace.__icx = true;
+            Sender.prototype.replaceTrack = replace;
+        }
+        return true;
+    }
+
+    // ── Remembering the camera ─────────────────────────────────────────────
+    // When the broadcast panel opens it starts the camera saved in the
+    // "cam-id" cookie, else the first in the list (often the built-in one).
+    // Two things stop that working, so it opened the first camera every
+    // time, and opening it can upset whatever else is using it (a webcam
+    // OBS is capturing, under its virtual camera):
+    //   - get_cookie() turns every "+" into a space. Firefox's device ids
+    //     are base64 and often have a "+", so the saved id never matched.
+    //     For "cam-id" the cookie is read as written.
+    //   - It's saved only when broadcasting stops (stop_camera()), not when
+    //     you pick a camera, so a tab closed mid-broadcast forgot it. It's
+    //     now saved, the site's way (set_cookie()), as soon as you pick one.
+    function patchCameraMemory() {
+        const get = window.get_cookie;
+        if (typeof get !== 'function' || typeof window.set_cookie !== 'function') { return false; }
+        if (get.__icx) { return true; }
+        const wrapped = function (name) {
+            if (name === 'cam-id') {
+                const m = /(?:^|;\s*)cam-id=([^;]*)/.exec(document.cookie);
+                return m ? m[1] : '';
+            }
+            return get.apply(this, arguments);
+        };
+        wrapped.__icx = true;
+        window.get_cookie = wrapped;
+        // The list's options are "CameraMobile_<id>" (or "screen_screen").
+        document.addEventListener('change', e => {
+            const select = e.target;
+            if (!select || select.id !== 'camera-list-select') { return; }
+            const value = String(select.value || '');
+            const id = value.startsWith('CameraMobile_') ? value.slice('CameraMobile_'.length) : '';
+            if (id) { window.set_cookie('cam-id', id); }
+        }, true);
+        return true;
+    }
+
     function installChatBridge() {
         if (!window.du || typeof window.togglePMPrefs !== 'function') { return false; }
         if (window.__icxChatBridge) { return true; }
@@ -438,7 +615,7 @@
     // The site's scripts normally load before this runs (document_idle);
     // retry for a while in case they're late. The chat bridge goes last so it
     // wraps the already-patched functions.
-    let pending = [patchChatScroll, patchFocusSteal, patchPms, patchIdleRefresh, patchBroadcasters, patchNicks, installNickCheck, installChatBridge].filter(p => !p());
+    let pending = [patchChatScroll, patchFocusSteal, patchPms, patchIdleRefresh, patchBroadcasters, patchNicks, installNickCheck, patchCameraChoice, patchCameraMemory, installChatBridge].filter(p => !p());
     let tries = 0;
     const timer = pending.length && setInterval(() => {
         pending = pending.filter(p => !p());
