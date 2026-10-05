@@ -18,7 +18,7 @@ const SHOTS = process.env.ICX_SHOTS;
 async function openRoom(page, { setup } = {}) {
     await page.goto(ROOM);
     if (setup) { await page.evaluate(setup); }
-    for (const css of manifest.content_scripts[0].css) {
+    for (const css of manifest.content_scripts.flatMap(cs => cs.css || [])) {
         await page.addStyleTag({ path: path.join(ROOT, css) });
     }
     for (const cs of manifest.content_scripts) {
@@ -400,7 +400,7 @@ const SETTINGS = 'file://' + path.join(__dirname, 'mock', 'settings.html');
 
 async function openPage(page, url) {
     await page.goto(url);
-    for (const css of manifest.content_scripts[0].css) {
+    for (const css of manifest.content_scripts.flatMap(cs => cs.css || [])) {
         await page.addStyleTag({ path: path.join(ROOT, css) });
     }
     for (const js of manifest.content_scripts[0].js) { await page.addScriptTag({ path: path.join(ROOT, js) }); }

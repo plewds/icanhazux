@@ -209,7 +209,7 @@ async function open(browser, url, { theme = 'dark', room = false, setup } = {}) 
     }, ROOT);
     await page.goto(url);
     if (setup) { await page.evaluate(setup); }
-    for (const css of manifest.content_scripts[0].css) { await page.addStyleTag({ path: path.join(ROOT, css) }); }
+    for (const css of manifest.content_scripts.flatMap(cs => cs.css || [])) { await page.addStyleTag({ path: path.join(ROOT, css) }); }
     for (const cs of manifest.content_scripts) {
         for (const js of cs.js) { await page.addScriptTag({ path: path.join(ROOT, js) }); }
     }

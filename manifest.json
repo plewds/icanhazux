@@ -30,10 +30,6 @@
       "matches": [
         "https://www.icanhazchat.com/*"
       ],
-      "css": [
-        "styles/icanhazux.css",
-        "styles/pages.css"
-      ],
       "js": [
         "src/core.js",
         "src/pack.js",
@@ -69,6 +65,10 @@
     {
       "matches": [
         "https://www.icanhazchat.com/*"
+      ],
+      "css": [
+        "styles/icanhazux.css",
+        "styles/pages.css"
       ],
       "js": [
         "src/early.js"

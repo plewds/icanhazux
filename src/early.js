@@ -10,6 +10,11 @@
 // the list, lifts it. If that never happens (a script failed), the cloak
 // comes off by itself once the page has loaded.
 //
+// The stylesheets are listed with this script in the manifest, not with the
+// others: Firefox injects a content script's CSS at its run_at, so on the
+// document_idle list they'd arrive too late for the cloak (Chrome injects
+// them before the page draws either way).
+//
 // Skipped when the page has already loaded: the browser injecting a fresh
 // copy into an open tab after an update, or the e2e tests adding scripts.
 (function () {
