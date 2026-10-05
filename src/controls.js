@@ -5,6 +5,7 @@
 //   chatColor    a person's color on their whole message or name only (chat bar)
 //   timestamps   none / relative / absolute (stamps.js)    (chat bar)
 //   pmWindow     PMs docked in the chat or floating (pms.js) (chat bar)
+//   upscale      sharper focused / full-screen cams (upscale.js) (chat bar)
 //
 // The chat bar's settings panel (chatbar.js) and the header's ICHUX
 // Settings panel (menu.js) build theirs from here, so the two can't drift
@@ -155,6 +156,38 @@
         return { node: setting('PM window', seg.group), render: seg.render };
     }
 
+    // ── Sharper big cams ────────────────────────────────────────────────────
+    // upscale.js: the focused and full-screen cams enlarged with a sharper
+    // method than the browser's, then lightly sharpened, on the GPU. No
+    // detail is invented, so the note doesn't call it upscaling.
+    // Shown greyed out, saying why, where the browser can't run it.
+
+    function upscaleControl() {
+        const up = globalThis.ICX.upscale;
+        if (!up) { return null; }
+        const label = 'Sharper big cams';
+        const b = el('button', { type: 'button', role: 'switch', class: 'icx-switch', 'data-pref': 'upscale', 'aria-label': label });
+        b.addEventListener('click', () => up.set(!up.get()));
+        const note = el('div', { class: 'icx-setting-note' });
+        const render = () => {
+            const ok = up.supported();
+            b.disabled = !ok;
+            b.setAttribute('aria-checked', String(ok && up.get()));
+            note.textContent = ok
+                ? 'Crisper scaling and light sharpening for the focused and full-screen cams, on your graphics card.'
+                : 'Needs graphics acceleration, which is off or unavailable in this browser.';
+        };
+        onChanged('upscale', render);
+        render();
+        return {
+            node: el('div', { class: 'icx-setting' }, [
+                el('div', { class: 'icx-setting-row' }, [el('div', { class: 'icx-setting-label', text: label }), b]),
+                note,
+            ]),
+            render,
+        };
+    }
+
     globalThis.ICX.controls = {
         setting,
         theme: themeControl,
@@ -162,6 +195,7 @@
         chatColor: chatColorControl,
         timestamps: timestampsControl,
         pmWindow: pmWindowControl,
+        upscale: upscaleControl,
         changed,
     };
 })();

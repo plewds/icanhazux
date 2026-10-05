@@ -1102,6 +1102,16 @@ html:not(.icx-dragging-cam) #cams.icx-cams > .rounded_square[data-icx-placed]:no
     height: 100% !important;
     object-fit: contain !important;
 }
+/* Sharper big cams (upscale.js): the upscaled picture over the video, under
+   the name and the site's watermark (.cam-syms, z-index 99). */
+#cams.icx-cams .videocontainer > canvas.icx-upscale {
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 1;
+    width: 100% !important;
+    height: 100% !important;
+    pointer-events: none;
+}
 
 /* Focused: an accent ring inside its own edges. Nothing about a cam may
    paint outside its box: in Firefox, anything spilling onto a neighbour
@@ -1412,6 +1422,9 @@ html.icx-site .page_header_userlinks.icx-signed-out #icx-menu-link { display: bl
 .icx-setting-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .icx-setting-label { margin-bottom: 6px; color: var(--icx-text-muted); font: 600 12px/1.2 var(--icx-font); }
 .icx-setting-row .icx-setting-label { margin-bottom: 0; color: var(--icx-text); font-size: 13px; }
+/* A line of explanation under a setting. */
+.icx-setting-note { margin-top: 4px; color: var(--icx-text-muted); font: 12px/1.4 var(--icx-font); }
+.icx-switch:disabled { opacity: .45; cursor: default; }
 
 /* My color: a swatch that opens the site's picker, and a sample line. */
 .icx-color-row { display: flex; align-items: center; gap: 10px; }

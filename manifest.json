@@ -38,6 +38,7 @@
         "src/pages.js",
         "src/shell.js",
         "src/cams.js",
+        "src/upscale.js",
         "src/stamps.js",
         "src/controls.js",
         "src/chatbar.js",

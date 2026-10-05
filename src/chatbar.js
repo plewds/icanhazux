@@ -116,6 +116,7 @@
         chatColor: controls.chatColor(),
         timestamps: globalThis.ICX.stamps ? controls.timestamps() : null,
         pmWindow: controls.pmWindow(),
+        upscale: controls.upscale(),
     };
 
     // Mod tools (modtools.js): only for room mods and owners.
@@ -179,6 +180,7 @@
                 choice('lineStyle', 'Line style', [[3, 'Striped'], [1, 'Boxed'], [2, 'Plain']]),
                 shared.chatColor.node,
                 shared.timestamps?.node || '',
+                shared.upscale?.node || '',
             ]),
             column('Chat', [
                 choice('pm', 'Currently accepting', [
