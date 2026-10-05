@@ -445,13 +445,15 @@ html.icx[data-icx-chat-color="name"] #txt p.line { color: var(--icx-text) !impor
    your color on it too; Name only, the ordinary text color. */
 html.icx[data-icx-chat-color="all"] #txt p.line > a.userlink ~ font:is([color="black" i], [color="#000000"], [color="#000"]) { color: inherit !important; }
 html.icx[data-icx-chat-color="name"] #txt p.line > a.userlink ~ font:is([color="black" i], [color="#000000"], [color="#000"]) { color: var(--icx-text) !important; }
-/* The site's three line styles (Settings → Line style). */
-html.icx #txt p.line.odd_row1 {
+/* The site's three line styles (Settings → Line style), on every other
+   line of the chat and of PM conversations. The site's own are light gray
+   (#f4f4f4), which glares in the dark theme. */
+html.icx :is(#txt, #tabs .pm_convo) p.line.odd_row1 {
     background-color: var(--icx-row-alt) !important;
     box-shadow: inset 0 0 0 1px var(--icx-border);
 }
-html.icx #txt p.line.odd_row2 { background-color: transparent !important; }
-html.icx #txt p.line.odd_row3 { background-color: var(--icx-row-alt) !important; }
+html.icx :is(#txt, #tabs .pm_convo) p.line.odd_row2 { background-color: transparent !important; }
+html.icx :is(#txt, #tabs .pm_convo) p.line.odd_row3 { background-color: var(--icx-row-alt) !important; }
 /* Site notices printed into the chat log. */
 html.icx #txt table { width: 100% !important; margin: 6px 0 !important; border-collapse: collapse; }
 html.icx #txt table td {

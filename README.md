@@ -16,7 +16,7 @@ icanhazux is unofficial: it isn't made by or affiliated with icanhazchat.com.
 - **Focus a cam.** Hover a cam and click the focus button, or double-click it. It becomes the big feed in the top-left, with the others wrapped around it. Do the same again to unfocus.
 - **Drag to reorder.** Grab a cam and drop it where you want it. The order is remembered by username.
 - **Refresh one cam.** Restarts just that feed, for when a cam freezes or goes black.
-- **Full screen.** Any cam, from its hover controls.
+- **Full screen.** Any cam, from its hover controls, with the site's watermark kept to a sensible size.
 - **Hide a cam.** The cam disappears and its stream stops, and it stays hidden when that person cams up again. **Hidden** under the cams lists who you've hidden and brings them back. Nicknames can change hands, so a hidden nickname stays hidden only for your visit, unless you mark it as someone's regular nick.
 - **Resize cams vs. chat.** Drag the bar between them. Double-click it to reset.
 - **Refresh all and Hide cams** sit under the cams as buttons. After the idle timeout, Refresh all brings the cams back.
@@ -37,6 +37,12 @@ icanhazux is unofficial: it isn't made by or affiliated with icanhazchat.com.
 - **People drawer.** Under the chat: everyone in the room as a list, with who's idle, on cam, a mod or a site supporter. Search it, or show only who's on cam. Click a name for their profile, as before.
 - **PMs docked or floating.** Private messages open at the top of the chat instead of wherever the site's old layout put them; drag the bar under them to resize. Or pop them out (the button at the end of the PM tabs, or **PM window** in the chat bar's ⚙) into a window you can move by its tabs, resize from the corner and park anywhere over the room. Drop it on the top of the chat to dock it again. It's remembered, and on narrow windows the PMs stay docked.
 - **Closed, not deleted.** Closing a PM tab hides it instead of deleting the conversation; reopen it from **Closed** on the chat bar.
+
+**Broadcasting**
+
+- **The camera you pick is the one you get.** The site's camera list could quietly open your default camera instead, especially in Firefox. Virtual cameras like OBS's now work too.
+- **Your camera is remembered.** Pick one once and Broadcast opens it from then on, without waking up your built-in camera first.
+- **Smoother video, especially in Firefox.** The site asked your camera itself to run at 5–8 frames a second, which on a Mac slows the camera for every app using it (the reason opening Photo Booth used to help). The camera now runs at its normal speed, and the broadcast is held to the site's frame rate as it's sent, so it uses no more bandwidth.
 
 **Mod tools** (room mods and owners only)
 
