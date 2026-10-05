@@ -4,6 +4,8 @@ A browser extension that gives [icanhazchat.com](https://www.icanhazchat.com) a 
 
 icanhazux builds on [icanhazbetter](https://github.com/sardistic/icanhazbetter) by sardistic, which worked out much of the site's internals and whose cam layout engine and chat fixes are adapted here. See [Credits](#credits).
 
+icanhazux is unofficial: it isn't made by or affiliated with icanhazchat.com.
+
 ## Features
 
 ### Rooms
@@ -52,18 +54,16 @@ Your settings, hidden cams and cam order are kept in your browser's storage for 
 
 One request worth knowing about: when you hide a cam, the extension opens that person's profile, as you would, to see whether the name is a nickname. Image and video previews load from the link's host, only when you click them.
 
+The full policy is in [PRIVACY.md](PRIVACY.md).
+
 ## Install
 
-From the zip (`icanhazux.zip`):
+Build the packages with `npm run build`. It writes two zips to `dist/`, one per browser:
 
-- **Firefox (128+):** open `about:debugging`, choose **This Firefox**, click **Load Temporary Add-on…** and pick the zip. Temporary add-ons are removed when Firefox restarts.
-- **Chrome / Edge / Opera:** unzip it into a folder you'll keep. Open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick the folder. To update, replace the folder's contents and click the reload arrow on the extension's card.
+- **Firefox (140+):** `icanhazux-<version>-firefox.zip`. Open `about:debugging`, choose **This Firefox**, click **Load Temporary Add-on…** and pick the zip. Temporary add-ons are removed when Firefox restarts; a permanent install comes from Firefox Add-ons.
+- **Chrome / Edge / Opera:** `icanhazux-<version>-chrome.zip`. Unzip it into a folder you'll keep. Open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick the folder. To update, replace the folder's contents and click the reload arrow on the extension's card.
 
-From source, load the repo folder the same way (in Firefox, pick `manifest.json`). To build the zip:
-
-```
-zip -r icanhazux.zip manifest.json src styles fonts LICENSE README.md
-```
+You can also load the repo folder itself the same way (in Firefox, pick `manifest.json`).
 
 If you used icanhazbetter, your hidden-cam list carries over the first time icanhazux runs.
 

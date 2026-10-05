@@ -3,6 +3,7 @@
   "name": "icanhazux",
   "version": "1.0.0",
   "description": "Restyles icanhazchat.com: a cam grid you can arrange, a cleaner chat, light and dark themes, and every page to match.",
+  "homepage_url": "https://github.com/plewds/icanhazux",
   "icons": {
     "16": "icons/icon-16.png",
     "32": "icons/icon-32.png",
