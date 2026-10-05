@@ -661,8 +661,16 @@ html[data-icx-page="settings"] .icx-settings-index li a:hover::after { color: va
    filling a rounded tile, its name bottom-left over a soft gradient. */
 
 html.icx-site .icx-paper .preview_room {
-    position: relative;
+    position: relative !important;
+    inset: auto !important;
+    float: none !important;
     display: block !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: none !important;
     width: 100% !important;
     height: auto !important;
     aspect-ratio: 16 / 10;
@@ -678,7 +686,7 @@ html.icx-site .icx-paper .preview_room {
     text-align: left !important;
     transition: transform .2s var(--icx-spring), box-shadow .12s;
 }
-html.icx-site .icx-paper a:hover > .preview_room { transform: translateY(-2px); box-shadow: 0 0 0 2px var(--icx-accent) !important; }
+html.icx-site .icx-paper a:hover > .preview_room { transform: translateY(-2px) !important; box-shadow: 0 0 0 2px var(--icx-accent) !important; }
 html.icx-site .icx-paper a:has(> .preview_room) { display: block; text-decoration: none !important; }
 html.icx-site .icx-paper .preview_room::after {
     content: "";
@@ -772,7 +780,8 @@ html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_divStatus div[style*="font
     border-radius: 0 var(--icx-radius-sm) var(--icx-radius-sm) 0;
     background: var(--icx-surface-2);
 }
-html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_lblRoomList > h1 { margin-top: 32px !important; font-size: 20px !important; }
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_lblRoomList > :is(h1, h2) { margin-top: 32px !important; font-size: 20px !important; }
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_lblRoomList > br { display: none; }
 
 /* Posts: numbered rows. */
 html.icx-site .icx-paper .row.message_content_block:has(> .post_number) {
@@ -806,15 +815,56 @@ html.icx-site .icx-paper .row.message_content_block:has(> .post_number) span.rou
     font-family: var(--icx-font) !important;
 }
 
-/* Rooms: a grid of tiles (the site lays them out in rows of three). */
-html.icx-site .icx-paper #rooms > div {
-    display: grid;
+/* Rooms: a grid of tiles (the site lays them out in rows of three). The
+   logged-in lobby wraps them in <center id="rooms"> (logged out, a plain
+   <center>), which the site's stylesheet sizes and positions for its old
+   layout; every property the
+   grid depends on is set outright so none of that leaks through. */
+html.icx-site .icx-paper :is(#rooms, #ctl00_ContentPlaceHolder1_lblRoomList > center) {
+    display: block !important;
+    position: static !important;
+    float: none !important;
+    width: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: none !important;
+}
+html.icx-site .icx-paper :is(#rooms, #ctl00_ContentPlaceHolder1_lblRoomList > center) > div {
+    display: grid !important;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 12px;
+    position: static !important;
+    float: none !important;
+    width: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
-html.icx-site .icx-paper #rooms .row { display: contents; }
-html.icx-site .icx-paper #rooms .row > .col-1 { display: none; }
-html.icx-site .icx-paper #rooms .row > div { width: auto; max-width: none; flex: none; padding: 0; }
+html.icx-site .icx-paper :is(#rooms, #ctl00_ContentPlaceHolder1_lblRoomList > center) .row { display: contents !important; }
+html.icx-site .icx-paper :is(#rooms, #ctl00_ContentPlaceHolder1_lblRoomList > center) .row > .col-1 { display: none !important; }
+html.icx-site .icx-paper :is(#rooms, #ctl00_ContentPlaceHolder1_lblRoomList > center) .row > div:not(.col-1) {
+    display: block !important;
+    position: relative !important;
+    inset: auto !important;
+    float: none !important;
+    flex: none !important;
+    width: auto !important;
+    max-width: none !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+html.icx-site .icx-paper :is(#rooms, #ctl00_ContentPlaceHolder1_lblRoomList > center) a { display: block !important; position: static !important; visibility: visible !important; opacity: 1 !important; }
 
 /* Sidebar: the landing picture, your status box, and friends' statuses. */
 html[data-icx-page="home"] .icx-side #nonessential { text-align: left; }
@@ -841,6 +891,7 @@ html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_divFriendsList::before {
     letter-spacing: .04em;
     text-transform: uppercase;
 }
+html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_divFriendsList:empty::before { display: none; }
 html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_divFriendsList > .row {
     display: grid;
     grid-template-columns: 40px minmax(0, 1fr);

@@ -473,3 +473,43 @@ test('pages: the inbox keeps its two columns when the site fills its sidebar in 
         await browser.close();
     }
 });
+
+test('pages: the logged-in lobby shows every room tile, whatever the site does to #rooms', async () => {
+    const browser = await chromium.launch();
+    try {
+        const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+        await openPage(page, 'file://' + path.join(__dirname, 'mock', 'home.html'));
+        const r = await page.evaluate(() => ({
+            kind: document.documentElement.dataset.icxPage,
+            tiles: [...document.querySelectorAll('#rooms .preview_room')].map(t => {
+                const b = t.getBoundingClientRect();
+                const cs = getComputedStyle(t);
+                return {
+                    name: t.querySelector('.preview_name').textContent,
+                    x: b.left, y: b.top, w: b.width, h: b.height,
+                    shown: cs.visibility === 'visible' && cs.opacity === '1' && cs.display !== 'none',
+                };
+            }),
+            rooms: document.getElementById('rooms').getBoundingClientRect().height,
+        }));
+        assert.strictEqual(r.kind, 'home');
+        assert.strictEqual(r.tiles.length, 7);
+        for (const t of r.tiles) {
+            assert.ok(t.shown, `${t.name} is visible`);
+            assert.ok(t.w >= 150 && t.h >= 90, `${t.name} is tile-sized (${t.w}×${t.h})`);
+        }
+        // Each tile in its own spot, and the list tall enough to hold them.
+        for (let i = 0; i < r.tiles.length; i++) {
+            for (let j = i + 1; j < r.tiles.length; j++) {
+                const a = r.tiles[i];
+                const b = r.tiles[j];
+                const overlap = a.x < b.x + b.w - 1 && b.x < a.x + a.w - 1 && a.y < b.y + b.h - 1 && b.y < a.y + a.h - 1;
+                assert.ok(!overlap, `${a.name} and ${b.name} don't overlap`);
+            }
+        }
+        const bottom = Math.max(...r.tiles.map(t => t.y + t.h)) - Math.min(...r.tiles.map(t => t.y));
+        assert.ok(r.rooms >= bottom - 1, 'the list holds all its tiles');
+    } finally {
+        await browser.close();
+    }
+});

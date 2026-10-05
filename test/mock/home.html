@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<!-- A stand-in for the logged-in lobby. Logged in, the site puts the room
+     tiles in <center id="rooms"> (logged out, a plain <center>), and its
+     stylesheet styles #rooms for its old layout. That stylesheet isn't
+     available here, so the <style> below plays a deliberately hostile
+     version of it: positions, sizes and overflow that would hide the tiles
+     if the extension's room grid left them to the site. Data is made up. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ICanHazChat - Webcam Chat for the Masses</title>
+<style>
+    #rooms { position: absolute; height: 0; overflow: hidden; }
+    #rooms > div { height: 10px; overflow: hidden; }
+    #rooms .row > div { float: left; width: 0; }
+    #rooms .preview_room { position: absolute; top: 0; left: 0; width: 200px; height: 150px; }
+</style>
+</head>
+<body>
+<form id="aspnetForm" class="container-fluid">
+    <div id="ctl00_panelHeader" class="row gray_back page_header rounded">
+        <div class="col-lg-2"><div class="page_header_logo" id="ichc-logo-header"><img id="ichc-logo" alt="logo"></div></div>
+        <div class="col-12 col-lg-10 txtright"><div class="page_header_userlinks"><span id="ctl00_labelSignInStatus">Hello someone</span></div></div>
+    </div>
+    <div class="row">
+        <div class="col-12 page_section_white rounded_top" style="margin-top:4px;">
+            <div id="ctl00_ContentPlaceHolder1_pnlRoomName">
+                <div class="row">
+                    <div class="col-12 col-lg-4 txtright">
+                        <div class="nonessential" id="nonessential">
+                            <span id="ctl00_ContentPlaceHolder1_landingGraphic" class="small_indent center"><img alt="" width="331"></span>
+                            <div id="ctl00_ContentPlaceHolder1_divFriendsList"></div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-lg-8" style="padding-left:10px;">
+                        <h3 class="big_title">Webcam Chat for the Masses!</h3>
+                        <div class="row">
+                            <div class="col-9"><input type="text" id="ctl00_ContentPlaceHolder1_txtRoomName" class="form-control"></div>
+                            <div class="col-3"><input type="submit" id="ctl00_ContentPlaceHolder1_btnSelectRoom" class="btn room_select_button btn-primary btn-lg" value="Join"></div>
+                        </div>
+                        <span id="ctl00_ContentPlaceHolder1_lblRoomList" style="font-size:small;"><br><h1>Rooms</h1><center id="rooms"><div><div class='row'><div class='col-1'> &nbsp; </div><div class='col-3 center' align='center'><a href='#alpha'><div class='preview_room center' style='background-size:cover;background-image:none;'><p><span>18+</span></p><div class='preview_name' style='z-index:10;'>alpha</div><div class='preview_info'>1 people, 0 on cam</div></div></a></div><div class='col-3 center' align='center'><a href='#bravo'><div class='preview_room center' style='background-size:cover;background-image:none;'><p><span>18+</span></p><div class='preview_name' style='z-index:10;'>bravo</div><div class='preview_info'>2 people, 0 on cam</div></div></a></div><div class='col-3 center' align='center'><a href='#charlie'><div class='preview_room center' style='background-size:cover;background-image:none;'><div class='preview_name' style='z-index:10;'>charlie</div><div class='preview_info'>3 people, 0 on cam</div></div></a></div></div><div class='row'><div class='col-1'> &nbsp; </div><div class='col-3 center' align='center'><a href='#delta'><div class='preview_room center' style='background-size:cover;background-image:none;'><div class='preview_name' style='z-index:10;'>delta</div><div class='preview_info'>4 people, 0 on cam</div></div></a></div><div class='col-3 center' align='center'><a href='#echo'><div class='preview_room center' style='background-size:cover;background-image:none;'><div class='preview_name' style='z-index:10;'>echo</div><div class='preview_info'>5 people, 0 on cam</div></div></a></div><div class='col-3 center' align='center'><a href='#foxtrot'><div class='preview_room center' style='background-size:cover;background-image:none;'><div class='preview_name' style='z-index:10;'>foxtrot</div><div class='preview_info'>6 people, 0 on cam</div></div></a></div></div><div class='row'><div class='col-1'> &nbsp; </div><div class='col-3 center' align='center'><a href='#golf'><div class='preview_room center' style='background-size:cover;background-image:none;'><div class='preview_name' style='z-index:10;'>golf</div><div class='preview_info'>7 people, 0 on cam</div></div></a></div></div></center></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+</body>
+</html>
