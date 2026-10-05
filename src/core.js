@@ -37,7 +37,6 @@
         for (const [k, v] of Object.entries(props)) {
             if (k === 'class') { node.className = v; }
             else if (k === 'text') { node.textContent = v; }
-            else if (k === 'html') { node.innerHTML = v; }
             else if (k.startsWith('on')) { node.addEventListener(k.slice(2), v); }
             else { node.setAttribute(k, v); }
         }
@@ -46,7 +45,7 @@
     }
 
     // Icons are inline SVG so they inherit currentColor.
-    const svg = body => `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+    const svg = body => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
     const ICONS = {
         // Focus: one big tile with small ones around it. Unfocus: even grid.
         focus: svg('<rect x="3" y="3" width="12" height="12" rx="1.5"/><rect x="18" y="3" width="3" height="5" rx="1"/><rect x="18" y="11" width="3" height="4" rx="1"/><rect x="3" y="18" width="5" height="3" rx="1"/><rect x="11" y="18" width="10" height="3" rx="1"/>'),
@@ -96,5 +95,13 @@
     // Remove an element left behind by an older copy.
     const removeStale = id => { document.querySelectorAll(`#${id}`).forEach(n => n.remove()); };
 
-    globalThis.ICX = { store, frameThrottle, el, ICONS, alive, signal, onRetire, removeStale };
+    // An icon as an <svg> element. Parsed as SVG rather than set as HTML:
+    // the markup is the fixed strings above, and nothing is written as HTML.
+    const svgParser = new DOMParser();
+    function icon(name) {
+        const doc = svgParser.parseFromString(ICONS[name], 'image/svg+xml');
+        return document.importNode(doc.documentElement, true);
+    }
+
+    globalThis.ICX = { store, frameThrottle, el, ICONS, icon, alive, signal, onRetire, removeStale };
 })();

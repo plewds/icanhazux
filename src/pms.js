@@ -17,7 +17,7 @@
 (function () {
     'use strict';
 
-    const { store, el, signal, onRetire, removeStale, ICONS } = globalThis.ICX;
+    const { store, el, signal, onRetire, removeStale, icon } = globalThis.ICX;
 
     const container = document.getElementById('pm_container');
     const tabs = document.getElementById('tabs');
@@ -236,7 +236,7 @@
         }
         if (mode === 'floating') { root.dataset.icxPm = 'floating'; } else { delete root.dataset.icxPm; }
         const label = on ? 'Dock in the chat' : 'Pop out into a window';
-        modeBtn.innerHTML = on ? ICONS.dock : ICONS.popout;
+        modeBtn.replaceChildren(icon(on ? 'dock' : 'popout'));
         modeBtn.title = label;
         modeBtn.setAttribute('aria-label', label);
         modeBtn.hidden = narrow.matches;

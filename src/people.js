@@ -16,7 +16,7 @@
 (function () {
     'use strict';
 
-    const { store, el, frameThrottle, ICONS, signal, onRetire, removeStale } = globalThis.ICX;
+    const { store, el, frameThrottle, icon, signal, onRetire, removeStale } = globalThis.ICX;
 
     const drawer = document.getElementById('icx-drawer');
     const source = document.getElementById('activeUserList');
@@ -36,8 +36,8 @@
         'aria-label': 'Search people', autocomplete: 'off', spellcheck: 'false',
     });
     const refresh = el('button', {
-        type: 'button', class: 'icx-chip icx-chip-icon', title: 'Refresh the list', 'aria-label': 'Refresh the list', html: ICONS.refresh,
-    });
+        type: 'button', class: 'icx-chip icx-chip-icon', title: 'Refresh the list', 'aria-label': 'Refresh the list',
+    }, [icon('refresh')]);
     const viewSeg = el('div', { class: 'icx-seg icx-people-view', role: 'radiogroup', 'aria-label': 'Show' });
     VIEWS.forEach(([key, text]) => {
         const b = el('button', { type: 'button', role: 'radio', 'data-view': key, text });
@@ -123,8 +123,8 @@
         }, [
             el('span', { class: 'icx-person-dot', 'aria-label': status }),
             el('span', { class: 'icx-person-name', text: p.name }),
-            p.cam ? el('span', { class: 'icx-person-tag icx-tag-cam', 'aria-label': 'On cam', html: ICONS.cam }) : '',
-            p.mod ? el('span', { class: 'icx-person-tag icx-tag-mod', 'aria-label': 'Mod', html: ICONS.mod }) : '',
+            p.cam ? el('span', { class: 'icx-person-tag icx-tag-cam', 'aria-label': 'On cam' }, [icon('cam')]) : '',
+            p.mod ? el('span', { class: 'icx-person-tag icx-tag-mod', 'aria-label': 'Mod' }, [icon('mod')]) : '',
             p.badge ? badgeImg(p.badge) : '',
         ]);
     }

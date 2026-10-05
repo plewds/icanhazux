@@ -127,6 +127,20 @@ test('site cam chrome is tucked away and its buttons moved to the bar', async ()
     assert.deepStrictEqual(vis, { ohhai: 'none', mute: 'none', refreshInBar: 'icx-bar', nativeDisable: 'none' });
 });
 
+test('the extension\'s icons are drawn: real SVG with a size, not empty', async () => {
+    await page.hover('#cams .rounded_square[data-icx-placed]');
+    const icons = await page.evaluate(() =>
+        [...document.querySelectorAll('.icx-tools svg, #icx-chatbar svg, #icx-people svg')].map(svg => ({
+            svg: svg instanceof SVGSVGElement,
+            size: svg.getBoundingClientRect().width,
+            drawn: svg.querySelector('path, rect, circle') !== null,
+        })));
+    assert.ok(icons.length >= 6, `icons found (${icons.length})`);
+    for (const i of icons) {
+        assert.ok(i.svg && i.drawn, 'an SVG element with shapes in it');
+    }
+    assert.ok(icons.some(i => i.size > 0), 'the visible ones have a size');
+});
 test('chat gets the full stage height; the user list is a drawer under it', async () => {
     const r = await page.evaluate(() => {
         const box = id => document.getElementById(id).getBoundingClientRect();
