@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "icanhazux",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Restyles icanhazchat.com: a cam grid you can arrange, a cleaner chat, light and dark themes, and every page to match.",
   "icons": {
     "16": "icons/icon-16.png",
