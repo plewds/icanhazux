@@ -56,10 +56,20 @@
         settings: 'split', dashboard: 'split', home: 'split', profile: 'split',
         messages: 'split', group: 'split', thread: 'titled', groups: 'titled',
     };
-    const cols = row => [...row.children].filter(c => /\bcol-lg-\d/.test(c.className));
-    const split = [...paper.querySelectorAll(':scope > .row, :scope > div > .row, :scope > div > div > .row')]
-        .find(row => cols(row).length === 2);
-    const [side, main] = split ? cols(split) : [];
+    //
+    // The room settings pages are the odd ones out: plain col-2 and col-10,
+    // the narrow one a .page_name ("Room Settings"). They're matched by that
+    // name rather than by any two-column row, which plenty of pages have
+    // inside their content.
+    const lgCols = row => [...row.children].filter(c => /\bcol-lg-\d/.test(c.className));
+    const anyCols = row => [...row.children].filter(c => /\bcol-(?:(?:sm|md|lg|xl)-)?\d/.test(c.className));
+    const rows = [...paper.querySelectorAll(':scope > .row, :scope > div > .row, :scope > div > div > .row')];
+    let split = rows.find(row => lgCols(row).length === 2);
+    let [side, main] = split ? lgCols(split) : [];
+    if (!split) {
+        split = rows.find(row => anyCols(row).length === 2 && anyCols(row)[0].classList.contains('page_name'));
+        if (split) { [side, main] = anyCols(split); }
+    }
 
     function layout() {
         const bare = !side.querySelector('img, input, textarea, select, table, ul, a') &&

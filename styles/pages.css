@@ -90,6 +90,14 @@ html.icx-site .icx-titled > .icx-page-title * {
 html.icx-site .icx-titled > .icx-page-title { margin-bottom: 18px !important; }
 html[data-icx-page="groups"] .icx-titled > .icx-page-title::first-letter { text-transform: uppercase; }
 html.icx-site .icx-titled > .icx-page-title :is(br, center:empty) { display: none; }
+/* Room settings: the room's name, which the site sets at 28pt, becomes a
+   subtitle under "Room Settings". */
+html.icx-site .icx-titled div:has(> b > #ctl00_ContentPlaceHolder1_lblRoomName) {
+    margin: -14px 0 18px !important;
+    color: var(--icx-text-muted) !important;
+    font: 700 17px/1.3 var(--icx-font) !important;
+}
+html.icx-site .icx-titled div:has(> b > #ctl00_ContentPlaceHolder1_lblRoomName) * { font: inherit !important; color: inherit !important; }
 
 /* The sidebar stays in view while a long page scrolls. */
 html.icx-site .icx-split > .icx-side { position: sticky; top: 12px; }

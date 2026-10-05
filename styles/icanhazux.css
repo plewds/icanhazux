@@ -2101,7 +2101,9 @@ html.icx #body_container > #footer {
 html.icx-site :is(#footer, #ctl00_panelFooter),
 html.icx-site :is(#footer, #ctl00_panelFooter) * { background: transparent !important; background-color: transparent !important; }
 html.icx-site :is(#footer, #ctl00_panelFooter) br { display: none; }
-html.icx-site :is(#footer, #ctl00_panelFooter) .row { margin: 0 !important; padding: 2px 0 !important; justify-content: center; box-shadow: none !important; }
+/* Auto side margins: the site caps .page_footer at 1200px and centers it
+   that way, so zero margins pushed it to the left on wide windows. */
+html.icx-site :is(#footer, #ctl00_panelFooter) .row { margin: 0 auto !important; padding: 2px 0 !important; justify-content: center; box-shadow: none !important; }
 html.icx-site :is(#footer, #ctl00_panelFooter),
 html.icx-site :is(#footer, #ctl00_panelFooter) div,
 html.icx-site :is(#footer, #ctl00_panelFooter) span { color: var(--icx-text-muted) !important; font-size: 13px !important; }
