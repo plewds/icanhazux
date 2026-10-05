@@ -657,10 +657,13 @@ html[data-icx-page="settings"] .icx-settings-index li a:hover { background: var(
 html[data-icx-page="settings"] .icx-settings-index li a:hover::after { color: var(--icx-accent-text); transform: translateX(3px); }
 
 /* ── Room tiles (lobby, groups) ──────────────────────────────────────────────
-   The site's room previews, drawn like cams in a room: the room's picture
-   filling a rounded tile, its name bottom-left over a soft gradient. */
+   The site's room previews as tiles: the room's picture on top, its name
+   and head count on a solid strip underneath, so they read on any picture.
+   The picture is the tile's own (inline) background; padding reserves the
+   strip, and the background is sized and clipped to the area above it. */
 
 html.icx-site .icx-paper .preview_room {
+    --icx-caption: 54px;
     position: relative !important;
     inset: auto !important;
     float: none !important;
@@ -673,46 +676,56 @@ html.icx-site .icx-paper .preview_room {
     transform: none !important;
     width: 100% !important;
     height: auto !important;
-    aspect-ratio: 16 / 10;
+    aspect-ratio: 4 / 3;
     margin: 0 !important;
-    padding: 0 !important;
+    padding: 0 0 var(--icx-caption) !important;
+    box-sizing: border-box !important;
     overflow: hidden;
     border: 0 !important;
     border-radius: var(--icx-radius-sm) !important;
     background-color: var(--icx-stage) !important;
     background-position: center !important;
     background-size: cover !important;
+    background-repeat: no-repeat !important;
+    background-origin: content-box !important;
+    background-clip: content-box !important;
     box-shadow: 0 0 0 1px var(--icx-border) !important;
     text-align: left !important;
     transition: transform .2s var(--icx-spring), box-shadow .12s;
 }
 html.icx-site .icx-paper a:hover > .preview_room { transform: translateY(-2px) !important; box-shadow: 0 0 0 2px var(--icx-accent) !important; }
 html.icx-site .icx-paper a:has(> .preview_room) { display: block; text-decoration: none !important; }
+/* The strip. */
 html.icx-site .icx-paper .preview_room::after {
     content: "";
     position: absolute;
-    inset: 40% 0 0;
-    background: linear-gradient(transparent, rgba(0, 0, 0, .7));
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: var(--icx-caption);
+    border-top: 1px solid var(--icx-border);
+    background: var(--icx-surface-2);
     pointer-events: none;
 }
 html.icx-site .icx-paper .preview_room > :is(.preview_name, .preview_info) {
     position: absolute !important;
-    left: 10px !important;
-    right: 10px !important;
+    left: 12px !important;
+    right: 12px !important;
     top: auto !important;
     z-index: 2 !important;
+    width: auto !important;
     margin: 0 !important;
     padding: 0 !important;
     overflow: hidden;
     background: none !important;
-    color: #fff !important;
     text-align: left !important;
     text-overflow: ellipsis;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, .5) !important;
+    text-shadow: none !important;
     white-space: nowrap;
 }
-html.icx-site .icx-paper .preview_room > .preview_name { bottom: 26px !important; font: 700 15px/1.2 var(--icx-font) !important; }
-html.icx-site .icx-paper .preview_room > .preview_info { bottom: 9px !important; font: 600 12px/1.2 var(--icx-font) !important; opacity: .85; }
+html.icx-site .icx-paper .preview_room > .preview_name { bottom: 28px !important; color: var(--icx-text) !important; font: 800 15px/1.2 var(--icx-font) !important; }
+html.icx-site .icx-paper .preview_room > .preview_info { bottom: 10px !important; color: var(--icx-text-muted) !important; font: 600 12px/1.2 var(--icx-font) !important; }
+html.icx-site .icx-paper a:hover > .preview_room > .preview_name { color: var(--icx-accent-text) !important; }
 /* "18+": a small tag in the corner. */
 html.icx-site .icx-paper .preview_room > p {
     position: absolute;
