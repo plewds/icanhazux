@@ -37,6 +37,8 @@
         ['messages', () => part('divMessages')],
         ['group', () => part('labelGroupName')],
         ['groups', () => paper.querySelector('.group_entry')],
+        // A room's sign-in, before you join: the nick to use, the password.
+        ['join', () => part('txtUserName')],
     ];
     const kind = (KINDS.find(([, test]) => test()) || ['other'])[0];
     root.dataset.icxPage = kind;
@@ -56,6 +58,10 @@
         settings: 'split', dashboard: 'split', home: 'split', profile: 'split',
         messages: 'split', group: 'split', thread: 'titled', groups: 'titled',
     };
+    // The join page's two columns are a form, a label beside each field
+    // ("Name/nick to use in <room>:" and its box, the supporter note and the
+    // password), not a sidebar: it stays one card with its columns as they are.
+    const PLAIN = new Set(['join']);
     //
     // The room settings pages are the odd ones out: plain col-2 and col-10,
     // the narrow one a .page_name ("Room Settings"). They're matched by that
@@ -64,9 +70,9 @@
     const lgCols = row => [...row.children].filter(c => /\bcol-lg-\d/.test(c.className));
     const anyCols = row => [...row.children].filter(c => /\bcol-(?:(?:sm|md|lg|xl)-)?\d/.test(c.className));
     const rows = [...paper.querySelectorAll(':scope > .row, :scope > div > .row, :scope > div > div > .row')];
-    let split = rows.find(row => lgCols(row).length === 2);
+    let split = PLAIN.has(kind) ? null : rows.find(row => lgCols(row).length === 2);
     let [side, main] = split ? lgCols(split) : [];
-    if (!split) {
+    if (!split && !PLAIN.has(kind)) {
         split = rows.find(row => anyCols(row).length === 2 && anyCols(row)[0].classList.contains('page_name'));
         if (split) { [side, main] = anyCols(split); }
     }

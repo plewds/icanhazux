@@ -930,6 +930,38 @@ html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_divFriendsList h4 { margin
 html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_divFriendsList .status_when { margin: 0; font-size: 12px !important; }
 html[data-icx-page="home"] #ctl00_ContentPlaceHolder1_divFriendsList .status_when b { color: var(--icx-accent-text); }
 
+/* ── Joining a room ───────────────────────────────────────────────────────── */
+/* A form in two columns: the supporter note on the left; on the right the
+   nick box, the password and the 18+ buttons. The site puts "Name/nick to
+   use in <room>:" in the left column beside its box; it moves over to sit
+   above the box, the way the password's heading sits above the password
+   (which loses the two <br>s above it). */
+
+/* It's also the page's only heading, so it's set larger than a field label. */
+html[data-icx-page="join"] .select_nick_label {
+    padding-top: 0 !important;
+    margin-bottom: 10px;
+    color: var(--icx-text) !important;
+    font: 800 24px/1.2 var(--icx-font) !important;
+    letter-spacing: -.015em;
+    text-align: left;
+}
+html[data-icx-page="join"] .select_nick_label b { font-weight: 800; }
+@media (min-width: 992px) {
+    /* Over the right column: the label takes its width, and both skip the
+       left column's 5/12. */
+    html[data-icx-page="join"] .select_nick_label { flex: 0 0 58.3333%; max-width: 58.3333%; }
+    html[data-icx-page="join"] .select_nick_label,
+    html[data-icx-page="join"] .select_nick_label + div { margin-left: 41.6667%; }
+}
+html[data-icx-page="join"] #ctl00_ContentPlaceHolder1_labelPasswordNeeded > br { display: none; }
+html[data-icx-page="join"] #ctl00_ContentPlaceHolder1_labelPasswordNeeded { display: block; margin: 24px 0 6px; }
+/* The supporter note starts level with the password's heading. */
+html[data-icx-page="join"] #ctl00_ContentPlaceHolder1_lblAdOnEntry { margin-top: 24px; }
+@media (max-width: 991px) {
+    html[data-icx-page="join"] #ctl00_ContentPlaceHolder1_lblAdOnEntry { margin-top: 16px; }
+}
+
 /* ── People tiles (dashboard) ─────────────────────────────────────────────── */
 
 html.icx-site .icx-paper #followingList {

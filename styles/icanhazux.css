@@ -116,7 +116,7 @@ html[data-icx-cloak] body { visibility: hidden !important; }
     --icx-spring: cubic-bezier(.34, 1.56, .64, 1);
 
     --icx-stage-h: max(360px, calc(100vh - var(--icx-stage-top, 0px) - var(--icx-gutter)));
-    --icx-bar-h: 44px;              /* bar under the cams / drawer under the chat */
+    --icx-bar-h: 47px;              /* bar under the cams / drawer under the chat: 30px chips, 8px below, 1px border, 8px gutter */
 }
 
 /* ── Page ─────────────────────────────────────────────────────────────────── */
@@ -774,7 +774,9 @@ html.icx-resizing * {
     gap: 6px;
     height: calc(var(--icx-bar-h) - var(--icx-gutter));
     margin: 0 0 var(--icx-gutter);
-    padding: 0 8px;
+    /* 8px on three sides, so the chips sit inside the card the way the cams
+       do. None on top: the cam panel's own bottom padding is the gap there. */
+    padding: 0 8px 8px;
     box-sizing: border-box;
     border: 1px solid var(--icx-border);
     border-top: 0;
@@ -977,6 +979,18 @@ html.icx #body_container:has(#camVisibility img[title^="Show"]) #cams.icx-cams.i
 #cams.icx-cams .cam-button1,
 #cams.icx-cams .cam-button2,
 #cams.icx-cams .cam-logo { display: none !important; }
+
+/* The site's anti-capture watermark (.cam-syms, a few characters of your
+   own id) stays. The site sizes it inline (aQ in scripts110725.js): twice
+   a fifteenth of the cam's width, which in full screen it takes as 0.8 of
+   the screen's width, so about 200px tall on a 1920px screen. A full-screen
+   cam gets a size from its own height instead, with the site's offset to
+   match (top: 1px minus half the size). */
+#cams.icx-cams > .rounded_square:fullscreen .cam-syms {
+    --icx-syms-size: clamp(24px, 4cqh, 48px);
+    font-size: var(--icx-syms-size) !important;
+    top: calc(1px - var(--icx-syms-size) / 2) !important;
+}
 
 /* Name label: bottom-left over a soft gradient. */
 #cams.icx-cams .name-on-cam {
