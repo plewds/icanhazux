@@ -51,7 +51,8 @@
         "src/modtools.js",
         "src/memes.js",
         "src/media.js",
-        "src/memespage.js"
+        "src/memespage.js",
+        "src/ready.js"
       ],
       "run_at": "document_idle"
     },
@@ -64,6 +65,15 @@
       ],
       "run_at": "document_idle",
       "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://www.icanhazchat.com/*"
+      ],
+      "js": [
+        "src/early.js"
+      ],
+      "run_at": "document_start"
     }
   ],
   "web_accessible_resources": [

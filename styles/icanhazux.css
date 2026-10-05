@@ -91,6 +91,12 @@ html[data-icx-accent="aqua"] { --icx-accent: var(--icx-sw-aqua); --icx-accent-fg
 html[data-icx-accent="cobalt"] { --icx-accent: var(--icx-sw-cobalt); --icx-accent-fg: var(--icx-sw-cobalt-fg); --icx-accent-text: var(--icx-sw-cobalt-text); }
 html[data-icx-accent="pink"] { --icx-accent: var(--icx-sw-pink); --icx-accent-fg: var(--icx-sw-pink-fg); --icx-accent-text: var(--icx-sw-pink-text); }
 
+/* While the page loads (early.js until ready.js): the theme's background and
+   nothing else, rather than a glimpse of the site's own look. visibility, not
+   display, so the scripts can still measure the layout. */
+html[data-icx-cloak] { background: var(--icx-bg) !important; }
+html[data-icx-cloak] body { visibility: hidden !important; }
+
 :root {
     --icx-accent-soft: color-mix(in srgb, var(--icx-accent) 16%, transparent);
     --icx-accent-glow: color-mix(in srgb, var(--icx-accent) 9%, transparent);   /* top of the cam and chat cards */
