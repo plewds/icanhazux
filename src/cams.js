@@ -602,8 +602,22 @@
             const act = btn.dataset.act;
             if (act === 'focus') { setFocus(state.focus === cam.key ? null : cam.key); }
             else if (act === 'refresh') { refresh(cam); }
-            else if (act === 'fullscreen') { cam.slot.requestFullscreen?.().catch(() => {}); }
+            else if (act === 'fullscreen') {
+                if (document.fullscreenElement === cam.slot) { document.exitFullscreen?.().catch(() => {}); }
+                else { cam.slot.requestFullscreen?.().catch(() => {}); }
+            }
             else if (act === 'hide') { setHidden(cam.key, true); }
+        }, { signal });
+        // In full screen, the cam's full-screen button leaves it.
+        document.addEventListener('fullscreenchange', () => {
+            cams.querySelectorAll('.icx-btn[data-act="fullscreen"]').forEach(btn => {
+                const on = btn.closest('.rounded_square') === document.fullscreenElement;
+                if (btn.dataset.on === String(on)) { return; }
+                btn.dataset.on = String(on);
+                btn.replaceChildren(icon(on ? 'exitFullscreen' : 'fullscreen'));
+                btn.title = on ? 'Exit full screen' : 'Full screen';
+                btn.setAttribute('aria-label', btn.title);
+            });
         }, { signal });
         cams.addEventListener('dblclick', e => {
             if (e.target.closest('button, a')) { return; }

@@ -524,6 +524,35 @@
         return true;
     }
 
+    // ── Cam watermarks after full screen ───────────────────────────────────
+    // aQ(width) sizes every cam's name, buttons and anti-capture watermark
+    // (.cam-syms) inline, from a cam width; while anything is full screen it
+    // uses 0.8 of the screen's width instead, so they all go huge (the
+    // stylesheet keeps the full-screen cam's own in check). Leaving full
+    // screen doesn't call it again: they stayed huge until the cams were
+    // next laid out. So the last width it was given outside full screen is
+    // kept, and given back as soon as full screen ends.
+    // (Scripts110725.js has a second, unrelated aQ inside swfobject; the
+    // global one is the one that mentions fullscreenElement.)
+    function patchCamLabelSize() {
+        const size = window.aQ;
+        if (typeof size !== 'function' || !String(size).includes('fullscreenElement')) { return false; }
+        if (size.__icx) { return true; }
+        // Cams built before this ran: their names were set to width / 15.
+        const name = document.querySelector('.name-on-cam');
+        let lastWidth = (!document.fullscreenElement && parseFloat(name && name.style.fontSize) * 15) || 0;
+        const wrapped = function (width) {
+            if (!document.fullscreenElement && width > 0) { lastWidth = width; }
+            return size.apply(this, arguments);
+        };
+        wrapped.__icx = true;
+        window.aQ = wrapped;
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement && lastWidth) { size(lastWidth); }
+        });
+        return true;
+    }
+
     // ── Remembering the camera ─────────────────────────────────────────────
     // When the broadcast panel opens it starts the camera saved in the
     // "cam-id" cookie, else the first in the list (often the built-in one).
@@ -615,7 +644,7 @@
     // The site's scripts normally load before this runs (document_idle);
     // retry for a while in case they're late. The chat bridge goes last so it
     // wraps the already-patched functions.
-    let pending = [patchChatScroll, patchFocusSteal, patchPms, patchIdleRefresh, patchBroadcasters, patchNicks, installNickCheck, patchCameraChoice, patchCameraMemory, installChatBridge].filter(p => !p());
+    let pending = [patchChatScroll, patchFocusSteal, patchPms, patchIdleRefresh, patchBroadcasters, patchNicks, installNickCheck, patchCameraChoice, patchCameraMemory, patchCamLabelSize, installChatBridge].filter(p => !p());
     let tries = 0;
     const timer = pending.length && setInterval(() => {
         pending = pending.filter(p => !p());
