@@ -225,6 +225,40 @@ test('refresh drives the site\'s own disable → start for that cam', async () =
             .closest('.rounded_square').querySelector('.icx-tools')));
 });
 
+// A cam's stream dying: its video track stops, so no new frames arrive.
+const stallCam = (p, name) => p.evaluate(name => {
+    const span = [...document.querySelectorAll('.name-on-cam')].find(s => s.textContent === name);
+    span.closest('.videocontainer').querySelector('video').srcObject.getVideoTracks().forEach(t => t.stop());
+}, name);
+const FAST_REVIVE = () => {
+    window.ICX_REVIVE_TIMES = { CHECK_MS: 200, STALL_MS: 1000, GRACE_MS: 1200, HEALTHY_MS: 60000, BACKOFF_MS: [60000, 60000] };
+};
+
+test('a cam whose stream stalls is refreshed by itself; the others are left alone', async () => {
+    const p = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    await openRoom(p, { setup: FAST_REVIVE });
+    await p.waitForTimeout(1500);
+    const start = await p.evaluate(() => window.sim.effects.length);
+    await stallCam(p, 'charlie99');
+    await p.waitForTimeout(2500);
+    const effects = await p.evaluate(n => window.sim.effects.slice(n), start);
+    await p.close();
+    assert.deepStrictEqual(effects, ['disable charlie99', 'start charlie99']);
+});
+
+test('with auto-refresh switched off, a stalled cam is left as it is', async () => {
+    const p = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    await openRoom(p, { setup: FAST_REVIVE });
+    await p.evaluate(() => globalThis.ICX.revive.set(false));
+    await p.waitForTimeout(1500);
+    const start = await p.evaluate(() => window.sim.effects.length);
+    await stallCam(p, 'charlie99');
+    await p.waitForTimeout(2500);
+    const effects = await p.evaluate(n => window.sim.effects.slice(n), start);
+    await p.close();
+    assert.deepStrictEqual(effects, []);
+});
+
 test('hide removes a cam, stops its stream, and lists it; show brings it back', async () => {
     const start = await page.evaluate(() => window.sim.effects.length);
     await (await camButton(page, 'delta', 'hide')).click();

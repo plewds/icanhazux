@@ -16,6 +16,7 @@ icanhazux is unofficial: it isn't made by or affiliated with icanhazchat.com.
 - **Focus a cam.** Hover a cam and click the focus button, or double-click it. It becomes the big feed in the top-left, with the others wrapped around it. Do the same again to unfocus.
 - **Drag to reorder.** Grab a cam and drop it where you want it. The order is remembered by username.
 - **Refresh one cam.** Restarts just that feed, for when a cam freezes or goes black.
+- **Frozen cams fix themselves.** When a cam's video stops arriving, it's refreshed for you, up to three tries, spaced out so a broadcaster who's really gone isn't hammered. Nothing is checked while the tab is in the background. On by default; switch it off in the chat bar's ⚙.
 - **Open their profile.** The person button in a cam's hover controls opens the site's profile popup for whoever's on that cam.
 - **Full screen.** Any cam, from its hover controls, with the site's watermark kept to a sensible size.
 - **Sharper big cams** (optional, in the chat bar's ⚙). The focused and full-screen cams get crisper scaling and light sharpening on your graphics card, instead of the browser's soft enlargement. It sharpens what's there; it doesn't invent detail. Off by default, and only available where the browser has graphics acceleration.

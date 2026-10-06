@@ -39,6 +39,7 @@
         "src/shell.js",
         "src/cams.js",
         "src/upscale.js",
+        "src/revive.js",
         "src/stamps.js",
         "src/controls.js",
         "src/chatbar.js",

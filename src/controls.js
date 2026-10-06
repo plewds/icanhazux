@@ -6,6 +6,7 @@
 //   timestamps   none / relative / absolute (stamps.js)    (chat bar)
 //   pmWindow     PMs docked in the chat or floating (pms.js) (chat bar)
 //   upscale      sharper focused / full-screen cams (upscale.js) (chat bar)
+//   autoRefresh  refresh cams whose stream has stalled (revive.js) (chat bar)
 //
 // The chat bar's settings panel (chatbar.js) and the header's ICHUX
 // Settings panel (menu.js) build theirs from here, so the two can't drift
@@ -188,6 +189,27 @@
         };
     }
 
+    // ── Auto-refresh stalled cams ───────────────────────────────────────────
+    // revive.js: a cam whose stream has died gets refreshed. On by default.
+
+    function autoRefreshControl() {
+        const revive = globalThis.ICX.revive;
+        if (!revive) { return null; }
+        const label = 'Auto-refresh stalled cams';
+        const b = el('button', { type: 'button', role: 'switch', class: 'icx-switch', 'data-pref': 'autoRefresh', 'aria-label': label });
+        b.addEventListener('click', () => revive.set(!revive.get()));
+        const render = () => b.setAttribute('aria-checked', String(revive.get()));
+        onChanged('autoRefresh', render);
+        render();
+        return {
+            node: el('div', { class: 'icx-setting' }, [
+                el('div', { class: 'icx-setting-row' }, [el('div', { class: 'icx-setting-label', text: label }), b]),
+                el('div', { class: 'icx-setting-note', text: 'Restarts a cam whose video has frozen, up to three tries.' }),
+            ]),
+            render,
+        };
+    }
+
     globalThis.ICX.controls = {
         setting,
         theme: themeControl,
@@ -196,6 +218,7 @@
         timestamps: timestampsControl,
         pmWindow: pmWindowControl,
         upscale: upscaleControl,
+        autoRefresh: autoRefreshControl,
         changed,
     };
 })();

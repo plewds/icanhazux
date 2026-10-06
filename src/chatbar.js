@@ -117,6 +117,7 @@
         timestamps: globalThis.ICX.stamps ? controls.timestamps() : null,
         pmWindow: controls.pmWindow(),
         upscale: controls.upscale(),
+        autoRefresh: controls.autoRefresh(),
     };
 
     // Mod tools (modtools.js): only for room mods and owners.
@@ -181,6 +182,7 @@
                 shared.chatColor.node,
                 shared.timestamps?.node || '',
                 shared.upscale?.node || '',
+                shared.autoRefresh?.node || '',
             ]),
             column('Chat', [
                 choice('pm', 'Currently accepting', [
