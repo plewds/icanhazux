@@ -68,6 +68,10 @@
     // Every line count up to maxLines is tried and the one giving the items
     // the most total area wins: few long lines run out of width, many short
     // ones run out of height, and the best is wherever those meet.
+    // The smallest item counts again for each item (n·min, as in
+    // packFocused). Total area alone favors a few huge cams over a row of
+    // unwatchable ones: in a narrow, tall box, 12 cams came out as three
+    // full-width cams over a row of nine slivers.
     function realizeStrip(items, strip, gap, axis, maxLines) {
         if (!strip || !(strip.w > 0) || !(strip.h > 0) || !items.length) { return null; }
         const exts = items.map(it => axis === 'row' ? it.ar : 1 / it.ar);
@@ -79,8 +83,9 @@
             const solved = solveLines(exts, main, cross, gap, L, L);
             const rects = solved && placeLines(solved.lines, items, exts, strip, gap, axis, main, cross);
             if (!rects) { continue; }
-            const area = rects.reduce((a, r) => a + r.w * r.h, 0);
-            if (!best || area > best.area + 1e-6) { best = { area, rects }; }
+            const areas = rects.map(r => r.w * r.h);
+            const score = areas.reduce((a, b) => a + b, 0) + areas.length * Math.min(...areas);
+            if (!best || score > best.score + 1e-6) { best = { score, rects }; }
         }
         return best ? best.rects : null;
     }

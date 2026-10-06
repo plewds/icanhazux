@@ -32,6 +32,15 @@ test('grid: every cam placed once, inside the box, no overlaps, aspect kept', ()
     }
 });
 
+test('grid: a narrow, tall box keeps every cam watchable', () => {
+    // 12 cams at 300×800 once came out as three full-width cams over a row
+    // of nine slivers.
+    const rects = packGrid(300, 800, 4, Array(12).fill(4 / 3));
+    assertSane(rects, 300, 800);
+    const areas = rects.map(r => r.w * r.h);
+    assert.ok(Math.max(...areas) / Math.min(...areas) < 2, 'cams of one shape come out about the same size');
+});
+
 test('grid: unusable input returns null', () => {
     assert.strictEqual(packGrid(0, 800, 4, [1]), null);
     assert.strictEqual(packGrid(800, 800, 4, []), null);
