@@ -225,6 +225,39 @@ test('refresh drives the site\'s own disable → start for that cam', async () =
             .closest('.rounded_square').querySelector('.icx-tools')));
 });
 
+test('the drawer stays open through a profile popup, and closes once you whisper, type or open a PM', async () => {
+    const p = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    // The room's PM window exists from the start, hidden, as on the site.
+    await openRoom(p, { setup: () => {
+        document.getElementById('pm_container').innerHTML =
+            '<div id="tabs" style="display:none"><ul role="tablist"></ul></div>' +
+            '<div class="ui-dialog" style="position:fixed;left:20px;top:20px;width:200px;height:100px;background:#fff">profile</div>';
+    } });
+    const open = () => p.evaluate(() => document.getElementById('icx-drawer').classList.contains('icx-open'));
+    const reopen = async () => { if (!await open()) { await p.click('#icx-drawer-toggle'); } };
+
+    await reopen();
+    await p.mouse.click(60, 60);   // in the profile popup
+    assert.ok(await open(), 'a click in the profile popup leaves it open');
+
+    await p.evaluate(() => document.getElementById('txtMsg').focus());   // a whisper puts you in the chat box
+    assert.ok(!await open(), 'the cursor in the chat box closes it');
+
+    await reopen();
+    await p.evaluate(() => { document.getElementById('tabs').style.width = '300px'; });
+    await p.waitForTimeout(50);
+    assert.ok(await open(), 'the PM window changing on its own leaves it open');
+
+    await p.evaluate(() => {
+        const tabs = document.getElementById('tabs');
+        tabs.querySelector('ul').insertAdjacentHTML('beforeend', '<li role="tab"><a href="#x">alice</a></li>');
+        tabs.style.display = 'block';
+    });
+    await p.waitForTimeout(50);
+    assert.ok(!await open(), 'a PM conversation opening closes it');
+    await p.close();
+});
+
 // A cam's stream dying: its video track stops, so no new frames arrive.
 const stallCam = (p, name) => p.evaluate(name => {
     const span = [...document.querySelectorAll('.name-on-cam')].find(s => s.textContent === name);

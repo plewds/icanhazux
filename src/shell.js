@@ -173,6 +173,30 @@
             if (e.target.closest('.ui-dialog, .ui-widget-overlay, [role="dialog"]')) { return; }
             setOpen(false);
         }, { signal });
+        // It stays open while you look through people (a profile and the
+        // next), and closes once you act on one: the cursor lands in the
+        // chat box (whisper and @ fill it in and put you there) or a PM's
+        // box, or a PM conversation opens. Those start from the profile
+        // popup, whose clicks the rule above lets through, and the drawer's
+        // shade was left over the PM.
+        document.addEventListener('focusin', e => {
+            if (drawer.classList.contains('icx-open') && e.target.closest?.('#txtMsg, #tabs')) { setOpen(false); }
+        }, { signal });
+        const tabs = document.getElementById('tabs');
+        if (tabs) {
+            const convos = () => tabs.querySelectorAll('[role="tab"]').length;
+            const showing = () => getComputedStyle(tabs).display !== 'none' && getComputedStyle(tabs).visibility !== 'hidden';
+            let seen = convos();
+            let shown = showing();
+            const pmObserver = new MutationObserver(() => {
+                const n = convos(), now = showing();
+                if ((n > seen || (now && !shown)) && drawer.classList.contains('icx-open')) { setOpen(false); }
+                seen = n;
+                shown = now;
+            });
+            pmObserver.observe(tabs, { childList: true, subtree: true, attributes: true, attributeFilter: ['style'] });
+            onRetire(() => pmObserver.disconnect());
+        }
 
         // The site's list text starts "172 people (refresh) [click for details]: …".
         const syncCount = () => {
