@@ -31,10 +31,13 @@
     const MAX_PIXELS = 3840 * 2160;     // canvas size cap (a 4K screen)
     const SHARPNESS = 0.4;              // RCAS, in stops: 0 is strongest
 
+    // One triangle that covers the picture, from a buffer in attribute 0.
+    // (Making its corners up from gl_VertexID, with no attribute, makes
+    // Firefox on a Mac emulate attribute 0, and say so in the console.)
     const VERT = `#version 300 es
+        layout(location = 0) in vec2 p;
         out vec2 uv;
         void main() {
-            vec2 p = vec2(gl_VertexID == 1 ? 3.0 : -1.0, gl_VertexID == 2 ? 3.0 : -1.0);
             uv = p * 0.5 + 0.5;
             gl_Position = vec4(p, 0.0, 1.0);
         }`;
@@ -107,10 +110,11 @@
         premultipliedAlpha: true, preserveDrawingBuffer: false, failIfMajorPerformanceCaveat: true };
     let available = null;
     function supported() {
+        // The test context is just dropped for the browser to clean up:
+        // releasing it outright (loseContext) logs "WebGL context was lost"
+        // in Firefox's console on every room, upscaling on or off.
         if (available === null) {
-            const gl = document.createElement('canvas').getContext('webgl2', CONTEXT);
-            available = !!gl;
-            gl?.getExtension('WEBGL_lose_context')?.loseContext();
+            available = !!document.createElement('canvas').getContext('webgl2', CONTEXT);
         }
         return available;
     }
@@ -154,6 +158,10 @@
         frame = texture(gl, gl.LINEAR);
         scaled = texture(gl, gl.NEAREST);
         fbo = gl.createFramebuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
         let scaledSize = '';
         let stopped = false;
 

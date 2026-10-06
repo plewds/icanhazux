@@ -103,11 +103,21 @@
 
     // A custom badge that fails to load falls back to the site's heart (one
     // that has loaded, from the site's list), or to nothing: never alt text.
+    // A failed load isn't cached, and the rows are rebuilt on every refresh
+    // of the site's list, so a badge that has failed once goes straight to
+    // the fallback instead of being asked for (and failing) again.
+    const brokenBadges = new Set();
+    const loadedHeart = () => [...source.querySelectorAll('img.smicon[title="site supporter" i]')]
+        .find(h => h.complete && h.naturalWidth && !brokenBadges.has(h.src));
     function badgeImg(src) {
+        if (brokenBadges.has(src)) {
+            const heart = loadedHeart();
+            return heart ? el('img', { class: 'icx-person-badge', src: heart.src, alt: '', 'data-fallback': '1' }) : '';
+        }
         const img = el('img', { class: 'icx-person-badge', src, alt: '' });
         img.addEventListener('error', () => {
-            const heart = [...source.querySelectorAll('img.smicon[title="site supporter" i]')]
-                .find(h => h.complete && h.naturalWidth && h.src !== img.src);
+            if (!img.dataset.fallback) { brokenBadges.add(src); }
+            const heart = loadedHeart();
             if (heart && !img.dataset.fallback) { img.dataset.fallback = '1'; img.src = heart.src; } else { img.remove(); }
         });
         return img;

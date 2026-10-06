@@ -88,12 +88,23 @@
         }
     }
 
+    // What it last made of each cam, on the tile as data-icx-revive, for
+    // working out why a cam was or wasn't refreshed. Read them all with:
+    //   [...document.querySelectorAll('[data-icx-revive]')].map(s =>
+    //     s.querySelector('.name-on-cam')?.textContent + ': ' + s.dataset.icxRevive).join('\n')
+    const secs = ms => `${Math.round(ms / 1000)}s`;
+    const note = (slot, text) => { if (slot.dataset.icxRevive !== text) { slot.dataset.icxRevive = text; } };
+
     function check() {
         const now = Date.now();
         cams.querySelectorAll(':scope > .rounded_square[data-icx-placed]:not(.icx-hidden)').forEach(slot => {
             const video = slot.querySelector('.videocontainer > video[id^="vid-"]');
             const name = (slot.querySelector('.name-on-cam')?.textContent || '').trim().toLowerCase();
-            if (!video || !name) { return; }
+            if (!name) { return; }
+            if (!video) {
+                note(slot, slot.querySelector('.videocontainer > video') ? 'disabled, skipped' : 'no video, skipped');
+                return;
+            }
             const rec = track(video, now);
             const n = frames(video, rec);
             if (n !== rec.frames) {
@@ -107,18 +118,27 @@
             const frozen = rec.moved && now - rec.last >= T.STALL_MS;
             const neverStarted = !rec.moved && counting;
             const blackedOut = rec.blackSince && now - rec.blackSince >= T.STALL_MS;
+            const t = tries.get(name);
+            const tried = t ? `, tried ${t.count}×` : '';
             if (rec.moved && !frozen && !rec.blackSince) {
-                const t = tries.get(name);
                 if (t && now - t.since > T.HEALTHY_MS) { tries.delete(name); }
+                note(slot, `ok${tries.has(name) ? tried : ''}`);
                 return;
             }
-            if (!enabled || now - rec.born < T.GRACE_MS || !(frozen || neverStarted || blackedOut)) { return; }
-            const t = tries.get(name) || { count: 0, next: 0, since: now };
-            if (t.count >= T.TRIES || now < t.next) { return; }
-            t.count++;
-            t.since = now;
-            t.next = now + (T.BACKOFF_MS[t.count - 1] || 0);
-            tries.set(name, t);
+            const state = rec.blackSince ? `black ${secs(now - rec.blackSince)}`
+                : rec.moved ? `frozen ${secs(now - rec.last)}`
+                : counting ? `no frames ${secs(now - rec.born)}` : 'no frames (not counted here)';
+            if (!enabled) { note(slot, `${state}, auto-refresh off`); return; }
+            if (now - rec.born < T.GRACE_MS) { note(slot, `${state}, starting${tried}`); return; }
+            if (!(frozen || neverStarted || blackedOut)) { note(slot, `${state}, watching${tried}`); return; }
+            const next = t || { count: 0, next: 0, since: now };
+            if (next.count >= T.TRIES) { note(slot, `${state}, gave up after ${next.count} tries`); return; }
+            if (now < next.next) { note(slot, `${state}, next try in ${secs(next.next - now)}${tried}`); return; }
+            next.count++;
+            next.since = now;
+            next.next = now + (T.BACKOFF_MS[next.count - 1] || 0);
+            tries.set(name, next);
+            note(slot, `${state}, refreshed (try ${next.count})`);
             // The cam's own refresh button: the same path, and the same
             // shimmer, as pressing it.
             slot.querySelector('.icx-tools .icx-btn[data-act="refresh"]')?.click();
