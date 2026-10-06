@@ -377,19 +377,16 @@
         schedule();
     }, { signal });
     // Hiding a name not yet known as a nickname asks its profile (page.js),
-    // once per visit; if it is one, the hide becomes this visit's only.
-    const checked = new Set(loadSession('nickChecked'));
+    // every time: a name can turn into someone's nick after it was checked.
+    // If it is one, the hide becomes this visit's only.
     function checkNick(name) {
-        if (checked.has(name)) { return; }
         document.dispatchEvent(new CustomEvent('icx:nick-check', { detail: JSON.stringify({ name }) }));
     }
+    try { sessionStorage.removeItem('icx_nickChecked'); } catch (_) {}   // the old once-per-visit list
     document.addEventListener('icx:nick-result', e => {
         let r;
         try { r = JSON.parse(e.detail); } catch (_) { return; }
-        if (!r.name || r.nick === null) { return; }   // couldn't tell: left as it was
-        checked.add(r.name);
-        saveSession('nickChecked', checked);
-        if (!r.nick) { return; }
+        if (!r.name || !r.nick) { return; }   // not a nick, or couldn't tell: left as it was
         markNick(r.name);
         if (state.hidden.has(r.name) && !state.permaNicks.has(r.name)) {
             state.hidden.delete(r.name);
@@ -400,11 +397,12 @@
         }
     }, { signal });
 
-    // The site's profile popup says so when someone is using a nickname.
+    // The site's profile popup says so when someone is using a nickname
+    // ("using a nick" or "using a nickname").
     const profile = document.getElementById('userinfo_dialog');
     if (profile) {
         const readProfile = () => {
-            if (!/using a nickname/i.test(profile.textContent || '')) { return; }
+            if (!/using a nick(name)?\b/i.test(profile.textContent || '')) { return; }
             const title = profile.parentElement?.querySelector('.ui-dialog-title')?.textContent.trim();
             markNick(title);
         };

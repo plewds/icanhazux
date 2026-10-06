@@ -336,8 +336,8 @@
     // Asked when you hide a cam (cams.js: icx:nick-check). The same request
     // the site makes when you open that profile, from this page, as you.
     // Only one thing is read from the reply: whether the profile says it's
-    // using a nickname. Nothing else (account_name included) is looked at
-    // or kept.
+    // using a nick ("using a nick" or "using a nickname"). Nothing else
+    // (account_name included) is looked at or kept.
     function installNickCheck() {
         document.addEventListener('icx:nick-check', e => {
             let name;
@@ -351,7 +351,7 @@
                 credentials: 'same-origin',
             }).then(r => r.json()).then(f => {
                 const doc = new DOMParser().parseFromString(String((f && f.html) || ''), 'text/html');
-                answer(/using a nickname/i.test(doc.body.textContent || ''));
+                answer(/using a nick(name)?\b/i.test(doc.body.textContent || ''));
             }).catch(() => answer(null));
         });
         return true;
