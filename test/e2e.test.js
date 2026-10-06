@@ -403,6 +403,9 @@ async function openPage(page, url) {
     for (const css of manifest.content_scripts.flatMap(cs => cs.css || [])) {
         await page.addStyleTag({ path: path.join(ROOT, css) });
     }
+    // Colors are read straight after they're re-pointed, and some fade in:
+    // read mid-fade, they're a shade off. The tests want where they end up.
+    await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; }' });
     for (const js of manifest.content_scripts[0].js) { await page.addScriptTag({ path: path.join(ROOT, js) }); }
     await page.waitForTimeout(100);
 }
