@@ -454,16 +454,31 @@ html.icx :is(#txt, #tabs .pm_convo) p.line.odd_row1 {
 }
 html.icx :is(#txt, #tabs .pm_convo) p.line.odd_row2 { background-color: transparent !important; }
 html.icx :is(#txt, #tabs .pm_convo) p.line.odd_row3 { background-color: var(--icx-row-alt) !important; }
-/* Site notices printed into the chat log. */
-html.icx #txt table { width: 100% !important; margin: 6px 0 !important; border-collapse: collapse; }
-html.icx #txt table td {
-    padding: 8px 10px !important;
-    border-left: 3px solid var(--icx-live);
-    border-radius: 6px;
-    background: var(--icx-live-soft) !important;
-    color: var(--icx-text) !important;
-    font-size: 13px;
+/* Site notices printed into the chat log, as one kind of callout: the
+   room's welcome tips (a table inside <dir>, painted red inline) and the
+   room's group (<h3 class="oddrow">, light gray from the site's
+   stylesheet, which left the theme's light text unreadable on it). */
+html.icx #txt dir { margin: 0 !important; padding: 0 !important; }
+html.icx #txt table {
+    width: 100% !important;
+    margin: 6px 0 !important;
+    border-collapse: separate;   /* collapsed, the cell's edge and corners don't draw */
+    border-spacing: 0;
+    background: none !important;
 }
+html.icx #txt table td,
+html.icx #txt h3.oddrow {
+    padding: 8px 10px !important;
+    border-left: 3px solid var(--icx-accent);
+    border-radius: 6px;
+    background: var(--icx-surface-2) !important;
+    color: var(--icx-text) !important;
+    font: 500 13px/1.45 var(--icx-font) !important;
+    text-align: left;
+}
+html.icx #txt h3.oddrow { margin: 6px 0 !important; }
+html.icx #txt :is(table td, h3.oddrow) center { text-align: left; }
+html.icx #txt :is(table td, h3.oddrow) a { color: var(--icx-accent-text) !important; overflow-wrap: anywhere; }
 
 html.icx #chat_container > #txtMsg {
     width: auto !important;
