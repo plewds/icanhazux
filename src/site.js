@@ -34,6 +34,8 @@
     root.classList.add('icx-site');
     registerFonts();
     if (!isRoom) {
-        document.querySelectorAll('.page_section_white, .page_section').forEach(s => s.classList.add('icx-paper'));
+        // (#pnlMain: the Get Hearted page, which has none of the usual
+        // panels, nor the site header.)
+        document.querySelectorAll('.page_section_white, .page_section, #pnlMain').forEach(s => s.classList.add('icx-paper'));
     }
 })();

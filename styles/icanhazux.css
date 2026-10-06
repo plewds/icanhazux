@@ -186,7 +186,7 @@ html.icx-site #userID { color: var(--icx-text) !important; font-size: 13px !impo
 html.icx-site .page_header_userlinks a:hover { color: var(--icx-accent-text) !important; }
 /* The second row (messages posts groups settings dashboard) is only
    spaces apart: a small muted dot between each, with room either side. */
-html.icx-site .page_header_userlinks .header_links br ~ a ~ a::before {
+html.icx-site .page_header_userlinks .header_links br ~ :is(a, .unread) ~ a::before {
     content: "";
     display: inline-block;          /* keeps the link's underline off it */
     width: 3px;
@@ -199,6 +199,18 @@ html.icx-site .page_header_userlinks .header_links br ~ a ~ a::before {
     pointer-events: none;
 }
 html.icx-site :is(#labelSignInStatus, #ctl00_labelSignInStatus) { color: var(--icx-text-muted) !important; font-size: 13px !important; }
+/* New messages: the site wraps the messages link in .unread, bright red
+   and bigger. An accent pill at the header's own size instead. */
+html.icx-site .page_header_userlinks .unread {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: var(--icx-radius-btn);
+    background: var(--icx-accent) !important;
+    font-size: 13px !important;
+    line-height: 1.5;
+}
+html.icx-site .page_header_userlinks :is(.unread, .unread a, .unread i),
+html.icx-site .page_header_userlinks :is(.unread, .unread a):hover { color: var(--icx-accent-fg) !important; font-weight: 700; text-decoration: none; }
 
 /* Room header: topic on the left, Broadcast and Leave together on the right.
    (The site positions these by percentages of its old 1024px width.)

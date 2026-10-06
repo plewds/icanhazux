@@ -40,6 +40,8 @@
         // A room's sign-in, before you join: the nick to use, the password.
         ['join', () => part('txtUserName')],
         ['signin', () => part('pnlSignInForm')],
+        // Get Hearted (becoming a site supporter): its own page, ids unprefixed.
+        ['gethearted', () => document.getElementById('labelRecentPayments')],
     ];
     const kind = (KINDS.find(([, test]) => test()) || ['other'])[0];
     root.dataset.icxPage = kind;
@@ -62,7 +64,7 @@
     // The join page's two columns are a form, a label beside each field
     // ("Name/nick to use in <room>:" and its box, the supporter note and the
     // password), not a sidebar: it stays one card with its columns as they are.
-    const PLAIN = new Set(['join', 'signin']);
+    const PLAIN = new Set(['join', 'signin', 'gethearted']);
 
     // The sign-in form centers itself with empty columns (blank, or just
     // &nbsp;) either side of each field; they're marked so the CSS can drop

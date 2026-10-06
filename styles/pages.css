@@ -402,6 +402,29 @@ html.icx-site .icx-paper [style*="lightgoldenrodyellow" i] ul {
     font-weight: 400;
 }
 
+/* Room Settings → For Owners: each list's "Who:" row is tinted pale yellow
+   (Do Not Mod), pink (Perma Ban) or green (the exceptions), inline on the
+   <tr>, which left the theme's light text unreadable. Each becomes a soft
+   tint of the matching theme color with an edge in it. */
+html.icx-site .icx-paper tr:is([style*="#ffffe0" i], [style*="#ffe0e0" i], [style*="#e0ffe0" i]) {
+    --icx-row-tint: var(--icx-sw-gold);
+    background: color-mix(in srgb, var(--icx-row-tint) 14%, transparent) !important;
+    color: var(--icx-text) !important;
+}
+html.icx-site .icx-paper tr[style*="#ffe0e0" i] { --icx-row-tint: var(--icx-live); }
+html.icx-site .icx-paper tr[style*="#e0ffe0" i] { --icx-row-tint: var(--icx-online); }
+html.icx-site .icx-paper tr:is([style*="#ffffe0" i], [style*="#ffe0e0" i], [style*="#e0ffe0" i]) > td { color: var(--icx-text) !important; }
+html.icx-site .icx-paper tr:is([style*="#ffffe0" i], [style*="#ffe0e0" i], [style*="#e0ffe0" i]) > td:first-child {
+    box-shadow: inset 3px 0 0 var(--icx-row-tint);
+    border-radius: var(--icx-radius-sm) 0 0 var(--icx-radius-sm);
+    font-weight: 600;
+}
+html.icx-site .icx-paper tr:is([style*="#ffffe0" i], [style*="#ffe0e0" i], [style*="#e0ffe0" i]) > td:last-child {
+    border-radius: 0 var(--icx-radius-sm) var(--icx-radius-sm) 0;
+    color: var(--icx-text-muted) !important;
+    white-space: nowrap;
+}
+
 /* ── Settings ─────────────────────────────────────────────────────────────── */
 
 /* The panel's own frame and padding: the card has its own. */
@@ -1017,6 +1040,23 @@ html[data-icx-page="signin"] .icx-paper .row:has(> div > #ctl00_ContentPlaceHold
 }
 html[data-icx-page="signin"] .icx-paper .row:has(> div > #ctl00_ContentPlaceHolder1_btnSubmit) > div { flex: 0 1 auto !important; max-width: none !important; }
 html[data-icx-page="signin"] #orRegister { white-space: nowrap; color: var(--icx-text-muted); }
+
+/* ── Get Hearted (becoming a site supporter) ──────────────────────────────── */
+/* Its own page: no site header, and the content in #pnlMain (site.js makes
+   it the panel), inside a translucent #background the theme's page color
+   replaces. The re-pointed grays do most of the rest. */
+
+html[data-icx-page="gethearted"] #background { background: none !important; }
+html[data-icx-page="gethearted"] .icx-paper h1 { margin-bottom: 4px !important; padding: 0 !important; font-size: 30px !important; }
+html[data-icx-page="gethearted"] .icx-paper h1 + h2 { margin: 0 0 18px !important; padding: 0 !important; color: var(--icx-text-muted) !important; font-size: 17px !important; font-weight: 600 !important; }
+html[data-icx-page="gethearted"] .icx-paper .summary_panel h2 { margin: 0 0 6px !important; padding: 0 !important; }
+/* The site's stylesheet makes this panel's text white (not a gray the
+   theme re-points), so it vanished on the light theme. The red target bars
+   keep their white. */
+html[data-icx-page="gethearted"] .summary_panel,
+html[data-icx-page="gethearted"] .summary_panel :is(p, li, td:not([style*="background-color:red"])) { color: var(--icx-text) !important; }
+/* The recent payments list sits at the top of its column, as the site says. */
+html.icx-site .icx-paper td[valign="top" i] { vertical-align: top; }
 
 /* ── People tiles (dashboard) ─────────────────────────────────────────────── */
 
