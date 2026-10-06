@@ -225,6 +225,42 @@ test('refresh drives the site\'s own disable → start for that cam', async () =
             .closest('.rounded_square').querySelector('.icx-tools')));
 });
 
+test('a leftover duplicate tile is cleared, and refresh then works on the cam that stays', async () => {
+    const p = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    await openRoom(p);
+    // The site leaves copies behind: delta built again into an empty slot (same
+    // camId, so every id doubled), and a name-only shell for echo_echo; plus a
+    // name-only tile for someone with no other tile, which must stay.
+    const result = await p.evaluate(async () => {
+        const slotOf = name => [...document.querySelectorAll('.name-on-cam')].find(s => s.textContent === name).closest('.rounded_square');
+        const empty = () => [...document.querySelectorAll('#cams > .rounded_square')].find(s => !s.children.length);
+        const nameOnly = (id, name) => {
+            const vc = document.createElement('div');
+            vc.id = id;
+            vc.className = 'videocontainer';
+            const label = document.createElement('span');
+            label.className = 'name-on-cam';
+            label.textContent = name;
+            vc.append(label);
+            return vc;
+        };
+        const fill = node => { const slot = empty(); slot.append(node); slot.style.visibility = 'visible'; return slot; };
+        const dup = fill(slotOf('delta').querySelector('.videocontainer').cloneNode(true));
+        const shell = fill(nameOnly('id-0badc0ffee00', 'echo_echo'));
+        fill(nameOnly('id-0000aaaa1111', 'zulu'));
+        await new Promise(r => setTimeout(r, 600));
+        const tiles = name => [...document.querySelectorAll('#cams .name-on-cam')].filter(s => s.textContent === name).length;
+        return { delta: tiles('delta'), echo: tiles('echo_echo'), zulu: tiles('zulu'), dupCleared: !dup.children.length, shellCleared: !shell.children.length };
+    });
+    const start = await p.evaluate(() => window.sim.effects.length);
+    await (await camButton(p, 'delta', 'refresh')).click();
+    await p.waitForTimeout(500);
+    const effects = await p.evaluate(n => window.sim.effects.slice(n), start);
+    await p.close();
+    assert.deepStrictEqual(result, { delta: 1, echo: 1, zulu: 1, dupCleared: true, shellCleared: true });
+    assert.deepStrictEqual(effects, ['disable delta', 'start delta']);
+});
+
 test('the site\'s narrow-window layout can\'t strand the chat log or text box, at any width', async () => {
     const p = await browser.newPage({ viewport: { width: 1200, height: 800 } });
     await openRoom(p);

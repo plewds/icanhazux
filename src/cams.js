@@ -425,9 +425,41 @@
         return { all, visible };
     }
 
+    // ── Leftover duplicates ─────────────────────────────────────────────────
+    // The site sometimes builds a cam into a new slot without clearing its old
+    // one, leaving two tiles for one person. When both carry the same camId,
+    // every id in them (#id-…, #vid-…, #cambtn2-…) is doubled, and lookups
+    // by id (the site's, and the refresh button's) find the first: pressing
+    // refresh on the second refreshed the first, and the one you pressed
+    // stayed broken. The first is the one the site drives; the other goes,
+    // the way the site empties a slot when someone leaves. So does a tile with
+    // a name but no <video> at all, when the same person has a live tile.
+    // (A cam that's disabled or hidden keeps its "disabled" <video>, and a
+    // name-only tile for someone with no other tile is left to revive.js.)
+    function clearSlot(slot) {
+        slot.replaceChildren();
+        slot.style.visibility = 'hidden';
+    }
+    function clearDuplicates(cams) {
+        const all = readCams(cams);
+        const byCam = new Map();
+        all.forEach(cam => byCam.set(cam.camId, [...(byCam.get(cam.camId) || []), cam]));
+        let cleared = false;
+        for (const [camId, group] of byCam) {
+            if (group.length < 2) { continue; }
+            const driven = document.getElementById(`id-${camId}`)?.closest('.rounded_square');
+            group.filter(cam => cam.slot !== driven).forEach(cam => { clearSlot(cam.slot); cleared = true; });
+        }
+        const live = new Set(all.filter(cam => cam.vc.isConnected && cam.vc.querySelector('video[id^="vid-"]')).map(cam => cam.key));
+        all.filter(cam => cam.vc.isConnected && !cam.vc.querySelector('video') && live.has(cam.key))
+            .forEach(cam => { clearSlot(cam.slot); cleared = true; });
+        return cleared;
+    }
+
     function update() {
         const cams = document.getElementById('cams');
         if (!cams || !alive()) { return; }
+        clearDuplicates(cams);
         const { all, visible } = orderedVisible(cams);
         all.forEach(decorate);
         const stopPending = all.map(applyHidden).some(Boolean);
