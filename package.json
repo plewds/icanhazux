@@ -2,7 +2,7 @@
   "name": "icanhazux",
   "version": "1.1.0",
   "private": true,
-  "description": "Restyles icanhazchat.com: a cam grid you can arrange, a cleaner chat, light and dark themes, and every page styled to match. Core concepts forked from icanhazbetter by Sardistic.",
+  "description": "Restyles icanhazchat.com: a cam grid you can arrange, cleaner chat, light and dark themes. Built on icanhazbetter by Sardistic.",
   "scripts": {
     "test": "node --test test/pack.test.js",
     "test:e2e": "node --test test/e2e.test.js",
