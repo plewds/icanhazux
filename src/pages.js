@@ -127,11 +127,31 @@
     // A profile's background picture (the owner's pick, which the theme
     // otherwise hides behind its plain page color) becomes a cover banner
     // across the top of the main card.
+    // The site keeps the picture's address in a hidden field (backImgUrl)
+    // and sets it on <body> from a script (setPageBackground), which may not
+    // have run yet: the field first, then <body>. A "~" in the address
+    // means tiled; the address is what's before it.
+    // Someone without a picture of their own can still have an address
+    // there that doesn't give one (a placeholder, a dead link), which made
+    // an empty banner. So the banner only goes up once the picture has
+    // loaded and is a real one, not a pixel-sized spacer.
     if (kind === 'profile' && split) {
+        const field = (part('backImgUrl')?.value || '').split('~')[0].trim();
         const m = /url\(["']?([^"')]+)["']?\)/.exec(document.body.style.backgroundImage || '');
-        if (m) {
-            main.style.setProperty('--icx-cover', `url("${m[1].replace(/"/g, '%22')}")`);
-            main.classList.add('icx-has-cover');
+        // Made absolute: the site writes "//images.icanhazchat.com/…", and a
+        // relative address in --icx-cover would be read against the
+        // extension's stylesheet that uses it (moz-extension://images…),
+        // which drew an empty banner.
+        let src = field || (m && m[1]);
+        try { src = src && new URL(src, location.href).href; } catch (_) { src = ''; }
+        if (src) {
+            const probe = new Image();
+            probe.onload = () => {
+                if (probe.naturalWidth < 64 || probe.naturalHeight < 32) { return; }
+                main.style.setProperty('--icx-cover', `url("${src.replace(/"/g, '%22')}")`);
+                main.classList.add('icx-has-cover');
+            };
+            probe.src = src;
         }
     }
 
