@@ -128,8 +128,24 @@
             el('button', { type: 'button', class: 'icx-btn', 'data-act': 'focus', title: 'Focus', 'aria-label': 'Focus cam' }, [icon('focus')]),
             el('button', { type: 'button', class: 'icx-btn', 'data-act': 'refresh', title: 'Refresh feed', 'aria-label': 'Refresh cam feed' }, [icon('refresh')]),
             el('button', { type: 'button', class: 'icx-btn', 'data-act': 'fullscreen', title: 'Full screen', 'aria-label': 'Full screen' }, [icon('fullscreen')]),
+            el('button', { type: 'button', class: 'icx-btn', 'data-act': 'profile', title: 'Profile', 'aria-label': 'Open profile' }, [icon('profile')]),
             el('button', { type: 'button', class: 'icx-btn', 'data-act': 'hide', title: 'Hide this cam', 'aria-label': 'Hide cam' }, [icon('hide')]),
         ]));
+    }
+
+    // Their profile popup, the site's own: press their link in the room's
+    // user list (#activeUserList, kept in the people drawer), as the drawer
+    // does. The popup can't show over a full-screen cam, so that ends first.
+    // Not in the list (it hasn't loaded yet): their profile page, in a new tab.
+    function openProfile(name) {
+        const open = () => {
+            const link = [...document.querySelectorAll('#activeUserList a.userlink')]
+                .find(a => (a.textContent || '').trim().toLowerCase() === name.toLowerCase());
+            if (link) { link.click(); }
+            else { window.open(`/user/${encodeURIComponent(name)}`, '_blank', 'noopener'); }
+        };
+        if (document.fullscreenElement) { document.exitFullscreen().then(open, open); }
+        else { open(); }
     }
 
     function syncFocusButton(cam, focused) {
@@ -606,6 +622,7 @@
                 if (document.fullscreenElement === cam.slot) { document.exitFullscreen?.().catch(() => {}); }
                 else { cam.slot.requestFullscreen?.().catch(() => {}); }
             }
+            else if (act === 'profile') { openProfile(cam.name); }
             else if (act === 'hide') { setHidden(cam.key, true); }
         }, { signal });
         // In full screen, the cam's full-screen button leaves it.

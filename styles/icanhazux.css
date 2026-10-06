@@ -1003,6 +1003,11 @@ html.icx #body_container:has(#camVisibility img[title^="Show"]) #cams.icx-cams.i
    the screen's width, so about 200px tall on a 1920px screen. A full-screen
    cam gets a size from its own height instead, with the site's offset to
    match (top: 1px minus half the size). */
+/* It sits over everything (z-index 99) and its box is much taller than its
+   faint text, so on a small cam it covered the top half of the hover
+   buttons: those clicks went to the cam (a drag) instead. Clicks pass
+   through it now; it shows the same. */
+#cams.icx-cams .cam-syms { pointer-events: none !important; }
 #cams.icx-cams > .rounded_square:fullscreen .cam-syms {
     --icx-syms-size: clamp(24px, 4cqh, 48px);
     font-size: var(--icx-syms-size) !important;
@@ -1248,8 +1253,9 @@ html.icx-dragging-cam .icx-tools { opacity: 0 !important; }
 .icx-btn:hover { background: var(--icx-accent); color: var(--icx-accent-fg); }
 .icx-btn[data-act="hide"]:hover { background: var(--icx-live); color: var(--icx-live-fg); }
 
-/* Small cams get small buttons so all of them always fit inside the cam. */
-@container (max-width: 150px) {
+/* Small cams get small buttons, and drop the least-needed ones, so what's
+   shown always fits inside the cam (five full-size buttons are 166px). */
+@container (max-width: 172px) {
     .icx-tools { top: 3px; gap: 2px; }
     .icx-btn { width: 22px; height: 22px; border-radius: 5px; }
     .icx-btn svg { width: 13px; height: 13px; }
@@ -1258,6 +1264,7 @@ html.icx-dragging-cam .icx-tools { opacity: 0 !important; }
     .icx-btn { width: 19px; height: 19px; }
     .icx-btn svg { width: 12px; height: 12px; }
 }
+@container (max-width: 122px) { .icx-btn[data-act="profile"] { display: none; } }
 @container (max-width: 84px) { .icx-btn[data-act="fullscreen"] { display: none; } }
 @container (max-width: 66px) { .icx-btn[data-act="refresh"] { display: none; } }
 

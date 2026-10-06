@@ -16,7 +16,9 @@ icanhazux is unofficial: it isn't made by or affiliated with icanhazchat.com.
 - **Focus a cam.** Hover a cam and click the focus button, or double-click it. It becomes the big feed in the top-left, with the others wrapped around it. Do the same again to unfocus.
 - **Drag to reorder.** Grab a cam and drop it where you want it. The order is remembered by username.
 - **Refresh one cam.** Restarts just that feed, for when a cam freezes or goes black.
+- **Open their profile.** The person button in a cam's hover controls opens the site's profile popup for whoever's on that cam.
 - **Full screen.** Any cam, from its hover controls, with the site's watermark kept to a sensible size.
+- **Sharper big cams** (optional, in the chat bar's ⚙). The focused and full-screen cams get crisper scaling and light sharpening on your graphics card, instead of the browser's soft enlargement. It sharpens what's there; it doesn't invent detail. Off by default, and only available where the browser has graphics acceleration.
 - **Hide a cam.** The cam disappears and its stream stops, and it stays hidden when that person cams up again. **Hidden** under the cams lists who you've hidden and brings them back. Nicknames can change hands, so a hidden nickname stays hidden only for your visit, unless you mark it as someone's regular nick.
 - **Resize cams vs. chat.** Drag the bar between them. Double-click it to reset.
 - **Refresh all and Hide cams** sit under the cams as buttons. After the idle timeout, Refresh all brings the cams back.
