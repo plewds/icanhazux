@@ -39,6 +39,7 @@
         ['groups', () => paper.querySelector('.group_entry')],
         // A room's sign-in, before you join: the nick to use, the password.
         ['join', () => part('txtUserName')],
+        ['signin', () => part('pnlSignInForm')],
     ];
     const kind = (KINDS.find(([, test]) => test()) || ['other'])[0];
     root.dataset.icxPage = kind;
@@ -61,7 +62,16 @@
     // The join page's two columns are a form, a label beside each field
     // ("Name/nick to use in <room>:" and its box, the supporter note and the
     // password), not a sidebar: it stays one card with its columns as they are.
-    const PLAIN = new Set(['join']);
+    const PLAIN = new Set(['join', 'signin']);
+
+    // The sign-in form centers itself with empty columns (blank, or just
+    // &nbsp;) either side of each field; they're marked so the CSS can drop
+    // them and lay the form out as one centered column.
+    if (kind === 'signin') {
+        paper.querySelectorAll('.row > [class*="col-"]').forEach(col => {
+            if (!col.textContent.trim() && !col.querySelector('img, input, button, select, textarea, a')) { col.classList.add('icx-spacer'); }
+        });
+    }
     //
     // The room settings pages are the odd ones out: plain col-2 and col-10,
     // the narrow one a .page_name ("Room Settings"). They're matched by that

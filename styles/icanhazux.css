@@ -168,8 +168,12 @@ html.icx-site :is(#panelHeader, #ctl00_panelHeader) {
     box-shadow: none !important;
 }
 html.icx-site :is(#panelHeader, #ctl00_panelHeader) > div { flex: none; width: auto; max-width: none; padding: 0; }
+/* Signed out (the sign-in page), the logo and the support ad sit in one
+   more row: it steps aside so they line up in the bar like the rest. */
+html.icx-site #ctl00_panelHeader > .row.page_header { display: contents !important; }
+html.icx-site #ctl00_panelHeader > .row.page_header > div { flex: none; width: auto; max-width: none; padding: 0; }
 html.icx-site #ichc-logo-header { padding-top: 0 !important; height: auto !important; }
-html.icx-site #ichc-logo { display: block; height: 28px !important; filter: var(--icx-logo-filter); }
+html.icx-site :is(#ichc-logo, .page_header_logo img) { display: block; width: auto !important; height: 28px !important; filter: var(--icx-logo-filter); }
 html.icx-site .page_header_userlinks {
     padding: 0 !important;
     color: var(--icx-text-muted) !important;

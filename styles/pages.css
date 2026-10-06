@@ -22,7 +22,9 @@
 
 /* Header edge to edge; the content centered with a gutter either side. */
 html.icx-site:not(.icx) #aspnetForm { padding: 0 0 8px !important; }
-html.icx-site:not(.icx) #aspnetForm > .row { margin-left: 0 !important; margin-right: 0 !important; }
+/* (Not the panel itself: on the sign-in page it's one of these rows, and
+   this outranked its centering.) */
+html.icx-site:not(.icx) #aspnetForm > .row:not(.icx-paper) { margin-left: 0 !important; margin-right: 0 !important; }
 
 html.icx-site .icx-paper {
     flex: none !important;
@@ -370,6 +372,34 @@ html.icx-site .icx-paper .dash_header {
     font: 700 12px/1.2 var(--icx-font) !important;
     letter-spacing: .04em;
     text-transform: uppercase;
+}
+
+/* Panels the site tints pale yellow (lightgoldenrodyellow) for room owners
+   only, like the karma limits on Room Settings → Users. pages.js leaves
+   real colors alone, so this one is themed here: an inset with an accent
+   edge, like a notice in chat. Labels sit level with their menus. */
+html.icx-site .icx-paper [style*="lightgoldenrodyellow" i] {
+    margin: 12px 0;
+    padding: 12px 16px !important;
+    border-left: 3px solid var(--icx-accent) !important;   /* over .icx-t-line, which pages.js gives it */
+    border-radius: var(--icx-radius-sm) !important;
+    background: var(--icx-surface-2) !important;
+    color: var(--icx-text) !important;
+    font-weight: 600;
+}
+/* The site sets its menus 70px wide, which cut "1000" short with our padding. */
+html.icx-site .icx-paper [style*="lightgoldenrodyellow" i] select { width: auto !important; min-width: 88px; }
+html.icx-site .icx-paper [style*="lightgoldenrodyellow" i] center { text-align: left; }
+html.icx-site .icx-paper [style*="lightgoldenrodyellow" i] table { width: 100% !important; margin: 8px 0 4px; font-weight: 400; }
+html.icx-site .icx-paper [style*="lightgoldenrodyellow" i] td { padding: 6px 16px 6px 0; vertical-align: top; }
+html.icx-site .icx-paper [style*="lightgoldenrodyellow" i] td:first-child { padding-top: 12px; }
+html.icx-site .icx-paper [style*="lightgoldenrodyellow" i] td:last-child { width: 1%; white-space: nowrap; }
+html.icx-site .icx-paper [style*="lightgoldenrodyellow" i] ul {
+    margin: 4px 0 0;
+    padding-left: 20px;
+    color: var(--icx-text-muted) !important;
+    font-size: 13px;
+    font-weight: 400;
 }
 
 /* ── Settings ─────────────────────────────────────────────────────────────── */
@@ -961,6 +991,32 @@ html[data-icx-page="join"] #ctl00_ContentPlaceHolder1_lblAdOnEntry { margin-top:
 @media (max-width: 991px) {
     html[data-icx-page="join"] #ctl00_ContentPlaceHolder1_lblAdOnEntry { margin-top: 16px; }
 }
+
+/* ── Signing in ───────────────────────────────────────────────────────────── */
+/* The site centers the form with empty columns around every field (pages.js
+   marks them .icx-spacer), which left it off to one side. They go, and the
+   form is one centered column: the site's numbers above, then Sign In, the
+   fields, the button with "or create an account" beside it, and the help
+   links. */
+
+html[data-icx-page="signin"] .icx-paper .icx-spacer { display: none !important; }
+html[data-icx-page="signin"] .icx-paper [class*="col-"] { flex: 0 0 100% !important; max-width: 100% !important; padding-left: 0; padding-right: 0; }
+html[data-icx-page="signin"] .icx-paper .row { margin-left: 0; margin-right: 0; }
+html[data-icx-page="signin"] .icx-paper > [class*="col-"] { max-width: 440px !important; margin: 0 auto; }
+html[data-icx-page="signin"] #ctl00_ContentPlaceHolder1_siteActivityTeaser { display: block; margin-bottom: -12px; color: var(--icx-text-muted); font-size: 12px; text-align: center; }
+html[data-icx-page="signin"] #ctl00_ContentPlaceHolder1_pnlSignInForm h1 { margin: 0 0 14px !important; font-size: 26px !important; }
+html[data-icx-page="signin"] #upperStuff h4 { margin: 0 0 6px !important; font-size: 13px !important; font-weight: 700; }
+html[data-icx-page="signin"] #upperStuff .form-control { margin-bottom: 14px; }
+html[data-icx-page="signin"] #upperStuff > br { display: none; }
+/* Sign Me In (with the consent line under it) and "or create an account". */
+html[data-icx-page="signin"] .icx-paper .row:has(> div > #ctl00_ContentPlaceHolder1_btnSubmit) {
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+html[data-icx-page="signin"] .icx-paper .row:has(> div > #ctl00_ContentPlaceHolder1_btnSubmit) > div { flex: 0 1 auto !important; max-width: none !important; }
+html[data-icx-page="signin"] #orRegister { white-space: nowrap; color: var(--icx-text-muted); }
 
 /* ── People tiles (dashboard) ─────────────────────────────────────────────── */
 
