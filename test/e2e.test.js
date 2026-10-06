@@ -225,6 +225,33 @@ test('refresh drives the site\'s own disable → start for that cam', async () =
             .closest('.rounded_square').querySelector('.icx-tools')));
 });
 
+test('the site\'s narrow-window layout can\'t strand the chat log or text box, at any width', async () => {
+    const p = await browser.newPage({ viewport: { width: 1200, height: 800 } });
+    await openRoom(p);
+    await p.evaluate(() => {
+        const txt = document.getElementById('txt');
+        for (let i = 0; i < 300; i++) { const l = document.createElement('p'); l.className = 'line'; l.textContent = `someone: line ${i}`; txt.append(l); }
+    });
+    await p.setViewportSize({ width: 360, height: 800 });
+    // What the site's aL() does under 600px wide, and never undoes.
+    await p.evaluate(() => {
+        const ids = ['txt', 'txtMsg', 'room_command_bar', 'activeUserList', 'footer'], steps = [400, 30, 520, 400, 0];
+        let top = -12;
+        ids.forEach((id, i) => { const el = document.getElementById(id); if (el) { Object.assign(el.style, { position: 'absolute', padding: '0', left: '0', top: `${top}px` }); } top += steps[i]; });
+    });
+    const check = () => p.evaluate(() => {
+        const r = id => document.getElementById(id).getBoundingClientRect();
+        const chat = r('chat_container'), log = r('txt'), input = r('txtMsg');
+        return { logInside: log.top >= chat.top - 1 && log.bottom <= chat.bottom + 1, inputBelowLog: input.top >= log.bottom - 1 && input.bottom <= chat.bottom + 1 };
+    });
+    for (const width of [360, 1200]) {
+        await p.setViewportSize({ width, height: 800 });
+        await p.waitForTimeout(300);
+        assert.deepStrictEqual(await check(), { logInside: true, inputBelowLog: true }, `at ${width}px`);
+    }
+    await p.close();
+});
+
 test('the drawer stays open through a profile popup, and closes once you whisper, type or open a PM', async () => {
     const p = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     // The room's PM window exists from the start, hidden, as on the site.

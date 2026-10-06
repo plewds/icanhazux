@@ -75,4 +75,37 @@
     }, { signal });
     window.addEventListener('resize', () => { if (!panel.hidden) { place(); } }, { signal });
     signal.addEventListener('abort', () => { link.remove(); panel.remove(); });
+
+    // ── Narrow windows: the links behind ☰ ──────────────────────────────────
+    // Under 760px the header keeps "Hey name [karma]" and a ☰ button; the
+    // links (sign out, messages … dashboard, ichux) open under it as a list.
+    // They're the site's own links, laid out differently by the stylesheet
+    // (html.icx-nav-open), not copies, so everything they do still works.
+    // New messages (.unread) put a dot on the button while it's closed.
+    if (!row) { return; }
+    removeStale('icx-nav-toggle');
+    const header = links.closest('#panelHeader, #ctl00_panelHeader');
+    const toggle = el('button', {
+        type: 'button', id: 'icx-nav-toggle', 'aria-label': 'Menu', 'aria-expanded': 'false',
+        title: 'Menu',
+    }, [el('span', { class: 'icx-nav-bars', 'aria-hidden': 'true' })]);
+    links.append(toggle);
+    const root = document.documentElement;
+    const setNav = open => {
+        root.classList.toggle('icx-nav-open', open);
+        toggle.setAttribute('aria-expanded', String(open));
+    };
+    toggle.addEventListener('click', e => { e.stopPropagation(); setNav(!root.classList.contains('icx-nav-open')); });
+    // A link in the list closes it (ichux opens its own panel, below the bar).
+    // Caught on the way down: the ichux link stops its click from going on.
+    row.addEventListener('click', () => setNav(false), true);
+    document.addEventListener('click', e => {
+        if (root.classList.contains('icx-nav-open') && !header?.contains(e.target)) { setNav(false); }
+    }, { signal });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && root.classList.contains('icx-nav-open')) { setNav(false); toggle.focus(); }
+    }, { signal });
+    // Widening past the breakpoint puts the links back in the bar.
+    window.matchMedia('(max-width: 759px)').addEventListener('change', e => { if (!e.matches) { setNav(false); } }, { signal });
+    signal.addEventListener('abort', () => { toggle.remove(); root.classList.remove('icx-nav-open'); });
 })();

@@ -60,8 +60,15 @@
         initDrawer(body);
         stale.forEach(n => n.remove());
 
-        let fraction = clampFraction(store.get('camsFraction', DEFAULT_FRACTION));
+        // `chosen` is the split you set; `fraction` is what's shown, the
+        // chosen split squeezed to fit the window. A narrow window squeezes
+        // only what's shown: widening it again brings back what you chose
+        // (overwriting the choice left the chat the wrong width until a
+        // reload).
+        let chosen = Number(store.get('camsFraction', DEFAULT_FRACTION)) || DEFAULT_FRACTION;
+        let fraction = clampFraction(chosen);
         apply();
+        const choose = f => { fraction = clampFraction(f); chosen = fraction; apply(); };
 
         function stageWidth() {
             return body.getBoundingClientRect().width || window.innerWidth;
@@ -96,8 +103,7 @@
         divider.addEventListener('pointermove', e => {
             if (!dragging) { return; }
             const rect = body.getBoundingClientRect();
-            fraction = clampFraction((e.clientX - rect.left) / rect.width);
-            apply();
+            choose((e.clientX - rect.left) / rect.width);
         });
         const finish = () => {
             if (!dragging) { return; }
@@ -110,23 +116,21 @@
         divider.addEventListener('pointercancel', finish);
         divider.addEventListener('lostpointercapture', finish);
         divider.addEventListener('dblclick', () => {
-            fraction = clampFraction(DEFAULT_FRACTION);
-            apply();
+            choose(DEFAULT_FRACTION);
             store.set('camsFraction', fraction);
         });
         divider.addEventListener('keydown', e => {
             const step = e.shiftKey ? 0.05 : 0.01;
-            if (e.key === 'ArrowLeft') { fraction = clampFraction(fraction - step); }
-            else if (e.key === 'ArrowRight') { fraction = clampFraction(fraction + step); }
+            if (e.key === 'ArrowLeft') { choose(fraction - step); }
+            else if (e.key === 'ArrowRight') { choose(fraction + step); }
             else { return; }
             e.preventDefault();
-            apply();
             store.set('camsFraction', fraction);
         });
 
         window.addEventListener('resize', () => {
             fitHeight();
-            fraction = clampFraction(fraction);
+            fraction = clampFraction(chosen);
             apply();
         }, { signal });
         fitHeight();
