@@ -22,14 +22,22 @@
     const VIDEO = /\.(mp4|webm)$/i;
     const SCOPE = '#txt a, #tabs .pm_convo a';
 
-    // { kind: 'image' | 'video', src, url } for a previewable link, or null.
-    function mediaOf(a) {
+    // The address a link points at, unwrapped from the site's bm() popup.
+    function urlOf(a) {
         const href = a.getAttribute('href') || '';
         const site = /^javascript:\s*bm\('([^']+)'\)/i.exec(href);
-        const raw = site ? site[1] : href;
-        let u;
-        try { u = new URL(raw, location.href); } catch (_) { return null; }
-        if (!/^https?:$/.test(u.protocol)) { return null; }
+        try { return new URL(site ? site[1] : href, location.href); } catch (_) { return null; }
+    }
+
+    // tenor.com links ending in .gif (tenor.com/wJF8.gif) are short links to
+    // Tenor's page for the GIF, not the picture, which lives on
+    // media.tenor.com. They open as plain links instead.
+    const isTenorPage = u => /^(www\.)?tenor\.com$/i.test(u.hostname);
+
+    // { kind: 'image' | 'video', src, url } for a previewable link, or null.
+    function mediaOf(a) {
+        const u = urlOf(a);
+        if (!u || !/^https?:$/.test(u.protocol) || isTenorPage(u)) { return null; }
         const path = u.pathname;
         if (IMAGE.test(path)) { return { kind: 'image', src: u.href, url: u.href }; }
         if (VIDEO.test(path)) { return { kind: 'video', src: u.href, url: u.href }; }
@@ -48,6 +56,13 @@
             if (a.dataset.icxMedia !== undefined || a.closest('.icx-media-preview')) { return; }
             const media = mediaOf(a);
             a.dataset.icxMedia = media ? media.kind : '';
+            // The site's popup would show a page as a broken picture.
+            const u = urlOf(a);
+            if (!media && u && isTenorPage(u) && /^javascript:/i.test(a.getAttribute('href'))) {
+                a.href = u.href;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+            }
             if (media) { a.setAttribute('aria-expanded', 'false'); a.title = `Preview this ${media.kind}`; }
         });
     }
