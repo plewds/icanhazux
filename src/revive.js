@@ -1,27 +1,29 @@
-// Stalled cams refresh themselves: a cam whose stream has died (its last
-// picture frozen on screen) gets the same refresh as its hover button, the
-// site's own disable → start for that cam (cams.js).
+// Stalled cams refresh themselves: a cam whose stream has died gets the
+// same refresh as its hover button, the site's own disable → start for that
+// cam (cams.js). That only reconnects this viewer's copy of the stream;
+// the broadcaster never knows.
 //
-// "Stalled" is counted in decoded frames, not in what the picture looks
-// like: a still scene at the site's 5–8 fps keeps adding frames, a dead
-// stream adds none. The count is the video's own (getVideoPlaybackQuality)
-// plus requestVideoFrameCallback where the browser has it. A video whose
-// count has never moved isn't judged at all: either it never connected
-// (the site retries that itself) or this browser doesn't count frames for
-// live streams, and a cam can't be told dead from not-counted.
+// A cam counts as stalled when, past its first GRACE_MS, it's been STALL_MS:
+//   - frozen: no new decoded frames (a still scene at the site's 5–8 fps
+//     keeps adding them; a dead stream adds none);
+//   - never started: no frames at all since it appeared. Only judged once
+//     some cam's count has moved, which shows this browser counts frames
+//     for live streams (Firefox's getVideoPlaybackQuality doesn't; its
+//     requestVideoFrameCallback does). Without that, nothing is judged;
+//   - blacked out: frames arriving, but every one pure black (a 16×12
+//     sample, every channel under BLACK). A dark room still has noise and
+//     color in it; this is the black of a broken connection.
 //
-// Guardrails, so it never makes things worse:
+// Guardrails:
 //   - nothing while the tab is in the background (browsers stop drawing
 //     video there, which looks just like a stall); the clocks restart when
 //     you come back;
-//   - a cam that's new or just refreshed gets GRACE_MS to start;
 //   - hidden cams and cams the site shows as disabled have no live <video>
 //     (#vid-…), so they're never touched;
 //   - at most three tries per cam: one as soon as it's stalled, then a
-//     minute, then five minutes later; after that it's left alone. A cam
-//     that runs well for two minutes after a try starts over;
-//   - a refreshed cam that never starts sending isn't judged again (as
-//     above), so a broadcaster who's really gone isn't hammered.
+//     minute, then five minutes later; after that it's left alone (someone
+//     really sitting in the dark, say). A cam that runs well for two
+//     minutes after a try starts over.
 // Settings → Auto-refresh stalled cams, on by default.
 (function () {
     'use strict';
@@ -34,11 +36,12 @@
     // Tests shorten these (globalThis.ICX_REVIVE_TIMES).
     const T = Object.assign({
         CHECK_MS: 5000,              // how often to look
-        STALL_MS: 15000,             // no new frames for this long: stalled
+        STALL_MS: 15000,             // frozen or black for this long: stalled
         GRACE_MS: 20000,             // a new or refreshed cam's time to start
         HEALTHY_MS: 120000,          // running this long after a try clears its tries
         TRIES: 3,
         BACKOFF_MS: [60000, 300000], // the wait after the first try, and the second
+        BLACK: 12,                   // a sample brighter than this anywhere isn't black
     }, globalThis.ICX_REVIVE_TIMES || {});
 
     let enabled = store.get('autoRefresh', true) !== false;
@@ -61,6 +64,29 @@
         return rec;
     }
     const frames = (video, rec) => (video.getVideoPlaybackQuality?.().totalVideoFrames || 0) + rec.presented;
+    // Some cam's count has moved: this browser counts frames.
+    let counting = false;
+
+    // Pure black, from a tiny sample of the current frame.
+    const probe = document.createElement('canvas');
+    probe.width = 16;
+    probe.height = 12;
+    const probeCtx = probe.getContext('2d', { willReadFrequently: true });
+    let canSample = !!probeCtx;
+    function black(video) {
+        if (!canSample || video.readyState < 2 || !video.videoWidth) { return false; }
+        try {
+            probeCtx.drawImage(video, 0, 0, probe.width, probe.height);
+            const px = probeCtx.getImageData(0, 0, probe.width, probe.height).data;
+            for (let i = 0; i < px.length; i += 4) {
+                if (px[i] > T.BLACK || px[i + 1] > T.BLACK || px[i + 2] > T.BLACK) { return false; }
+            }
+            return true;
+        } catch (_) {
+            canSample = false;   // the browser won't let the frame be read
+            return false;
+        }
+    }
 
     function check() {
         const now = Date.now();
@@ -71,14 +97,22 @@
             const rec = track(video, now);
             const n = frames(video, rec);
             if (n !== rec.frames) {
-                if (rec.frames >= 0) { rec.moved = true; }
+                if (rec.frames >= 0) { rec.moved = true; counting = true; }
                 rec.frames = n;
                 rec.last = now;
+            }
+            if (!black(video)) { rec.blackSince = 0; }
+            else if (!rec.blackSince) { rec.blackSince = now; }
+
+            const frozen = rec.moved && now - rec.last >= T.STALL_MS;
+            const neverStarted = !rec.moved && counting;
+            const blackedOut = rec.blackSince && now - rec.blackSince >= T.STALL_MS;
+            if (rec.moved && !frozen && !rec.blackSince) {
                 const t = tries.get(name);
                 if (t && now - t.since > T.HEALTHY_MS) { tries.delete(name); }
                 return;
             }
-            if (!enabled || !rec.moved || now - rec.born < T.GRACE_MS || now - rec.last < T.STALL_MS) { return; }
+            if (!enabled || now - rec.born < T.GRACE_MS || !(frozen || neverStarted || blackedOut)) { return; }
             const t = tries.get(name) || { count: 0, next: 0, since: now };
             if (t.count >= T.TRIES || now < t.next) { return; }
             t.count++;
@@ -97,7 +131,7 @@
         const now = Date.now();
         cams.querySelectorAll('.videocontainer > video[id^="vid-"]').forEach(video => {
             const rec = watched.get(video);
-            if (rec) { rec.last = now; }
+            if (rec) { rec.last = now; rec.blackSince = rec.blackSince && now; }
         });
     }
     const timer = setInterval(() => { if (!document.hidden) { check(); } }, T.CHECK_MS);

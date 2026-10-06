@@ -279,6 +279,34 @@ test('a cam whose stream stalls is refreshed by itself; the others are left alon
     assert.deepStrictEqual(effects, ['disable charlie99', 'start charlie99']);
 });
 
+test('a cam that never delivers a frame, or only black ones, is refreshed too', async () => {
+    const p = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    await openRoom(p, { setup: FAST_REVIVE });
+    await p.waitForTimeout(1500);
+    const start = await p.evaluate(() => window.sim.effects.length);
+    await p.evaluate(() => {
+        const video = name => [...document.querySelectorAll('.name-on-cam')].find(s => s.textContent === name)
+            .closest('.videocontainer').querySelector('video');
+        // delta: a new <video> that never gets a frame (as a cam that connects and shows nothing).
+        const old = video('delta');
+        const fresh = document.createElement('video');
+        fresh.id = old.id;
+        fresh.autoplay = fresh.muted = true;
+        fresh.srcObject = new MediaStream();
+        old.replaceWith(fresh);
+        // echo_echo: frames keep coming, every one black.
+        const c = document.createElement('canvas');
+        c.width = 320; c.height = 240;
+        const g = c.getContext('2d');
+        setInterval(() => { g.fillStyle = '#000'; g.fillRect(0, 0, 320, 240); }, 100);
+        video('echo_echo').srcObject = c.captureStream(10);
+    });
+    await p.waitForTimeout(3500);
+    const effects = await p.evaluate(n => window.sim.effects.slice(n), start);
+    await p.close();
+    assert.deepStrictEqual([...effects].sort(), ['disable delta', 'disable echo_echo', 'start delta', 'start echo_echo']);
+});
+
 test('with auto-refresh switched off, a stalled cam is left as it is', async () => {
     const p = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     await openRoom(p, { setup: FAST_REVIVE });
