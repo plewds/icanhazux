@@ -699,6 +699,49 @@ test('pages: the logged-in lobby shows every room tile, whatever the site does t
     }
 });
 
+test('pages: a group post is one card, its replies tiles, its stacked line breaks collapsed', async () => {
+    const browser = await chromium.launch();
+    try {
+        for (const width of [1280, 390]) {
+            const page = await browser.newPage({ viewport: { width, height: 900 } });
+            await openPage(page, 'file://' + path.join(__dirname, 'mock', 'post.html'));
+            const r = await page.evaluate(() => {
+                const content = document.getElementById('ctl00_ContentPlaceHolder1_labelPageContent');
+                const [post, reply] = content.querySelectorAll(':scope > .row');
+                const shown = n => getComputedStyle(n).display !== 'none';
+                const body = document.getElementById('text-parent');
+                return {
+                    kind: document.documentElement.dataset.icxPage,
+                    card: document.querySelector('.icx-paper').classList.contains('icx-card'),
+                    split: !!document.querySelector('.icx-split'),
+                    crumbs: [...document.querySelectorAll('#breadCrumb .breadcrumb-item')].filter(shown).map(li => li.textContent),
+                    pics: [...content.querySelectorAll('.user_pic')].map(p => getComputedStyle(p).visibility),
+                    postTile: getComputedStyle(post).borderTopWidth,
+                    replyTile: getComputedStyle(reply).borderTopWidth,
+                    bodyBorder: getComputedStyle(body).borderTopWidth,
+                    // Line breaks still showing: one after the opening line,
+                    // two between the last paragraphs (the rest hidden).
+                    breaks: [...body.querySelectorAll(':scope > br')].filter(shown).length,
+                    // The reply's two breaks before its rule are hidden.
+                    replyBreaks: [...document.querySelectorAll('#text-r1 > br')].filter(shown).length,
+                };
+            });
+            assert.strictEqual(r.kind, 'post');
+            assert.ok(r.card && !r.split, 'one card, no sidebar');
+            assert.deepStrictEqual(r.crumbs, ['groups', 'somegroup', 'posts'], 'the trail leaves out the title it repeats');
+            assert.deepStrictEqual(r.pics, ['visible', 'visible'], `pictures shown at ${width}px`);
+            assert.strictEqual(r.postTile, '0px', 'the post sits on the card');
+            assert.strictEqual(r.replyTile, '1px', 'a reply is a tile');
+            assert.strictEqual(r.bodyBorder, '0px', "the site's box around the text is gone");
+            assert.strictEqual(r.breaks, 2);
+            assert.strictEqual(r.replyBreaks, 0);
+            await page.close();
+        }
+    } finally {
+        await browser.close();
+    }
+});
+
 // ── ICHUX Settings in the header ────────────────────────────────────────────
 
 test('header: ICHUX Settings opens from the header and changes the theme, logged in or out', async () => {

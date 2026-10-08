@@ -36,6 +36,8 @@
         ['thread', () => part('divMessageViewControls')],
         ['messages', () => part('divMessages')],
         ['group', () => part('labelGroupName')],
+        // One group post and its replies (the list of posts has no title).
+        ['post', () => part('labelPageContent')?.querySelector('.message_subject_block')],
         ['groups', () => paper.querySelector('.group_entry')],
         // A room's sign-in, before you join: the nick to use, the password.
         ['join', () => part('txtUserName')],
@@ -64,7 +66,9 @@
     // The join page's two columns are a form, a label beside each field
     // ("Name/nick to use in <room>:" and its box, the supporter note and the
     // password), not a sidebar: it stays one card with its columns as they are.
-    const PLAIN = new Set(['join', 'signin', 'gethearted']);
+    // A post's two columns are its breadcrumb and an empty "new post" slot:
+    // also one card.
+    const PLAIN = new Set(['join', 'signin', 'gethearted', 'post']);
 
     // The sign-in form centers itself with empty columns (blank, or just
     // &nbsp;) either side of each field; they're marked so the CSS can drop
@@ -165,6 +169,32 @@
             };
             probe.src = src;
         }
+    }
+
+    // ── A post ──────────────────────────────────────────────────────────────
+    // Posts are spaced with stacked <br>s: two or three either side of each
+    // heading (and of the rule over a reply's picture), and runs of three or
+    // more between paragraphs. Their own margins do that job, so the breaks
+    // next to a heading or rule, and any past
+    // the second in a row, are marked to hide (not removed: the site's reply
+    // button quotes a post from its markup).
+    if (kind === 'post') {
+        const solid = n => n.nodeType === 1 || (n.nodeType === 3 && n.textContent.trim());
+        const near = (n, dir) => { do { n = n[dir]; } while (n && !solid(n)); return n; };
+        const isBr = n => n?.nodeName === 'BR';
+        const isHead = n => /^(H[1-4]|HR)$/.test(n?.nodeName || '');
+        paper.querySelectorAll('.message_body').forEach(body => {
+            let run = 0;
+            for (const br of body.querySelectorAll(':scope > br')) {
+                const before = near(br, 'previousSibling');
+                run = isBr(before) ? run + 1 : 0;
+                let after = br;
+                while (isBr(after)) { after = near(after, 'nextSibling'); }
+                let back = br;
+                while (isBr(back)) { back = near(back, 'previousSibling'); }
+                if (run >= 2 || isHead(after) || isHead(back)) { br.classList.add('icx-gap'); }
+            }
+        });
     }
 
     // ── Colors ──────────────────────────────────────────────────────────────

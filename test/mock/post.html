@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<!-- A stand-in for one group post and its replies (/posts/<group>/<id>/<title>).
+     The markup follows the site's: a breadcrumb beside an empty "new post"
+     slot, then the title, then each post as a row of picture and name beside
+     the text, spaced with stacked <br>s. The <style> stands in for the two
+     site rules the theme has to undo. Data is made up. -->
+<html lang="en">
+<head><meta charset="utf-8"><title>A post</title>
+<style>
+    .message_body { border: 1px solid #ddd; padding: 2px 2px 2px 0; background: #fff; }
+    @media (max-width: 575px) { .user_pic { visibility: hidden; } }
+</style>
+</head>
+<body>
+<form id="aspnetForm" class="container-fluid">
+    <div id="ctl00_panelHeader" class="row gray_back page_header rounded">
+        <div class="col-lg-2"><div class="page_header_logo" id="ichc-logo-header"><img id="ichc-logo" alt="logo"></div></div>
+        <div class="col-12 col-lg-10 txtright"><div class="page_header_userlinks"><span id="ctl00_labelSignInStatus">Hi someone</span></div></div>
+    </div>
+    <div class="row">
+        <div class="col-12 page_section_white rounded_top" style="margin-top:4px;">
+            <div class="row">
+                <div class="col-12 col-lg-10" id="breadCrumb" style="width:100%;">
+                    <span id="ctl00_ContentPlaceHolder1_lblBreadCrumb" class="rounded"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="#">groups</a></li><li class="breadcrumb-item"><a href="#">somegroup</a></li><li class="breadcrumb-item"><a href="#">posts</a></li><li class="breadcrumb-item">Where to find things</li></ol></span>
+                </div>
+                <div class="col-12 col-lg-2" id="createThread" style="visibility:hidden;height:0px;">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-0 col-lg-1"> &nbsp; </div>
+                <div class="col-12 col-lg-11">
+                    <div id="ctl00_ContentPlaceHolder1_labelPageContent" style="width:99%;"><center class="message_subject_block">Where to find things</center><a name="parent"></a><div class="row" style="margin-bottom:2%;"><div class="col-sm-2 txtright"><a href="#"><img src="" width="120px" class="rounded user_pic img-rounded" alt="poster"></a><br><div class="message_who" id="who-parent">poster</div><span style="color:#bbbbbb;"></span></div><div class="col-sm-10"><div class="message_body" id="text-parent">A few pointers...
+<br>
+<br><h2 style="padding-bottom:0;margin-bottom:0;">Rooms</h2>
+<br>
+<br>The lobby lists them.
+<br>
+<br>
+<br>
+<br>Ask in any room if you're stuck.
+<br><br><br></div> <div class="post-reply"><a onclick="return false;" class="postlink btn-sm btn-link">reply</a> <a onclick="this.innerHTML='&lt;b&gt;liked&lt;/b&gt;';this.onclick=0;" class="postlink btn-sm btn-link">like</a> </div> <span class="postlink">Liked by: <a href="#">fan</a></span> </div></div><a name="r1"></a><div class="row" style="margin-bottom:2%;"><div class="col-sm-2 txtright"><a href="#"><img src="" width="120px" class="rounded user_pic img-rounded" alt="replier"></a><br><div class="message_who" id="who-r1">replier</div><span style="color:#bbbbbb;"></span></div><div class="col-sm-10"><div class="message_body" id="text-r1">Thanks, that helped.<br><br><hr><br><br></div> <div class="post-reply"><a onclick="return false;" class="postlink btn-sm btn-link">reply</a> <a onclick="return false;" class="postlink btn-sm btn-link">like</a> </div> </div></div></div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-1 col-lg-3"></div>
+                <div class="col-11 col-lg-9" style="font-weight:600;font-size:larger;">
+                    <br>
+                    <input id="ctl00_ContentPlaceHolder1_chkEmailMe" type="checkbox"><label for="ctl00_ContentPlaceHolder1_chkEmailMe"> Email me when there is a response!</label>
+                    <br>
+                </div>
+            </div>
+            <br><br>
+            <br><br>
+        </div>
+    </div>
+    <div id="ctl00_panelFooter"><div class="row page_footer"><div class="col-sm-12 footer_links"><a href="#">help</a></div></div></div>
+</form>
+</body>
+</html>

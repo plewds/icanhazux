@@ -1432,6 +1432,143 @@ html[data-icx-page="thread"] #ctl00_ContentPlaceHolder1_divMessageViewControls .
 }
 html[data-icx-page="thread"] #ctl00_ContentPlaceHolder1_divMessageViewControls .ui-button:hover { border-color: var(--icx-accent) !important; }
 
+/* ── A group post ─────────────────────────────────────────────────────────── */
+
+/* One card: the trail back ("groups › icanhazchat › posts"), the post's
+   title over a rule, the post, then its replies as tiles. The site's
+   second column, an empty "new post" slot, goes; so does the trail's last
+   step, which repeats the title. */
+html[data-icx-page="post"] .icx-paper > .row:has(> #breadCrumb) { display: block !important; margin: 0 !important; }
+html[data-icx-page="post"] #createThread:not(:has(*)) { display: none !important; }
+html[data-icx-page="post"] #breadCrumb { width: auto !important; max-width: none !important; flex: none !important; margin: 0 0 8px !important; padding: 0 !important; }
+html[data-icx-page="post"] #breadCrumb .breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: none !important;
+    font: 700 13px/1.3 var(--icx-font);
+    list-style: none;
+}
+html[data-icx-page="post"] #breadCrumb .breadcrumb-item { padding: 0 !important; color: var(--icx-text-muted); }
+html[data-icx-page="post"] #breadCrumb .breadcrumb-item a { color: var(--icx-text-muted) !important; }
+html[data-icx-page="post"] #breadCrumb .breadcrumb-item a:hover { color: var(--icx-accent-text) !important; text-decoration: none; }
+html[data-icx-page="post"] #breadCrumb .breadcrumb-item + .breadcrumb-item::before { content: "\203A"; float: none; padding: 0 8px; color: var(--icx-text-muted); font-size: 15px; }
+html[data-icx-page="post"] #breadCrumb .breadcrumb-item:last-child:not(:has(a)) { display: none; }
+
+/* The content's row: a spacer column, then the posts. */
+html[data-icx-page="post"] .icx-paper > .row:has(#ctl00_ContentPlaceHolder1_labelPageContent) { display: block !important; margin: 0 !important; }
+html[data-icx-page="post"] .icx-paper > .row:has(#ctl00_ContentPlaceHolder1_labelPageContent) > div { width: auto !important; max-width: none !important; flex: none !important; padding: 0 !important; }
+html[data-icx-page="post"] .icx-paper > .row:has(#ctl00_ContentPlaceHolder1_labelPageContent) > div:not(:has(*)) { display: none; }
+html[data-icx-page="post"] #ctl00_ContentPlaceHolder1_labelPageContent { width: auto !important; }
+html[data-icx-page="post"] #ctl00_ContentPlaceHolder1_labelPageContent > .message_subject_block {
+    display: block;
+    margin: 0 0 20px !important;
+    padding: 0 0 14px !important;
+    border-bottom: 1px solid var(--icx-border);
+    background: none !important;
+    color: var(--icx-text) !important;
+    font: 800 26px/1.2 var(--icx-font) !important;
+    letter-spacing: -.015em;
+    text-align: left;
+}
+
+/* Each post: picture and name across the top, the text under them. The
+   first is the post itself, on the card; the rest are replies, as tiles
+   like a conversation's messages. */
+html[data-icx-page="post"] #ctl00_ContentPlaceHolder1_labelPageContent > .row { display: block; margin: 0 0 12px !important; }
+html[data-icx-page="post"] #ctl00_ContentPlaceHolder1_labelPageContent > .row:first-of-type { margin-bottom: 32px !important; }
+html[data-icx-page="post"] #ctl00_ContentPlaceHolder1_labelPageContent > .row ~ .row {
+    padding: 14px 16px 18px !important;
+    border: 1px solid var(--icx-border);
+    border-radius: var(--icx-radius-sm);
+    background: var(--icx-bg) !important;
+}
+html[data-icx-page="post"] #ctl00_ContentPlaceHolder1_labelPageContent > .row > div { width: auto; max-width: none; flex: none; margin: 0 !important; padding: 0 !important; text-align: left; }
+html[data-icx-page="post"] #ctl00_ContentPlaceHolder1_labelPageContent > .row > div:first-child { display: flex; align-items: center; gap: 10px; margin-bottom: 10px !important; }
+html[data-icx-page="post"] #ctl00_ContentPlaceHolder1_labelPageContent > .row > div:first-child > br,
+html[data-icx-page="post"] #ctl00_ContentPlaceHolder1_labelPageContent > .row > div:first-child > span:empty { display: none; }
+html[data-icx-page="post"] #ctl00_ContentPlaceHolder1_labelPageContent > .row > div:first-child > span { color: var(--icx-text-muted) !important; font-size: 12px; }
+/* The picture whole, fitted into a 36px square (a wide one, like the
+   site's logo, isn't cropped), so every name and post lines up.
+   (The site hides the pictures on a phone; at this size they fit.) */
+html[data-icx-page="post"] #ctl00_ContentPlaceHolder1_labelPageContent .user_pic {
+    display: block !important;
+    visibility: visible !important;
+    flex: none;
+    width: 36px !important;
+    height: 36px !important;
+    max-width: none;
+    object-fit: contain;
+    margin: 0;
+    border-radius: var(--icx-radius-btn) !important;
+}
+/* The site frames each post's text in a white box; the post or its tile is
+   the frame here. */
+html[data-icx-page="post"] .message_body { padding-top: 0 !important; padding-right: 0 !important; padding-bottom: 0 !important; border: 0 !important; border-radius: 0 !important; background: none !important; }
+html[data-icx-page="post"] .message_body br.icx-gap { display: none; }
+/* A picture in a post: the site's 50px thumbnail, at a size you can see.
+   Clicking still opens it full size. */
+html[data-icx-page="post"] .message_body hr { margin: 12px 0; }
+html[data-icx-page="post"] .message_body a[href^="javascript:show_picture"] img {
+    width: auto !important;
+    height: auto !important;
+    max-width: min(240px, 100%);
+    max-height: 180px;
+    border-radius: var(--icx-radius-sm);
+    box-shadow: 0 0 0 1px var(--icx-border);
+}
+
+/* Reply and like as small buttons under the text; "Liked by" under them. */
+html[data-icx-page="post"] .post-reply {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 16px 0 0 46px;
+    padding: 0 !important;
+    background: none !important;
+}
+html[data-icx-page="post"] .post-reply .postlink {
+    display: inline-flex;
+    align-items: center;
+    height: 28px;
+    margin: 0 !important;
+    padding: 0 12px !important;
+    border: 1px solid var(--icx-border-strong);
+    border-radius: var(--icx-radius-btn);
+    color: var(--icx-text-muted) !important;
+    font: 700 12px/1.3 var(--icx-font) !important;
+    text-decoration: none !important;
+    cursor: pointer;
+    transition: border-color .12s, color .12s;
+}
+html[data-icx-page="post"] .post-reply .postlink:hover { border-color: var(--icx-accent); color: var(--icx-text) !important; }
+/* After a click the site writes "liked" in bold and the button is spent. */
+html[data-icx-page="post"] .post-reply .postlink:has(> b) { border-color: var(--icx-accent); background: var(--icx-accent-soft); color: var(--icx-accent-text) !important; cursor: default; }
+html[data-icx-page="post"] .post-reply .postlink b { font-weight: inherit; }
+html[data-icx-page="post"] span.postlink {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    margin: 12px 0 0 46px;
+    color: var(--icx-text-muted) !important;
+    font-size: 12px;
+}
+html[data-icx-page="post"] span.postlink a { color: var(--icx-text) !important; font-weight: 700; }
+html[data-icx-page="post"] span.postlink img { width: 16px !important; height: 16px !important; }
+@media (max-width: 767px) {
+    html[data-icx-page="post"] :is(.post-reply, span.postlink) { margin-left: 0; }
+}
+
+/* "Email me when there is a response!": a plain checkbox under the posts. */
+html[data-icx-page="post"] .icx-paper > .row:has(#ctl00_ContentPlaceHolder1_chkEmailMe) { margin: 0 !important; padding-top: 16px; border-top: 1px solid var(--icx-border); }
+html[data-icx-page="post"] .icx-paper > .row:has(#ctl00_ContentPlaceHolder1_chkEmailMe) > div:not(:has(*)) { display: none; }
+html[data-icx-page="post"] .icx-paper > .row:has(#ctl00_ContentPlaceHolder1_chkEmailMe) > div { width: auto !important; max-width: none !important; flex: none !important; padding: 0 !important; font-weight: 600 !important; }
+html[data-icx-page="post"] .icx-paper > .row:has(#ctl00_ContentPlaceHolder1_chkEmailMe) br,
+html[data-icx-page="post"] .icx-paper > br { display: none; }
+
 /* ── A group ──────────────────────────────────────────────────────────────── */
 
 html[data-icx-page="group"] .icx-side { text-align: left; }
