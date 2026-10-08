@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "icanhazux",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Restyles icanhazchat.com: a cam grid you can arrange, cleaner chat, light and dark themes. Built on icanhazbetter by Sardistic.",
   "homepage_url": "https://github.com/plewds/icanhazux",
   "icons": {

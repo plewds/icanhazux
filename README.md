@@ -12,40 +12,37 @@ icanhazux is unofficial: it isn't made by or affiliated with icanhazchat.com.
 
 **Cams**
 
-- **Fill the window.** Cams take the whole left side of the room. Each keeps its real shape (4:3, 16:9, portrait phones), and the grid packs them to use the space.
+- **Fill the window.** Cams take the whole left side of the room. Each keeps its real shape (4:3, 16:9, portrait phones), and the grid packs them to provide the biggest cams possible.
 - **Focus a cam.** Hover a cam and click the focus button, or double-click it. It becomes the big feed in the top-left, with the others wrapped around it. Do the same again to unfocus.
 - **Drag to reorder.** Grab a cam and drop it where you want it. The order is remembered by username.
-- **Refresh one cam.** Restarts just that feed, for when a cam freezes or goes black.
 - **Frozen and black cams fix themselves.** When a cam's video freezes, never starts, or comes through as solid black, it's refreshed for you, up to three tries, spaced out over a few minutes. Nothing is checked while the tab is in the background. On by default; switch it off in the chat bar's ⚙.
 - **Open their profile.** The person button in a cam's hover controls opens the site's profile popup for whoever's on that cam.
-- **Full screen.** Any cam, from its hover controls, with the site's watermark kept to a sensible size.
-- **Sharper big cams** (optional, in the chat bar's ⚙). The focused and full-screen cams get crisper scaling and light sharpening on your graphics card, instead of the browser's soft enlargement. It sharpens what's there; it doesn't invent detail. Off by default, and only available where the browser has graphics acceleration.
+- **Sharper big cams** (optional, in the chat bar's ⚙). The focused and full-screen cams get crisper scaling and very light sharpening on your graphics card, instead of the browser's soft enlargement. It sharpens what's there; it doesn't invent detail. Off by default, and only available where the browser has graphics acceleration.
 - **Hide a cam.** The cam disappears and its stream stops, and it stays hidden when that person cams up again. **Hidden** under the cams lists who you've hidden and brings them back. Nicknames can change hands, so a hidden nickname stays hidden only for your visit, unless you mark it as someone's regular nick.
-- **Resize cams vs. chat.** Drag the bar between them. Double-click it to reset.
+- **Resize cams vs. chat.** Drag the bar between them. Double-click it to reset. Shrinking the window squeezes the split to fit; widening it again brings back the split you chose.
 - **Refresh all and Hide cams** sit under the cams as buttons. After the idle timeout, Refresh all brings the cams back.
 
 **Chat**
 
 - **A chat bar that shows its state.** Pause and resume (with a count of new lines while paused), clear, your PMs, and settings, in place of the site's row of icons.
-- **Chat settings as real choices:** your text color, text size, line style, chat colors, timestamps, who can PM or whisper you, join and leave notices, sounds, and emotimemes.
-- **Timestamps.** None, relative ("37s ago", kept current), or absolute (kept when you copy the log).
+- **Chat settings as real choices with clear selections:** your text color, text size, line style, chat colors, timestamps, who can PM or whisper you, join and leave notices, sounds, and emotimemes.
+- **Timestamps.** None, relative ("37s ago"), or absolute ("04:20", kept when you copy the log).
 - **Chat colors.** Each person's color on their whole message, as the site does, or on their name only.
 - **Readable in dark mode.** Chat colors too dark to read on the dark theme are lightened just enough, keeping their hue.
 - **Emotimeme autocomplete.** Type `:` and a few letters to pick from the room's emotimemes.
-- **Inline previews.** Image and video links open a small preview under the message on click, instead of a popup window. Nothing loads until you click.
-- **Fixes.** Chat no longer freezes when the log is tall, and scrolling chat no longer pulls focus out of other text boxes.
+- **Inline previews.** Image and video links open a small preview under the message on click, instead of a popup window. Nothing loads until you click. Links that can't be previewed, like Tenor's short links, open as plain links.
 
 **People and PMs**
 
-- **People drawer.** Under the chat: everyone in the room as a list, with who's idle, on cam, a mod or a site supporter. Search it, or show only who's on cam. Click a name for their profile, as before.
-- **PMs docked or floating.** Private messages open at the top of the chat instead of wherever the site's old layout put them; drag the bar under them to resize. Or pop them out (the button at the end of the PM tabs, or **PM window** in the chat bar's ⚙) into a window you can move by its tabs, resize from the corner and park anywhere over the room. Drop it on the top of the chat to dock it again. It's remembered, and on narrow windows the PMs stay docked.
-- **Closed, not deleted.** Closing a PM tab hides it instead of deleting the conversation; reopen it from **Closed** on the chat bar.
+- **People drawer.** Under the chat: everyone in the room as a list, with who's idle, on cam, a mod or a site supporter. Search it, or show only who's on cam. Click a name for their profile, as before. Whisper, chat or open a PM from there and the drawer closes so you're back in the conversation.
+- **PMs docked or floating.** Private messages open at the top of the chat; drag the bar under them to resize. Or pop them out (the button at the end of the PM tabs, or **PM window** in the chat bar's ⚙) into a window you can move by its tabs, resize from the corner and park anywhere over the room. Drop it on the top of the chat to dock it again. It's remembered, and on narrow windows the PMs stay docked.
+- **Closed, not lost.** Closing a PM tab hides it instead of disappearing the conversation; reopen it from **Closed** on the chat bar.
 
 **Broadcasting**
 
 - **The camera you pick is the one you get.** The site's camera list could quietly open your default camera instead, especially in Firefox. Virtual cameras like OBS's now work too.
 - **Your camera is remembered.** Pick one once and Broadcast opens it from then on, without waking up your built-in camera first.
-- **Smoother video, especially in Firefox.** The site asked your camera itself to run at 5–8 frames a second, which on a Mac slows the camera for every app using it (the reason opening Photo Booth used to help). The camera now runs at its normal speed, and the broadcast is held to the site's frame rate as it's sent, so it uses no more bandwidth.
+- **Smoother video, especially in Firefox.** The site asked your camera itself to run at 5–8 frames a second, which on a Mac slows the camera for every app using it. The camera now runs at its normal speed, and the broadcast is held to the site's frame rate as it's sent, so it uses no more bandwidth.
 
 **Mod tools** (room mods and owners only)
 
@@ -54,8 +51,9 @@ icanhazux is unofficial: it isn't made by or affiliated with icanhazchat.com.
 ### Across the site
 
 - **Light and dark themes.** Follows your system setting, or pick one, plus eight accent colors.
-- **Every page restyled.** The lobby, profiles, settings, messages, groups and dashboard use the same themes, fonts and accent-edged cards as rooms. Room previews look like cam tiles. A profile's background picture becomes a cover banner. The room emotimemes page becomes a searchable grid.
+- **Every page restyled.** The lobby, profiles, settings, messages, groups and dashboard use the same themes, fonts and accent-edged cards as rooms. A profile's background picture becomes a cover banner. The room emotimemes page becomes a searchable grid.
 - **Settings in the header.** The **ichux** link (after an accent bar, at the end of the site header's links) opens theme and accent on any page. Chat settings stay on the chat bar in rooms.
+- **Works in a narrow window.** Under about 760px wide, the header's links fold into a ☰ menu (with a dot when you have new messages), and the settings panels fit the window.
 
 ## Privacy
 
@@ -65,16 +63,27 @@ One request worth knowing about: when you hide a cam, the extension opens that p
 
 The full policy is in [PRIVACY.md](PRIVACY.md).
 
+## Respecting site ownership
+
+There are no features here that put a deeper bandwidth burden on the site. Cams still timeout if you're idle (a change from icanhazbetter), nothing is changed as far as the quality of broadcast streams. This extension is intended to improve the end-user experience, not put further stress on ICHC's servers.
+
 ## Install
+
+- **Firefox (140+):** [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/icanhazux/)
+- **Chrome, Edge, Brave and other Chromium browsers:** [Chrome Web Store](https://chromewebstore.google.com/detail/icanhazux/fkoahgkihpghdikhhndcaopmoifngbbh)
+
+Updates install automatically from either store.
+
+If you used icanhazbetter, your hidden-cam list carries over the first time icanhazux runs.
+
+### From source
 
 Build the packages with `npm run build`. It writes two zips to `dist/`, one per browser:
 
-- **Firefox (140+):** `icanhazux-<version>-firefox.zip`. Open `about:debugging`, choose **This Firefox**, click **Load Temporary Add-on…** and pick the zip. Temporary add-ons are removed when Firefox restarts; a permanent install comes from Firefox Add-ons.
-- **Chrome / Edge / Opera:** `icanhazux-<version>-chrome.zip`. Unzip it into a folder you'll keep. Open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick the folder. To update, replace the folder's contents and click the reload arrow on the extension's card.
+- **Firefox:** `icanhazux-<version>-firefox.zip`. Open `about:debugging`, choose **This Firefox**, click **Load Temporary Add-on…** and pick the zip. Temporary add-ons are removed when Firefox restarts.
+- **Chromium browsers:** `icanhazux-<version>-chrome.zip`. Unzip it into a folder you'll keep. Open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick the folder. To update, replace the folder's contents and click the reload arrow on the extension's card.
 
 You can also load the repo folder itself the same way (in Firefox, pick `manifest.json`).
-
-If you used icanhazbetter, your hidden-cam list carries over the first time icanhazux runs.
 
 ## Credits
 
