@@ -224,9 +224,15 @@
                         if (a > max) { max = a; }
                     }
                     if (unusable) { continue; }
-                    // The focused feed should be clearly the largest.
+                    // The focused feed should be clearly the largest, unless
+                    // it's already as big as the panel allows: then the
+                    // penalty can't make it bigger, only rule out layouts
+                    // that fill the space. (In a narrow panel it ruled out
+                    // the focus across the top with the rest in rows under
+                    // it, leaving one thin column of cams down the side.)
                     const focusArea = fw * fh;
-                    if (focusArea < FOCUS_LEAD * max) { penalty += (FOCUS_LEAD * max - focusArea) * 3; }
+                    const maxed = fw >= Math.floor(fitW) - 1;
+                    if (!maxed && focusArea < FOCUS_LEAD * max) { penalty += (FOCUS_LEAD * max - focusArea) * 3; }
                     const score = FOCUS_WEIGHT * focusArea + sum + n * min - penalty;
                     if (!best || score > best.score) {
                         best = { score, focus: { x: 0, y: 0, w: fw, h: fh }, rects };

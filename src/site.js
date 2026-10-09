@@ -16,17 +16,30 @@
         document.getElementById('cams') && document.getElementById('chat_container'));
     globalThis.ICX.isRoom = isRoom;
 
-    // Nunito (interface) and Source Sans 3 (chat) ship with the extension. A content-script stylesheet
-    // can't name extension files portably (chrome-extension:// vs.
-    // moz-extension://), so the faces are registered here.
+    // The fonts ship with the extension: the three interface fonts
+    // (Settings → Font: Nunito, Atkinson Hyperlegible Next, Oxanium) and
+    // Source Sans 3 for chat. A content-script stylesheet can't name
+    // extension files portably (chrome-extension:// vs. moz-extension://),
+    // so the faces are registered here.
+    //
+    // The interface fonts get their vertical metrics evened out (ascent and
+    // descent overrides, same total height): each font file places its
+    // letters differently in the line, and Oxanium's sat visibly high in
+    // buttons and chips. These put the capitals in the middle of the line in
+    // all three, so a button looks the same whichever font is picked.
+    // Measured from the files (cap height and the font's own ascent and
+    // descent): ascent = (ascent + descent + cap) / 2, descent = the rest.
     function registerFonts() {
         const api = globalThis.browser?.runtime || globalThis.chrome?.runtime;
         if (!api?.getURL) { return; }
         document.getElementById('icx-fonts')?.remove();
-        const face = (family, file, style, weights) => `@font-face { font-family: "${family}"; font-style: ${style};
-            font-weight: ${weights}; font-display: swap; src: url("${api.getURL(`fonts/${file}`)}") format("woff2"); }`;
+        const face = (family, file, style, weights, metrics = '') => `@font-face { font-family: "${family}"; font-style: ${style};
+            font-weight: ${weights}; font-display: swap; src: url("${api.getURL(`fonts/${file}`)}") format("woff2");${metrics} }`;
+        const centered = (ascent, descent) => ` ascent-override: ${ascent}%; descent-override: ${descent}%; line-gap-override: 0%;`;
         document.head.append(el('style', { id: 'icx-fonts', text:
-            face('Nunito', 'Nunito-Variable.woff2', 'normal', '400 900') +
+            face('Nunito', 'Nunito-Variable.woff2', 'normal', '400 900', centered(104.6, 31.8)) +
+            face('Atkinson Hyperlegible Next', 'AtkinsonHyperlegibleNext-Variable.woff2', 'normal', '200 800', centered(99.2, 30.8)) +
+            face('Oxanium', 'Oxanium-Variable.woff2', 'normal', '200 800', centered(85.3, 14.7)) +
             face('Source Sans 3', 'SourceSans3-Variable.woff2', 'normal', '200 900') +
             face('Source Sans 3', 'SourceSans3-Italic-Variable.woff2', 'italic', '200 900') }));
     }

@@ -6,13 +6,15 @@ icanhazux is a browser extension that changes how icanhazchat.com looks and work
 
 The extension saves its settings in your browser's storage for icanhazchat.com: your theme and accent color, how your cams are arranged (order, focus, the cams/chat split), which cams you've hidden, how your PM window is placed, and similar display choices. This stays in your browser on your device. It isn't sent anywhere, and the extension's developer never sees it. Clearing your browser's site data for icanhazchat.com removes it.
 
+**Kept PMs (off unless you turn it on).** With **Keep PMs** on in the chat settings, the extension also saves your private message conversations in that same browser storage, so they come back after a reload or in a later visit: the other person's name and the last 150 lines of each conversation, for 7 days after the last message, up to 30 conversations. Conversations with nicknames are kept only until you close the tab. Like everything else here, they stay on your device and are never sent anywhere, but anyone using the same browser profile could see them, so think twice on a shared computer. Turning **Keep PMs** off, or **Clear saved PMs**, deletes them.
+
 ## What it sends
 
 Nothing to the developer, and nothing to any third party. There are no analytics, no tracking and no accounts.
 
 The extension only talks to icanhazchat.com, and only as the site's own pages do:
 
-- **When you hide a cam**, it opens that person's public profile on icanhazchat.com, as you would by clicking their name, to see whether the name is a nickname. Only that yes/no is used, and it's kept in the current tab only.
+- **When you hide a cam**, or (with **Keep PMs** on) when you first PM someone in a visit, it opens that person's public profile on icanhazchat.com, as you would by clicking their name, to see whether the name is a nickname. Only that yes/no is used, and it's kept in the current tab only.
 - **Chat settings** (your text color, who can message you and so on) are changed through the site's own chat, so the site saves them as it always has.
 
 ## Links you click

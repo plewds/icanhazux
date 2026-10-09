@@ -59,6 +59,16 @@ test('focus: focused cam is the largest and nothing overlaps it', () => {
     }
 });
 
+test('focus: in a narrow panel the focus spans the width and the rest fill the space under it', () => {
+    // 8 cams in the narrowest cam panel: this used to be the focus at 60% of
+    // the width and the other 7 in one thin column beside it.
+    const out = packFocused(300, 700, 6, 4 / 3, Array(7).fill(4 / 3));
+    assertSane([out.focus, ...out.rects], 300, 700);
+    assert.strictEqual(Math.round(out.focus.w), 300, 'focus spans the panel');
+    for (const r of out.rects) { assert.ok(r.y >= out.focus.h, 'the rest are under it'); }
+    assert.ok(new Set(out.rects.map(r => Math.round(r.x))).size > 1, 'more than one column');
+});
+
 test('focus with no other cams fills the box at its aspect', () => {
     const out = packFocused(1000, 600, 2, 4 / 3, []);
     assert.strictEqual(out.rects.length, 0);

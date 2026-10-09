@@ -109,8 +109,9 @@ html[data-icx-cloak] body { visibility: hidden !important; }
     --icx-radius-sm: 10px;          /* cams, inputs, menus */
     --icx-radius-btn: 8px;          /* buttons and chips: rounded rectangles, never pills */
     --icx-gutter: 8px;
-    /* Interface: Nunito, rounded and friendly. Chat text: Source Sans 3,
-       built for reading. Both bundled, registered by shell.js. */
+    /* Interface: Settings → Font (html[data-icx-font], below), Nunito by
+       default. Chat text: Source Sans 3, built for reading, whichever font
+       is picked. All bundled, registered by site.js. */
     --icx-font: "Nunito", "Source Sans 3", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --icx-font-chat: "Source Sans 3", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --icx-spring: cubic-bezier(.34, 1.56, .64, 1);
@@ -118,6 +119,10 @@ html[data-icx-cloak] body { visibility: hidden !important; }
     --icx-stage-h: max(360px, calc(100vh - var(--icx-stage-top, 0px) - var(--icx-gutter)));
     --icx-bar-h: 47px;              /* bar under the cams / drawer under the chat: 30px chips, 8px below, 1px border, 8px gutter */
 }
+
+/* Settings → Font: Friendly (Nunito, the default, above), Modern, Tech. */
+html[data-icx-font="modern"] { --icx-font: "Atkinson Hyperlegible Next", "Source Sans 3", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+html[data-icx-font="tech"] { --icx-font: "Oxanium", "Source Sans 3", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
 
 /* ── Page ─────────────────────────────────────────────────────────────────── */
 
@@ -1730,6 +1735,32 @@ html.icx #txt .icx-stamp-rel::after {
 .icx-size-value { min-width: 46px; text-align: center; font: 600 13px/1 var(--icx-font); font-variant-numeric: tabular-nums; }
 
 .icx-panel-link { display: inline-block; margin-top: 2px; color: var(--icx-accent-text) !important; font-size: 13px; text-decoration: none !important; }
+/* A small text button under a setting (Keep PMs → Clear saved PMs). */
+.icx-link-btn {
+    margin: 6px 0 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--icx-accent-text);
+    font: 600 12px/1.3 var(--icx-font);
+    cursor: pointer;
+}
+.icx-link-btn:hover { text-decoration: underline; text-underline-offset: 2px; }
+.icx-link-btn[hidden] { display: none; }
+
+/* Kept PMs (pmlog.js): a conversation's earlier lines, under a heading
+   saying when they're from, ruled off from what's new. Slightly faded, so
+   the live conversation reads as the current one. */
+.icx-pm-earlier { margin: 0 0 6px; padding: 0 0 6px; border-bottom: 1px dashed var(--icx-border-strong); }
+.icx-pm-earlier > p.line { opacity: .72; }
+.icx-pm-earlier-head {
+    margin: 4px 0;
+    color: var(--icx-text-muted);
+    font: 700 11px/1.3 var(--icx-font);
+    letter-spacing: .04em;
+    text-align: center;
+    text-transform: uppercase;
+}
 .icx-panel-link:hover { text-decoration: underline !important; }
 
 /* ── Emotimeme autocomplete (memes.js) ────────────────────────────────────── */
@@ -2476,7 +2507,10 @@ html.icx #txt .bold_red { color: var(--icx-text) !important; font-weight: 700; }
     #cams.icx-cams > .rounded_square.icx-enter,
     #cams.icx-cams > .icx-ghost,
     html.icx #camControl:has(a[href*="stopCam"])::before { animation: none; }
-    html.icx *:active { transform: none !important; }
+    /* No press nudge. Only on the controls themselves: :active is also on
+       every ancestor of what's pressed, and `*:active` took the centering
+       transform off the cam's button row, which jumped right mid-click. */
+    html.icx :is(button, a, input, [role="button"], [role="switch"]):active { transform: none !important; }
 }
 
 /* Accent touches around the interface. */

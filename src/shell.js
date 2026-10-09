@@ -201,6 +201,24 @@
             pmObserver.observe(tabs, { childList: true, subtree: true, attributes: true, attributeFilter: ['style'] });
             onRetire(() => pmObserver.disconnect());
         }
+        // The text color picker (#colorDiv, in the chat bar) and the open
+        // drawer take the same spot, and the drawer is a layer above the
+        // whole chat card, so it covered the picker and its OK button. Only
+        // one at a time: the picker showing closes the drawer, and opening
+        // the drawer puts the picker away (as Cancel would; the site sets
+        // the wheel back to your color whenever it opens it again).
+        const picker = document.getElementById('colorDiv');
+        if (picker) {
+            const pickerShown = () => getComputedStyle(picker).display !== 'none';
+            const pickerObserver = new MutationObserver(() => {
+                if (pickerShown() && drawer.classList.contains('icx-open')) { setOpen(false); }
+            });
+            pickerObserver.observe(picker, { attributes: true, attributeFilter: ['style', 'class'] });
+            onRetire(() => pickerObserver.disconnect());
+            toggle.addEventListener('click', () => {
+                if (drawer.classList.contains('icx-open') && pickerShown()) { picker.style.display = 'none'; }
+            });
+        }
 
         // The site's list text starts "172 people (refresh) [click for details]: …".
         const syncCount = () => {

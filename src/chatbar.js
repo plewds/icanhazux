@@ -113,9 +113,11 @@
     const shared = {
         theme: controls.theme(),
         accent: controls.accent(),
+        font: controls.font(),
         chatColor: controls.chatColor(),
         timestamps: globalThis.ICX.stamps ? controls.timestamps() : null,
         pmWindow: controls.pmWindow(),
+        pmKeep: controls.pmKeep(),
         upscale: controls.upscale(),
         autoRefresh: controls.autoRefresh(),
     };
@@ -170,6 +172,7 @@
             column('Appearance', [
                 shared.theme?.node || '',
                 shared.accent?.node || '',
+                shared.font.node,
                 el('div', { class: 'icx-setting' }, [
                     el('div', { class: 'icx-setting-label', text: 'My color' }),
                     el('div', { class: 'icx-color-row' }, [colorSwatch, colorSample]),
@@ -192,6 +195,7 @@
                 toggle('sound', 'Notification sounds'),
                 toggle('emoticons', 'Show emotimemes (GIFs)'),
                 shared.pmWindow.node,
+                shared.pmKeep.node,
                 modSection,
                 el('a', { class: 'icx-panel-link', href: helpHref, target: '_blank', rel: 'noopener', text: 'Chat commands help ↗' }),
             ]),
@@ -201,7 +205,7 @@
     const setOpen = open => {
         panel.hidden = !open;
         gearBtn.setAttribute('aria-expanded', String(open));
-        if (open) { shared.timestamps?.render(); document.dispatchEvent(new CustomEvent('icx:chat-get')); }
+        if (open) { shared.timestamps?.render(); shared.pmKeep.render(); document.dispatchEvent(new CustomEvent('icx:chat-get')); }
     };
     gearBtn.addEventListener('click', e => { e.stopPropagation(); setClosedOpen(false); setOpen(panel.hidden); });
     panel.addEventListener('click', e => e.stopPropagation());

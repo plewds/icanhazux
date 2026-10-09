@@ -61,26 +61,48 @@
         }).observe(log);
     }
 
-    // ── Chat steals focus from whatever you're typing in ───────────────────
-    // as() focuses the chat input; the site calls it all over (pausing chat,
-    // disabling a cam, after sending). It's not disabled — it just won't take
-    // focus away from another text field.
+    // ── Chat steals focus ───────────────────────────────────────────────────
+    // as() (and setInputFocus(), the same thing) focuses the chat input; the
+    // site calls it after nearly everything: pausing chat, settings, cam
+    // actions, closing popups. That dropped you into the chat box whatever
+    // you were doing, and on a phone opened the keyboard every time.
+    // It now only puts you back if you were just typing there (the box had
+    // focus in the last couple of seconds: you clicked Pause mid-sentence),
+    // never on a touch screen, and never away from another text field.
+    const CHAT_RECENT_MS = 2000;
+    let chatLeftAt = 0;      // when the chat box last lost focus
+    let touching = false;    // the last press was a finger (Send aside: tapping
+                             // it keeps the keyboard up for the next message)
+    const NOT_TEXT = /^(button|submit|reset|checkbox|radio|range|color|file|image)$/i;
     function patchFocusSteal() {
         const orig = window.as;
         if (typeof orig !== 'function') { return false; }
         if (orig.__icx) { return true; }
-        const wrapped = function () {
+        document.addEventListener('focusout', e => { if (e.target.id === 'txtMsg') { chatLeftAt = Date.now(); } }, true);
+        document.addEventListener('pointerdown', e => {
+            touching = e.pointerType === 'touch' && !e.target.closest?.('#btn');
+        }, true);
+        const mayFocus = () => {
             try {
                 const a = document.activeElement;
+                if (a && a.id === 'txtMsg') { return true; }
                 const typingElsewhere = a && a !== document.body && (
-                    a.isContentEditable ||
-                    ((a.tagName === 'INPUT' || a.tagName === 'TEXTAREA') && a.id !== 'txtMsg'));
-                if (typingElsewhere) { return; }
-            } catch (_) {}
-            return orig.apply(this, arguments);
+                    a.isContentEditable || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' ||
+                    (a.tagName === 'INPUT' && !NOT_TEXT.test(a.type)));
+                if (typingElsewhere || touching) { return false; }
+                return Date.now() - chatLeftAt < CHAT_RECENT_MS;
+            } catch (_) { return true; }
         };
-        wrapped.__icx = true;
-        window.as = wrapped;
+        for (const name of ['as', 'setInputFocus']) {
+            const fn = window[name];
+            if (typeof fn !== 'function' || fn.__icx) { continue; }
+            const wrapped = function () {
+                if (!mayFocus()) { return; }
+                return fn.apply(this, arguments);
+            };
+            wrapped.__icx = true;
+            window[name] = wrapped;
+        }
         return true;
     }
 
@@ -173,6 +195,15 @@
                 if (![1, 2, 3].includes(value)) { return; }
                 du.fM = value - 1;          // setLineStyles(true) steps once, onto value
                 call('setLineStyles', true);
+                // The site writes the style into each line as it arrives
+                // (class odd_row1–3 on every other line) and leaves the lines
+                // already shown alone, so a new style seemed not to take until
+                // the old lines scrolled away. Plain most of all: the stripes
+                // stayed. Restyle the lines already there.
+                document.querySelectorAll('#txt p.line[class*="odd_row"], #tabs .pm_convo p.line[class*="odd_row"]').forEach(p => {
+                    p.classList.remove('odd_row1', 'odd_row2', 'odd_row3');
+                    p.classList.add(`odd_row${value}`);
+                });
                 break;
             case 'fontSize': {
                 const size = Math.round(Number(value));
@@ -236,6 +267,27 @@
             // Out of range does nothing (bM checks against its own count).
             return goTo.call(this, target ? tabs.indexOf(target) : tabs.length + 1);
         };
+        // Kept PMs (pmlog.js): open a saved conversation's tab the site's own
+        // way, as if you'd sent them an empty message. bO builds the tab and
+        // its box (so sending from it is the site's code), adds no line for
+        // an empty message, and skips the unread flash for your own. Two
+        // things it would still do: play the PM sound (muted for the call)
+        // and color the new tab as unread (cleared after).
+        document.addEventListener('icx:pm-restore', e => {
+            let name;
+            try { name = String(JSON.parse(e.detail).name || ''); } catch (_) { return; }
+            const du = window.du;
+            if (!name || !du || document.getElementById(`pm_${name}`)) { return; }
+            const sound = du.gI;
+            du.gI = [];
+            try { window.bO(du.eY || '000000', du.eI, '', name, false); } catch (_) {
+            } finally { du.gI = sound; }
+            const li = document.getElementById(`pm_${name}`);
+            [li, li?.querySelector('a')].forEach(n => { if (n) { n.style.color = n.style.backgroundColor = ''; } });
+        });
+        const ready = () => document.dispatchEvent(new CustomEvent('icx:pm-ready'));
+        document.addEventListener('icx:pm-ping', ready);
+        ready();
         return true;
     }
 
@@ -265,7 +317,7 @@
     }
     function patchBroadcasters() {
         const du = window.du;
-        if (!du || ['bi', 'cu', 'cv'].some(f => typeof window[f] !== 'function')) { return false; }
+        if (!du || ['bi', 'bc', 'cu', 'cv'].some(f => typeof window[f] !== 'function')) { return false; }
         if (window.bi.__icx) { return true; }
         const wrap = (name, before) => {
             const orig = window[name];
@@ -283,12 +335,19 @@
             String(list || '').split('|').filter(Boolean).forEach(e => broadcasting.set(e, entryNick(e)));
         });
         wrap('cu', entry => { if (entry) { broadcasting.set(String(entry), entryNick(entry)); } });
+        // bi doesn't add the list's cams itself: it queues one bc(entry)
+        // per cam, half a second or so apart. Loaded partway through that
+        // (a page load, with several cams up), this saw only the cams
+        // already added (below) and missed the rest: 7 cams up, "2 on cam".
+        // The queued calls look bc up by name when they run, so this
+        // catches them.
+        wrap('bc', entry => { if (entry) { broadcasting.set(String(entry), entryNick(entry)); } });
         wrap('cv', down => {
             const id = du.dU ? String(down || '').split('-')[0] : String(down || '');
             if (!id) { return; }
             [...broadcasting.keys()].filter(e => e.indexOf(id) === 0 || (!du.dU && e.substring(1, 13) === id)).forEach(e => broadcasting.delete(e));
         });
-        // Cams already up when this loaded: the site's own list, if it's
+        // Cams already added when this loaded: the site's own list, if it's
         // tracking them (cams shown).
         (du.fu || []).forEach((entry, i) => broadcasting.set(String(entry), (du.ft || [])[i] || entryNick(entry)));
         document.addEventListener('icx:broadcasters-get', () => {
@@ -599,6 +658,18 @@
             try { req = JSON.parse(e.detail); } catch (_) { return; }
             if (req && typeof req.key === 'string') { setChatSetting(req.key, req.value); }
         });
+        // The color picker's hex box sits in the page's one big form, so
+        // Enter there submitted the form: the browser pressed the form's
+        // first button, which opened the cam report. Enter is the picker's
+        // OK instead, and Escape its Cancel. (The site's own bug.)
+        document.addEventListener('keydown', e => {
+            if (e.target.id !== 'colorTxt' || e.isComposing) { return; }
+            const action = { Enter: 'onColorSave', Escape: 'onColorCancel' }[e.key];
+            if (!action) { return; }
+            e.preventDefault();
+            e.stopPropagation();
+            call(action);
+        }, true);
         // Pausing and resuming happen all the time (scrolling, sending), so
         // report them as they happen. Both are looked up by global name.
         for (const name of ['scrollOff', 'cR']) {

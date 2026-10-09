@@ -3,8 +3,9 @@
 // scripts mark (html.icx-site, html.icx, data-icx-page…), so until then the
 // site would show its own look for a moment and then snap to ours.
 //
-// So this sets the theme and accent straight away (the same choice theme.js
-// makes, from the same saved settings) and cloaks the page:
+// So this sets the theme, accent and font straight away (the same choice
+// theme.js and controls.js make, from the same saved settings) and cloaks
+// the page:
 // html[data-icx-cloak] paints the theme's background and keeps the body
 // invisible (still laid out, so measurements work) until ready.js, last in
 // the list, lifts it. If that never happens (a script failed), the cloak
@@ -34,6 +35,9 @@
         // the default until then.
         const accent = read('accent');
         if (typeof accent === 'string') { root.dataset.icxAccent = accent; }
+        // And the font (controls.js checks the name).
+        const font = read('font');
+        if (typeof font === 'string') { root.dataset.icxFont = font; }
 
         root.dataset.icxCloak = '';
         window.addEventListener('load', () => {

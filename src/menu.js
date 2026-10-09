@@ -1,6 +1,6 @@
 // "| ichux" in the site header, on every page (rooms included), opening
-// ICHUX Settings: the extension's appearance settings, theme and accent
-// (controls.js), which apply everywhere. Settings that only change chat
+// ICHUX Settings: the extension's appearance settings, theme, accent and
+// font (controls.js), which apply everywhere. Settings that only change chat
 // stay in the chat bar's panel in rooms, and the panel says so.
 //
 // The header's links are
@@ -23,7 +23,7 @@
     const link = el('a', {
         href: '#', id: 'icx-menu-link', role: 'button',
         'aria-haspopup': 'dialog', 'aria-expanded': 'false', 'aria-controls': 'icx-site-settings',
-        'aria-label': 'ICHUX Settings', title: 'ICHUX Settings: theme and accent', text: 'ichux',
+        'aria-label': 'ICHUX Settings', title: 'ICHUX Settings: theme, accent and font', text: 'ichux',
     });
     const row = links.querySelector('.header_links');
     if (row) {
@@ -35,7 +35,8 @@
 
     const theme = controls.theme();
     const accent = controls.accent();
-    const shared = [theme, accent].filter(Boolean);
+    const font = controls.font();
+    const shared = [theme, accent, font].filter(Boolean);
 
     const close = el('button', { type: 'button', class: 'icx-panel-close', 'aria-label': 'Close', text: '\u00d7' });
     const panel = el('div', { id: 'icx-site-settings', role: 'dialog', 'aria-label': 'ICHUX Settings', hidden: '' }, [

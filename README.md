@@ -37,6 +37,7 @@ icanhazux is unofficial: it isn't made by or affiliated with icanhazchat.com.
 - **People drawer.** Under the chat: everyone in the room as a list, with who's idle, on cam, a mod or a site supporter. Search it, or show only who's on cam. Click a name for their profile, as before. Whisper, chat or open a PM from there and the drawer closes so you're back in the conversation.
 - **PMs docked or floating.** Private messages open at the top of the chat; drag the bar under them to resize. Or pop them out (the button at the end of the PM tabs, or **PM window** in the chat bar's ⚙) into a window you can move by its tabs, resize from the corner and park anywhere over the room. Drop it on the top of the chat to dock it again. It's remembered, and on narrow windows the PMs stay docked.
 - **Closed, not lost.** Closing a PM tab hides it instead of disappearing the conversation; reopen it from **Closed** on the chat bar.
+- **Keep PMs** (optional, in the chat bar's ⚙). Your PM conversations survive a reload, open or closed as you left them. In a later visit they wait in **Closed** on the chat bar instead of all opening at once: pick one to carry on, or it opens when that person messages you, with your earlier messages above the new one. Kept in your browser for 7 days, up to 30 conversations. Nicknames can pass to someone else, so a conversation with a nickname is kept only until you close the tab. Off by default; turning it off deletes what was saved.
 
 **Broadcasting**
 
@@ -51,15 +52,16 @@ icanhazux is unofficial: it isn't made by or affiliated with icanhazchat.com.
 ### Across the site
 
 - **Light and dark themes.** Follows your system setting, or pick one, plus eight accent colors.
+- **Three fonts.** Friendly (Nunito), Modern (Atkinson Hyperlegible Next, designed for low-vision readers) or Tech (Oxanium), for headings, buttons and names. Chat text stays easy to read in Source Sans 3. In the chat bar's ⚙ or the **ichux** menu.
 - **Every page restyled.** The lobby, profiles, settings, messages, groups and dashboard use the same themes, fonts and accent-edged cards as rooms. A profile's background picture becomes a cover banner. The room emotimemes page becomes a searchable grid.
-- **Settings in the header.** The **ichux** link (after an accent bar, at the end of the site header's links) opens theme and accent on any page. Chat settings stay on the chat bar in rooms.
+- **Settings in the header.** The **ichux** link (after an accent bar, at the end of the site header's links) opens theme, accent and font on any page. Chat settings stay on the chat bar in rooms.
 - **Works in a narrow window.** Under about 760px wide, the header's links fold into a ☰ menu (with a dot when you have new messages), and the settings panels fit the window.
 
 ## Privacy
 
-Your settings, hidden cams and cam order are kept in your browser's storage for icanhazchat.com. There are no analytics, and the extension talks to no one but icanhazchat.com, the way the site's own pages do.
+Your settings, hidden cams and cam order are kept in your browser's storage for icanhazchat.com, and so are your PM conversations if you turn on **Keep PMs**. There are no analytics, and the extension talks to no one but icanhazchat.com, the way the site's own pages do.
 
-One request worth knowing about: when you hide a cam, the extension opens that person's profile, as you would, to see whether the name is a nickname. Image and video previews load from the link's host, only when you click them.
+One request worth knowing about: when you hide a cam (or, with **Keep PMs** on, first PM someone), the extension opens that person's profile, as you would, to see whether the name is a nickname. Image and video previews load from the link's host, only when you click them.
 
 The full policy is in [PRIVACY.md](PRIVACY.md).
 
@@ -93,7 +95,7 @@ icanhazux started from [icanhazbetter](https://github.com/sardistic/icanhazbette
 - the two chat fixes in `src/page.js`: chat freezing when the log is tall, and chat stealing focus from other text boxes;
 - reading its saved hidden-cam list, so hidden cams carry over.
 
-Fonts: [Nunito](https://fonts.google.com/specimen/Nunito) and [Source Sans 3](https://fonts.google.com/specimen/Source+Sans+3), under the SIL Open Font License (`fonts/OFL-*.txt`).
+Fonts: [Nunito](https://fonts.google.com/specimen/Nunito), [Atkinson Hyperlegible Next](https://fonts.google.com/specimen/Atkinson+Hyperlegible+Next), [Oxanium](https://fonts.google.com/specimen/Oxanium) and [Source Sans 3](https://fonts.google.com/specimen/Source+Sans+3), under the SIL Open Font License (`fonts/OFL-*.txt`).
 
 ## License
 

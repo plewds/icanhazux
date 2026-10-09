@@ -436,7 +436,7 @@ test('chat: pauses when scrolled up, resumes at the bottom, in a tall chat log',
     assert.strictEqual(await state(), 1, 'back at the bottom: resumed');
 });
 
-test('chat: the site can\'t pull focus out of another text box', async () => {
+test('chat: the site only puts you back in the chat box if you were just typing there', async () => {
     // Typing in the people search while the site calls as() (pausing
     // chat, disabling a cam, after sending): focus stays in the search.
     await page.click('#icx-drawer-toggle');
@@ -444,10 +444,16 @@ test('chat: the site can\'t pull focus out of another text box', async () => {
     await page.focus('#icx-people .icx-people-search');
     await page.evaluate(() => window.as());
     assert.ok(await page.evaluate(() => document.activeElement.matches('#icx-people .icx-people-search')), 'focus stays in the search box');
+    // Not typing in chat: as() leaves focus alone.
     await page.evaluate(() => document.activeElement.blur());
     await page.evaluate(() => window.as());
-    assert.strictEqual(await page.evaluate(() => document.activeElement.id), 'txtMsg', 'still focuses chat otherwise');
+    assert.notStrictEqual(await page.evaluate(() => document.activeElement.id), 'txtMsg', "doesn't jump into chat");
     await page.keyboard.press('Escape');
+    // Typing in chat, then a click away (Pause, a setting): back to chat.
+    await page.focus('#txtMsg');
+    await page.evaluate(() => { document.activeElement.blur(); window.as(); });
+    assert.strictEqual(await page.evaluate(() => document.activeElement.id), 'txtMsg', 'back in chat after a click mid-sentence');
+    await page.evaluate(() => document.activeElement.blur());
 });
 
 test('cams joining and leaving reflow the grid', async () => {
@@ -799,6 +805,38 @@ test('header: ICHUX Settings opens from the header and changes the theme, logged
     }
 });
 
+test('header: the font choice changes the interface font, not chat, and is remembered', async () => {
+    const browser = await chromium.launch();
+    try {
+        const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+        await openPage(page, 'file://' + path.join(__dirname, 'mock', 'settings.html'));
+        await page.evaluate(() => localStorage.clear());
+        const fonts = () => page.evaluate(() => {
+            const probe = (prop) => {
+                const s = document.createElement('span');
+                s.style.fontFamily = `var(${prop})`;
+                document.body.append(s);
+                const f = getComputedStyle(s).fontFamily;
+                s.remove();
+                return f.split(',')[0].replace(/"/g, '').trim();
+            };
+            return { attr: document.documentElement.dataset.icxFont, ui: probe('--icx-font'), chat: probe('--icx-font-chat'), saved: localStorage.getItem('icx_font') };
+        });
+        assert.deepStrictEqual(await fonts(), { attr: 'friendly', ui: 'Nunito', chat: 'Source Sans 3', saved: null }, 'Nunito by default');
+        await page.click('#icx-menu-link');
+        // Each choice is shown in its own font.
+        const looks = await page.$$eval('#icx-site-settings [data-pref="font"] .icx-seg-main', spans => spans.map(s => s.style.fontFamily.split(',')[0].replace(/"/g, '')));
+        assert.deepStrictEqual(looks, ['Nunito', 'Atkinson Hyperlegible Next', 'Oxanium']);
+        await page.click('#icx-site-settings [data-pref="font"] [data-value="tech"]');
+        assert.deepStrictEqual(await fonts(), { attr: 'tech', ui: 'Oxanium', chat: 'Source Sans 3', saved: '"tech"' });
+        await page.click('#icx-site-settings [data-pref="font"] [data-value="modern"]');
+        assert.strictEqual((await fonts()).ui, 'Atkinson Hyperlegible Next');
+        await page.evaluate(() => localStorage.clear());
+    } finally {
+        await browser.close();
+    }
+});
+
 test('header: ICHUX Settings holds appearance only; in a room it stays in step with the chat bar panel', async () => {
     const browser = await chromium.launch();
     try {
@@ -808,7 +846,7 @@ test('header: ICHUX Settings holds appearance only; in a room it stays in step w
         const prefs = await page.evaluate(() =>
             [...document.querySelectorAll('#icx-site-settings [data-pref], #icx-site-settings .icx-swatches')]
                 .map(n => n.dataset.pref || 'accent'));
-        assert.deepStrictEqual(prefs, ['theme', 'accent'], 'no chat-only settings in the header panel');
+        assert.deepStrictEqual(prefs, ['theme', 'accent', 'font'], 'no chat-only settings in the header panel');
         const note = await page.textContent('#icx-site-settings .icx-panel-note');
         assert.match(note, /chat bar/, 'says where the chat settings are');
 
@@ -940,6 +978,125 @@ test('pms: drag the strip to move it, the corner to resize it; a tab click is st
         const smallest = await pmBox(page);
         assert.deepStrictEqual([smallest.w, smallest.h], [260, 200]);
         await page.evaluate(() => localStorage.clear());
+    } finally {
+        await browser.close();
+    }
+});
+
+// The site's PM delivery, bO(color, from, message, tab, explicit), cut down
+// from scripts110725.js: an existing conversation gets the line; otherwise a
+// tab and panel are built (hint, then the line, if there's a message), and
+// the new tab is colored unread. Every call plays the PM sound (bz(du.gI)),
+// counted here.
+function fakeSitePms() {
+    window.du = Object.assign(window.du || {}, { eI: 'me', eY: '336699', gI: ['ding.mp3'] });
+    window.__sounds = 0;
+    const line = (color, from, msg) => {
+        const p = document.createElement('p');
+        p.className = 'line';
+        p.style.color = `#${color}`;
+        p.innerHTML = `<font color="#${color}">${from}</font>: ${msg}`;
+        return p;
+    };
+    window.bO = function (c, l, k, g) {
+        if (window.du.gI && window.du.gI.length) { window.__sounds++; }
+        if (g === undefined) { g = l; }
+        const tabs = document.getElementById('tabs');
+        tabs.style.display = '';
+        const msgs = document.getElementById(`msgs_${g}`);
+        if (msgs) { msgs.append(line(c, l, k)); return; }
+        const li = document.createElement('li');
+        li.id = `pm_${g}`;
+        li.setAttribute('role', 'tab');
+        li.innerHTML = `<a href="#from_${g}">${g}</a> <span class="ui-icon ui-icon-close">Remove Tab</span>`;
+        li.style.color = 'red';
+        tabs.querySelector('ul').append(li);
+        const panel = document.createElement('div');
+        panel.id = `from_${g}`;
+        panel.innerHTML = `<div id="msgs_${g}" class="pm_convo"><div>Click on the tab name to minimize</div></div>` +
+            `<div class="pm_outgoing"><input type="text" id="txt_to_${g}"></div>`;
+        if (k) { panel.firstChild.append(line(c, l, k)); }
+        tabs.append(panel);
+    };
+    window.bM = () => {};
+    window.togglePMPrefs = () => {};   // with it, page.js's settings bridge starts and the chat bar shows
+    document.getElementById('pm_container').innerHTML = '<div id="tabs" style="display:none"><ul role="tablist"></ul></div>';
+}
+
+test('pms: Keep PMs brings conversations back after a reload; nicknames only for the session', async () => {
+    const browser = await chromium.launch();
+    try {
+        const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+        const page = await context.newPage();
+        const setup = () => {
+            // Keep PMs on; alice's profile already checked (not a nickname),
+            // nick1 known to be one.
+            localStorage.setItem('icx_pmKeep', 'true');
+            sessionStorage.setItem('icx_pmNotNick', JSON.stringify(['alice']));
+            sessionStorage.setItem('icx_nicks', JSON.stringify(['nick1']));
+        };
+        await openRoom(page, { setup: `(${setup})(); (${fakeSitePms})();` });
+        await page.evaluate(() => {
+            window.bO('aa0000', 'alice', 'hello <b>there</b> <img src="x" onerror="window.__pwned=1">');
+            window.bO('336699', 'me', 'hi alice', 'alice');
+            window.bO('0000aa', 'nick1', 'hey');
+        });
+        await page.waitForTimeout(900);
+        const stored = () => page.evaluate(() => ({
+            long: Object.keys(JSON.parse(localStorage.getItem('icx_pmLog') || '{}')),
+            session: Object.keys(JSON.parse(sessionStorage.getItem('icx_pmLog') || '{}')),
+        }));
+        assert.deepStrictEqual(await stored(), { long: ['alice'], session: ['nick1'] }, 'a nickname is kept for the session only');
+
+        // Reload: both come back, without a sound or an unread mark.
+        await page.reload();
+        await openRoom(page, { setup: `(${fakeSitePms})();` });
+        const after = await page.evaluate(() => {
+            const earlier = name => [...document.querySelectorAll(`#msgs_${name} > .icx-pm-earlier > p.line`)].map(p => p.textContent);
+            return {
+                alice: earlier('alice'),
+                nick1: earlier('nick1'),
+                sounds: window.__sounds,
+                unread: document.getElementById('pm_alice')?.style.color || '',
+                bold: !!document.querySelector('#msgs_alice .icx-pm-earlier b'),
+                img: document.querySelectorAll('#msgs_alice .icx-pm-earlier img').length,
+                handler: document.querySelector('#msgs_alice [onerror]') !== null,
+                pwned: !!window.__pwned,
+            };
+        });
+        assert.deepStrictEqual(after.alice, ['alice: hello there ', 'me: hi alice']);
+        assert.deepStrictEqual(after.nick1, ['nick1: hey']);
+        assert.strictEqual(after.sounds, 0, 'restoring plays no PM sound');
+        assert.strictEqual(after.unread, '', 'restored tabs are not marked unread');
+        assert.ok(after.bold, 'formatting kept');
+        assert.ok(!after.img && !after.handler && !after.pwned, 'a picture from elsewhere, and its script, are dropped');
+
+        assert.deepStrictEqual(await page.evaluate(() => document.querySelectorAll('#tabs li.icx-pm-closed').length), 0,
+            'after a reload, open conversations come back open');
+
+        // A new visit (another tab: same browser storage, new session):
+        // alice is back, closed (in the Closed menu); the nickname isn't.
+        const later = await context.newPage();
+        await openRoom(later, { setup: `(${fakeSitePms})();` });
+        const tabsNow = await later.evaluate(() => [...document.querySelectorAll('#tabs > ul > li')]
+            .map(li => `${li.id}${li.classList.contains('icx-pm-closed') ? ' (closed)' : ''}`));
+        assert.deepStrictEqual(tabsNow, ['pm_alice (closed)']);
+        // A message from her opens it, with the earlier lines above.
+        const reopened = await later.evaluate(() => {
+            window.bO('aa0000', 'alice', 'back again');
+            return {
+                closed: document.getElementById('pm_alice').classList.contains('icx-pm-closed'),
+                lines: [...document.querySelectorAll('#msgs_alice p.line')].map(p => p.textContent),
+            };
+        });
+        assert.strictEqual(reopened.closed, false);
+        assert.deepStrictEqual(reopened.lines, ['alice: hello there ', 'me: hi alice', 'alice: back again']);
+
+        // Switching it off deletes what was saved.
+        await later.click('#icx-chat-settings-btn');
+        await later.click('[data-pref="pmKeep"]');
+        assert.strictEqual(await later.evaluate(() => localStorage.getItem('icx_pmLog')), null);
+        await later.evaluate(() => localStorage.clear());
     } finally {
         await browser.close();
     }

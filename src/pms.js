@@ -78,7 +78,11 @@
         else if (tabs.classList.contains('icx-pm-none')) { reopen(pm.name); }
     }, { signal });
 
-    globalThis.ICX.pms = { reopen: name => reopen(name, { focus: true }) };
+    globalThis.ICX.pms = {
+        reopen: name => reopen(name, { focus: true }),
+        // Kept PMs (pmlog.js) brings conversations back closed, as if their × was clicked.
+        close: name => { const li = tabOf(name); if (li && !li.classList.contains('icx-pm-closed')) { close(li); } },
+    };
 
     // ── Resizing the split ──────────────────────────────────────────────────
 

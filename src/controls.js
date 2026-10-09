@@ -2,9 +2,11 @@
 //
 //   theme        System / Light / Dark      (theme.js)     chat bar + header
 //   accent       the accent swatch          (theme.js)     chat bar + header
+//   font         Friendly / Modern / Tech interface font    chat bar + header
 //   chatColor    a person's color on their whole message or name only (chat bar)
 //   timestamps   none / relative / absolute (stamps.js)    (chat bar)
 //   pmWindow     PMs docked in the chat or floating (pms.js) (chat bar)
+//   pmKeep       keep PM conversations across reloads (pmlog.js) (chat bar)
 //   upscale      sharper focused / full-screen cams (upscale.js) (chat bar)
 //   autoRefresh  refresh cams whose stream has stalled (revive.js) (chat bar)
 //
@@ -86,6 +88,38 @@
         return { node: setting('Accent', swatches), render };
     }
 
+    // ── Font ────────────────────────────────────────────────────────────────
+    // The interface font (headings, buttons, labels, names): three flavors,
+    // each shown in its own font. Chat text stays Source Sans 3. The
+    // stylesheet reads html[data-icx-font]; early.js sets it before the page
+    // draws, this keeps it current.
+
+    const FONTS = [
+        ['friendly', 'Friendly', 'Nunito'],
+        ['modern', 'Modern', 'Atkinson Hyperlegible Next'],
+        ['tech', 'Tech', 'Oxanium'],
+    ];
+    const fontGet = () => (FONTS.some(([k]) => k === store.get('font')) ? store.get('font') : 'friendly');
+    const applyFont = () => { root.dataset.icxFont = fontGet(); };
+    applyFont();
+    onChanged('font', applyFont);
+    signal.addEventListener('abort', () => { delete root.dataset.icxFont; });
+
+    function fontControl() {
+        const seg = segmented('Font', FONTS.map(([k, text]) => [k, text]), fontGet, value => {
+            store.set('font', value);
+            changed('font');
+        }, ' icx-seg-2line');
+        seg.group.dataset.pref = 'font';
+        seg.buttons.forEach((b, i) => {
+            const family = FONTS[i][2];
+            b.querySelector('.icx-seg-main').style.fontFamily = `"${family}", system-ui, sans-serif`;
+            b.append(el('span', { class: 'icx-seg-sub', text: family.split(' ')[0] }));
+        });
+        onChanged('font', seg.render);
+        return { node: setting('Font', seg.group), render: seg.render };
+    }
+
     // ── Chat colors ─────────────────────────────────────────────────────────
     // Each person's color on their whole message (the site's way) or on
     // their name only; the stylesheet reads html[data-icx-chat-color].
@@ -157,6 +191,39 @@
         return { node: setting('PM window', seg.group), render: seg.render };
     }
 
+    // ── Keep PMs ────────────────────────────────────────────────────────────
+    // pmlog.js: PM conversations saved in this browser, so a reload or a
+    // later visit doesn't lose them. Off by default; off deletes them.
+
+    function pmKeepControl() {
+        const log = () => globalThis.ICX.pmLog;
+        const label = 'Keep PMs';
+        const b = el('button', { type: 'button', role: 'switch', class: 'icx-switch', 'data-pref': 'pmKeep', 'aria-label': label });
+        b.addEventListener('click', () => log()?.set(!log().get()));
+        const clear = el('button', { type: 'button', class: 'icx-link-btn', text: 'Clear saved PMs' });
+        clear.addEventListener('click', () => log()?.clear());
+        const note = el('div', { class: 'icx-setting-note' });
+        const render = () => {
+            const on = !!log()?.get();
+            b.setAttribute('aria-checked', String(on));
+            const n = on ? log().count() : 0;
+            clear.hidden = !n;
+            note.textContent = on
+                ? `Saved in this browser for 7 days. Nicknames only until you close the tab.${n ? ` ${n} saved.` : ''}`
+                : 'Brings your PM conversations back after a reload or in a later visit.';
+        };
+        onChanged('pmKeep', render);
+        render();
+        return {
+            node: el('div', { class: 'icx-setting' }, [
+                el('div', { class: 'icx-setting-row' }, [el('div', { class: 'icx-setting-label', text: label }), b]),
+                note,
+                clear,
+            ]),
+            render,
+        };
+    }
+
     // ── Sharper big cams ────────────────────────────────────────────────────
     // upscale.js: the focused and full-screen cams enlarged with a sharper
     // method than the browser's, then lightly sharpened, on the GPU. No
@@ -214,9 +281,11 @@
         setting,
         theme: themeControl,
         accent: accentControl,
+        font: fontControl,
         chatColor: chatColorControl,
         timestamps: timestampsControl,
         pmWindow: pmWindowControl,
+        pmKeep: pmKeepControl,
         upscale: upscaleControl,
         autoRefresh: autoRefreshControl,
         changed,
