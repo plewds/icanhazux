@@ -404,6 +404,43 @@ test('hide removes a cam, stops its stream, and lists it; show brings it back', 
     assert.strictEqual(await page.textContent('#icx-hidden-btn'), 'Hidden · 0');
 });
 
+test('hiding a nickname pops up the Perma-nick box; ticking it saves the hide', async () => {
+    const p = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    await openRoom(p, { setup: () => { sessionStorage.setItem('icx_nicks', JSON.stringify(['delta'])); } });
+    const saved = () => p.evaluate(() => ({
+        hidden: JSON.parse(localStorage.getItem('icx_hidden') || '[]'),
+        perma: JSON.parse(localStorage.getItem('icx_permaNicks') || '[]'),
+        session: JSON.parse(sessionStorage.getItem('icx_hiddenNicks') || '[]'),
+    }));
+
+    // A plain username: no box.
+    await (await camButton(p, 'bravo', 'hide')).click();
+    await p.waitForTimeout(300);
+    assert.strictEqual(await p.locator('#icx-nick-ask').count(), 0, 'no box for a username');
+
+    // A known nickname: the box, and the hide is this visit's only.
+    await (await camButton(p, 'delta', 'hide')).click();
+    await p.waitForTimeout(300);
+    assert.match(await p.textContent('#icx-nick-ask'), /^deltanick/);
+    assert.deepStrictEqual(await saved(), { hidden: ['bravo'], perma: [], session: ['delta'] });
+    if (SHOTS) { await p.screenshot({ path: path.join(SHOTS, '3b-nick-ask.png') }); }
+
+    // Ticking it saves the hide, and the box goes away.
+    await p.check('#icx-nick-ask input');
+    assert.deepStrictEqual(await saved(), { hidden: ['bravo', 'delta'], perma: ['delta'], session: [] });
+    await p.waitForFunction(() => !document.getElementById('icx-nick-ask'));
+
+    // A name whose profile check comes back "nickname": the box then. A
+    // click elsewhere closes it, leaving the hide for this visit.
+    await (await camButton(p, 'foxtrot', 'hide')).click();
+    await p.evaluate(() => document.dispatchEvent(new CustomEvent('icx:nick-result', { detail: JSON.stringify({ name: 'foxtrot', nick: true }) })));
+    assert.match(await p.textContent('#icx-nick-ask'), /^foxtrotnick/);
+    await p.click('#icx-chat, body', { position: { x: 5, y: 5 } });
+    assert.strictEqual(await p.locator('#icx-nick-ask').count(), 0, 'closed by a click elsewhere');
+    assert.deepStrictEqual(await saved(), { hidden: ['bravo', 'delta'], perma: ['delta'], session: ['foxtrot'] });
+    await p.close();
+});
+
 test('a hidden user stays hidden — and stopped — when they come back on a new cam', async () => {
     await (await camButton(page, 'echo_echo', 'hide')).click();
     await page.evaluate(() => { window.sim.removeCam('echo_echo'); });

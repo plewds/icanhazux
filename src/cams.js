@@ -41,7 +41,8 @@
         // Nicknames: hiding one lasts only while you're here (the name can
         // pass to someone else later). See "Nicknames" below.
         // Perma-nicks: nicknames you've said someone always uses (the
-        // checkbox in the Hidden menu). Their hides are saved like any name.
+        // checkbox that pops up when you hide one, and in the Hidden menu).
+        // Their hides are saved like any name.
         permaNicks: new Set(store.get('permaNicks', []) || []),
         nicks: new Set(loadSession('nicks')),
         sessionHidden: new Set(loadSession('hiddenNicks')),
@@ -167,8 +168,9 @@
     }
 
     function setHidden(key, hidden) {
+        closeAsk();
         if (hidden && state.permaNicks.has(key)) { state.hidden.add(key); }
-        else if (hidden && state.nicks.has(key)) { state.sessionHidden.add(key); }
+        else if (hidden && state.nicks.has(key)) { state.sessionHidden.add(key); askPerma(key); }
         else if (hidden) { state.hidden.add(key); checkNick(key); }
         else { state.hidden.delete(key); state.sessionHidden.delete(key); state.permaNicks.delete(key); }
         store.set('hidden', [...state.hidden]);
@@ -252,6 +254,7 @@
         menu = el('div', { id: 'icx-hidden-menu', hidden: '' });
         menuBtn.addEventListener('click', e => {
             e.stopPropagation();
+            closeAsk();
             state.menuOpen = !state.menuOpen;
             renderMenu();
         });
@@ -342,6 +345,61 @@
         );
     }
 
+    // ── "Always hide this nickname?" ────────────────────────────────────────
+    // Hiding a nickname's cam pops the Perma-nick box up over the Hidden
+    // button, so it's there at the moment you hide instead of only inside
+    // the menu. It goes away by itself (not while the pointer or keyboard
+    // is on it), on a click elsewhere, on Escape, or once it's been ticked.
+    const ASK_MS = 8000;
+    const ASK_DONE_MS = 1200;   // long enough to see the tick land
+    let ask = null;             // { key, node, timer, at }
+
+    function closeAsk() {
+        if (!ask) { return; }
+        clearTimeout(ask.timer);
+        ask.node.remove();
+        ask = null;
+    }
+    function askPerma(key) {
+        closeAsk();
+        const host = menuBtn?.parentElement;
+        if (!host || state.permaNicks.has(key)) { return; }
+        const box = el('input', { type: 'checkbox' });
+        const node = el('div', { id: 'icx-nick-ask', role: 'status' }, [
+            el('div', { class: 'icx-nick-ask-line' }, [
+                el('span', { class: 'icx-nick-ask-name', text: key }, [el('em', { class: 'icx-nick-tag', text: 'nick' })]),
+                el('span', { text: 'hidden while you’re here' }),
+            ]),
+            el('label', {
+                class: 'icx-perma',
+                title: 'They always use this nickname: keep them hidden on future visits. Unchecked, hidden only while you’re here, since someone else could use it later.',
+            }, [box, 'Perma-nick: keep hidden on future visits']),
+        ]);
+        const wait = ms => { if (ask?.node !== node) { return; } clearTimeout(ask.timer); ask.timer = setTimeout(closeAsk, ms); };
+        ask = { key, node, timer: 0, at: performance.now() };
+        box.addEventListener('change', () => { setPerma(key, box.checked); wait(box.checked ? ASK_DONE_MS : ASK_MS); });
+        node.addEventListener('click', e => e.stopPropagation());
+        const hold = () => clearTimeout(ask?.timer);
+        const release = () => { if (!node.matches(':hover, :focus-within')) { wait(box.checked ? ASK_DONE_MS : ASK_MS); } };
+        node.addEventListener('mouseenter', hold);
+        node.addEventListener('focusin', hold);
+        node.addEventListener('mouseleave', release);
+        node.addEventListener('focusout', release);
+        state.menuOpen = false;
+        renderMenu();
+        host.append(node);
+        wait(ASK_MS);
+    }
+    // The click that hid the cam reaches the document after the box opens;
+    // only later ones close it.
+    document.addEventListener('click', e => {
+        if (e.isTrusted && ask && e.timeStamp > ask.at) { closeAsk(); }
+    }, { signal });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') { closeAsk(); }
+    }, { signal });
+    onRetire(closeAsk);
+
     // ── Nicknames ───────────────────────────────────────────────────────────
     // Hiding is by the name on the cam. A nickname can change, and can pass
     // to someone else later, so:
@@ -394,6 +452,7 @@
             store.set('hidden', [...state.hidden]);
             saveSession('hiddenNicks', state.sessionHidden);
             renderMenu();
+            askPerma(r.name);
         }
     }, { signal });
 
