@@ -404,6 +404,37 @@ test('hide removes a cam, stops its stream, and lists it; show brings it back', 
     assert.strictEqual(await page.textContent('#icx-hidden-btn'), 'Hidden · 0');
 });
 
+test('on-cam list: a nick change on cam follows the cam, through a second change and a fresh cam list', async () => {
+    const p = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    // The site's cam-list calls (bi full list, bc/cu cam up, cv cam down,
+    // cq nick change), as no-ops: page.js reads their arguments.
+    await openRoom(p, { setup: () => {
+        window.du = Object.assign(window.du || {}, { dU: 1, fu: [], ft: [] });
+        ['bi', 'bc', 'cu', 'cv', 'cq'].forEach(f => { window[f] = function () {}; });
+        window.__onCam = null;
+        document.addEventListener('icx:broadcasters', e => { window.__onCam = JSON.parse(e.detail); });
+    } });
+    await p.waitForFunction(() => window.bi.__icx && window.cq.__icx);
+    const onCam = () => p.evaluate(() => window.__onCam);
+    const jeff = 'aaa111-live-host-jeff', kim = 'bbb222-live-host-kim';
+
+    await p.evaluate(([a, b]) => { window.bi(`${a}|${b}|`); window.bc(a); window.bc(b); }, [jeff, kim]);
+    assert.deepStrictEqual(await onCam(), ['jeff', 'kim']);
+
+    await p.evaluate(a => window.cq(['jeff', 'bob', a]), jeff);
+    assert.deepStrictEqual(await onCam(), ['bob', 'kim'], 'renamed');
+    await p.evaluate(a => window.cq(['bob', 'carl', a]), jeff);
+    assert.deepStrictEqual(await onCam(), ['carl', 'kim'], 'renamed again (the entry still says jeff)');
+
+    // The server's next full list still names jeff in the entry.
+    await p.evaluate(([a, b]) => { window.bi(`${a}|${b}|`); window.bc(a); window.bc(b); }, [jeff, kim]);
+    assert.deepStrictEqual(await onCam(), ['carl', 'kim'], 'kept through a fresh list');
+
+    await p.evaluate(() => window.cv('aaa111'));
+    assert.deepStrictEqual(await onCam(), ['kim'], 'cam down');
+    await p.close();
+});
+
 test('hiding a nickname pops up the Perma-nick box; ticking it saves the hide', async () => {
     const p = await browser.newPage({ viewport: { width: 1280, height: 800 } });
     await openRoom(p, { setup: () => { sessionStorage.setItem('icx_nicks', JSON.stringify(['delta'])); } });

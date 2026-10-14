@@ -301,10 +301,16 @@
     //   names the stream ("<stream>-…"). Flash entry (old): one letter,
     //   12-character id, then "<nick>.<flags>".
     const broadcasting = new Map();   // entry → nick
+    // Changing nick on cam keeps the same stream, and its entry still
+    // names the old nick. The room is told which stream with the change
+    // (below), and that's kept by stream id, so a later full list (bi),
+    // which still has the old nick in it, doesn't take the name back.
+    const renamed = new Map();        // stream id → nick now
+    const streamId = entry => String(entry || '').split('-')[0];
     function entryNick(entry) {
         const e = String(entry || '');
         if (!e) { return ''; }
-        if (window.du && window.du.dU) { return e.split('-')[3] || ''; }
+        if (window.du && window.du.dU) { return renamed.get(streamId(e)) || e.split('-')[3] || ''; }
         return e.substring(13).split('.')[0];
     }
     let lastBroadcasters = '';
@@ -345,6 +351,7 @@
         wrap('cv', down => {
             const id = du.dU ? String(down || '').split('-')[0] : String(down || '');
             if (!id) { return; }
+            renamed.delete(id);
             [...broadcasting.keys()].filter(e => e.indexOf(id) === 0 || (!du.dU && e.substring(1, 13) === id)).forEach(e => broadcasting.delete(e));
         });
         // Cams already added when this loaded: the site's own list, if it's
@@ -360,8 +367,11 @@
 
     // ── Nickname changes ───────────────────────────────────────────────────
     // The server tells every browser in the room when someone changes their
-    // nick ("nick" message → cq([old, new, …])); the site relabels their cam
-    // and PM tab. Pass the two names on (icx:nick) so a hidden cam stays
+    // nick ("nick" message → cq([old, new, stream])); the site relabels
+    // their cam and PM tab. The stream is there when they're on cam: it's
+    // how the on-cam list follows them (see "Who's broadcasting"); matching
+    // by name alone missed a second change, since the entry still has the
+    // first nick. Pass the two names on (icx:nick) so a hidden cam stays
     // hidden under its new name. Only what the room was told: nothing here
     // links a nick to an account.
     function patchNicks() {
@@ -379,7 +389,15 @@
                 const from = bare(a && a[0]);
                 const to = bare(a && a[1]);
                 if (from && to && from !== to) {
-                    broadcasting.forEach((nick, entry) => { if (nick === from) { broadcasting.set(entry, to); } });
+                    const cam = window.du && window.du.dU && a[2] ? streamId(a[2]) : '';
+                    if (cam) { renamed.set(cam, to); }
+                    let found = false;
+                    broadcasting.forEach((nick, entry) => {
+                        if (nick === from || (cam && streamId(entry) === cam)) { broadcasting.set(entry, to); found = true; }
+                    });
+                    // On cam but not in the list yet (its bc still queued):
+                    // the stream is enough for a cam down to remove it.
+                    if (cam && !found) { broadcasting.set(String(a[2]), to); }
                     emitBroadcasters();
                     document.dispatchEvent(new CustomEvent('icx:nick', { detail: JSON.stringify({ from, to }) }));
                 }
