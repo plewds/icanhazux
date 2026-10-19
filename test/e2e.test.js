@@ -1210,3 +1210,55 @@ test('pms: drop it on the top of the chat to dock; the chat bar\'s setting follo
         await browser.close();
     }
 });
+
+test('emotimemes: built-in smileys are listed, exact codes come first, and Enter on one still sends', async () => {
+    const memePage = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    try {
+        await memePage.route(/^https?:/, route => route.abort());   // no thumbnails needed
+        await openRoom(memePage, {
+            setup: () => {
+                localStorage.clear();
+                const memes = [':party,a.gif,60', ':happy,b.gif,60', ':pizza,c.gif,60', ':success,d.gif,60', ':Dance,e.gif,60'];
+                document.body.append(Object.assign(document.createElement('input'),
+                    { type: 'hidden', id: 'hdnMemes', value: '|' + memes.join('|') }));
+                // Stands in for the site's Enter-to-send: did the key get through?
+                window.sent = [];
+                document.getElementById('txtMsg').addEventListener('keydown', e => {
+                    if (e.key === 'Enter' && !e.defaultPrevented) { window.sent.push(e.target.value); }
+                });
+            },
+        });
+        const codes = () => memePage.$$eval('#icx-memes:not([hidden]) .icx-meme-code', els => els.map(e => e.textContent));
+        const typeFresh = async text => {
+            await memePage.fill('#txtMsg', '');
+            await memePage.focus('#txtMsg');
+            await memePage.keyboard.type(text);
+        };
+
+        // ":P": the smiley first; one letter only matches codes that start with it.
+        await typeFresh(':P');
+        assert.deepStrictEqual(await codes(), [':P', ':party', ':pizza']);
+        // Enter sends ":P" as typed, rather than swapping in a meme.
+        await memePage.keyboard.press('Enter');
+        assert.deepStrictEqual(await memePage.evaluate(() => window.sent), [':P']);
+        assert.strictEqual(await memePage.inputValue('#txtMsg'), ':P');
+        assert.deepStrictEqual(await codes(), [], 'list closed');
+
+        // Lowercase ":p" isn't a code on the site: Enter picks ":P".
+        await typeFresh(':p');
+        await memePage.keyboard.press('Enter');
+        assert.strictEqual(await memePage.inputValue('#txtMsg'), ':P ');
+        assert.strictEqual(await memePage.evaluate(() => window.sent.length), 1, 'not sent');
+
+        // ":D" before the room's ":Dance"; the built-in memes are there too.
+        await typeFresh(':D');
+        assert.deepStrictEqual((await codes()).slice(0, 2), [':D', ':Dance']);
+        await typeFresh(':face');
+        assert.deepStrictEqual(await codes(), [':facepalm']);
+        // Two or more letters still match inside a code.
+        await typeFresh(':ucc');
+        assert.deepStrictEqual(await codes(), [':success']);
+    } finally {
+        await memePage.close();
+    }
+});

@@ -6,10 +6,17 @@
 //   <input id="hdnMemes" value=":code,file,size|:code,file,size|…">
 // with the image at https://www.vidble.com/<file>.
 //
+// The same parser also loads a few built-ins that no page lists: smileys
+// (:D, :P, …) and a handful of memes (:facepalm, :keanu, …), with images
+// under images.icanhazchat.com/assets/. A room's own meme wins over a
+// built-in with the same code, as on the site.
+//
 // Typing ":" plus a letter or more opens a list of matching memes above the
 // message box. ↑/↓ move, Tab or Enter insert, Esc closes. The keys are only
 // taken over while the list is open, so the site's Tab nick-completion and
-// Enter-to-send work as before otherwise.
+// Enter-to-send work as before otherwise. Enter also sends as usual when the
+// highlighted code is exactly what you typed, so ":P" + Enter is still a
+// tongue-out smiley, not the first meme with a "p" in it.
 (function () {
     'use strict';
 
@@ -22,8 +29,22 @@
 
     const MAX_SHOWN = 8;
 
+    // The site only sets these up when the room has a meme list (cg in
+    // scripts110725.js), so they come with it. ";)" and "<3" work too, but
+    // never start a ":word", so the list has no use for them.
+    const ASSETS = 'https://images.icanhazchat.com/assets/';
+    const BUILT_IN = [
+        [':D', 'emoticon_grin.png'], [':(', 'emoticon_unhappy.png'], [':)', 'emoticon_smile.png'],
+        [':P', 'emoticon_tongue.png'], [':star', 'emote_star.gif'], [':facepalm', 'facepalm.png'],
+        [':brazzers', 'brazzers.png'], [':bgmfw', 'bgmfw.png'], [':sadkeanu', 'sad_keanu.png'],
+        [':keanu', 'sad_keanu.png'],
+    ];
+
     const memes = parseMemes(field.value);
     if (!memes.length) { return; }
+    for (const [code, file] of BUILT_IN) {
+        if (!memes.some(m => m.code === code)) { memes.push({ code, src: ASSETS + file }); }
+    }
 
     function parseMemes(raw) {
         const seen = new Set();
@@ -73,14 +94,21 @@
 
     function rank(query) {
         // Match on the part after the colon, so ":ye" finds ":awyeah" too.
+        // One letter is too little for that: ":p" would find every code with
+        // a "p" in it. Then only codes that start with it count.
         const q = query.slice(1).toLowerCase();
         const scored = [];
         for (const meme of memes) {
             const c = meme.code.slice(1).toLowerCase();
             const at = c.indexOf(q);
-            if (at < 0) { continue; }
-            // Prefix matches first, then by how often you use it, then shortest.
-            scored.push({ meme, key: [at === 0 ? 0 : 1, -(usage[meme.code] || 0), c.length, c] });
+            if (at < 0 || (q.length === 1 && at > 0)) { continue; }
+            // Exactly what you typed first (the site's codes are case-
+            // sensitive, so ":P" before ":p"), then prefix matches, then by
+            // how often you use it, then shortest, so smileys come early.
+            scored.push({ meme, key: [
+                meme.code === query ? 0 : 1, c === q ? 0 : 1, at === 0 ? 0 : 1,
+                -(usage[meme.code] || 0), c.length, c,
+            ] });
         }
         scored.sort((a, b) => {
             for (let i = 0; i < a.key.length; i++) {
@@ -174,6 +202,10 @@
     // handlers on the message box (Tab completes nicknames, Enter sends).
     window.addEventListener('keydown', e => {
         if (e.target !== input) { return; }
+        // Enter on the code you've already typed: nothing to insert, so let
+        // the message go.
+        if (!list.hidden && e.key === 'Enter' && token && matches[active] &&
+            matches[active].code === token.text) { close(); }
         if (list.hidden) {
             // Count memes in a message as it's sent, for ranking.
             if (e.key === 'Enter') {
