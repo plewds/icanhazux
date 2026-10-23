@@ -480,11 +480,20 @@
     // request runs unchanged.
     //
     // The frame rate (the server's, 5 to 8) isn't asked of the camera: on a
-    // Mac that sets the device itself to run that slowly, and OBS's virtual
-    // camera then stutters in OBS too, until OBS is restarted (other apps
-    // ask for ~30 and are smooth). The camera runs at its own rate and the
-    // broadcast is held to the site's rate when it's sent instead (the
-    // connection's maxFramerate, set as the site adds the camera to it).
+    // Mac that sets the device itself to run that slowly, so every app using
+    // it goes choppy, and OBS's virtual camera stutters in OBS too, until OBS
+    // is restarted (other apps ask for ~30 and are smooth). The camera runs
+    // at its own rate and the broadcast is held to the site's rate when it's
+    // sent instead (the connection's maxFramerate, set as the site adds the
+    // camera to it). The publisher asks for the rate three ways, and all
+    // three are covered:
+    //   - opening a named camera;
+    //   - opening the first camera before it has listed them (no device
+    //     named: the panel's first open when no camera is remembered);
+    //   - set({ videoFrameRate }) once the server's rate arrives, which
+    //     calls applyConstraints() on the camera that's already running.
+    //     That one is answered here without touching the camera, since the
+    //     rate is all it changes (and a live camera isn't resized; see above).
     //
     // The list also reads each device's id back out of the option's id
     // ("CameraMobile_<id>") by splitting on "_", which cuts short any id
@@ -517,22 +526,36 @@
             const n = parseFloat(c && typeof c === 'object' ? (c.ideal ?? c.max ?? c.exact) : c);
             return n > 0 ? n : 0;
         };
+        // Camera tracks opened here (rate or not): applyConstraints() below
+        // only steps in for these.
+        const ours = new WeakSet();
         const opened = (stream, fps) => {
-            const track = fps && stream.getVideoTracks()[0];
-            if (track) { rates.set(track, fps); }
+            const track = stream && stream.getVideoTracks()[0];
+            if (track) {
+                ours.add(track);
+                if (fps) { rates.set(track, fps); }
+            }
             return stream;
+        };
+        // The site's request minus the frame rate.
+        const noRate = c => {
+            if (!c || !c.video || typeof c.video !== 'object' || !('frameRate' in c.video)) { return c; }
+            const video = { ...c.video };
+            delete video.frameRate;
+            return { ...c, video };
         };
 
         const wrapped = async function (constraints) {
             const video = constraints && constraints.video;
             const audio = constraints && constraints.audio;
-            if (!named(video) && !named(audio)) { return orig(constraints); }
-            const asked = { ...constraints };
-            let fps = 0;
+            const isCam = video && typeof video === 'object' && video.deviceId !== 'screen' && !video.mediaSource;
+            const fps = isCam ? wanted(video.frameRate) : 0;
+            // The site's request as it was, but for the rate.
+            const plain = async () => isCam ? opened(await orig(noRate(constraints)), fps) : orig(constraints);
+            if (!named(video) && !named(audio)) { return plain(); }
+            const asked = noRate(constraints);
             if (named(video)) {
-                asked.video = { ...video, deviceId: { exact: await fullId(video.deviceId, 'videoinput') } };
-                fps = wanted(video.frameRate);
-                delete asked.video.frameRate;
+                asked.video = { ...asked.video, deviceId: { exact: await fullId(video.deviceId, 'videoinput') } };
             }
             if (named(audio)) {
                 asked.audio = { ...audio, deviceId: { exact: await fullId(audio.deviceId, 'audioinput') } };
@@ -543,7 +566,7 @@
                 return opened(await orig(asked), fps);
             } catch (e) {
                 if (refused(e)) { throw e; }
-                if (!named(video) || e.name !== 'OverconstrainedError') { return orig(constraints); }
+                if (!named(video) || e.name !== 'OverconstrainedError') { return plain(); }
             }
             // The camera can't do the site's sizes: take it at its own.
             const relaxed = { ...asked, video: { ...asked.video } };
@@ -552,7 +575,7 @@
                 return opened(await orig(relaxed), fps);
             } catch (e) {
                 if (refused(e)) { throw e; }
-                return orig(constraints);
+                return plain();
             }
         };
         wrapped.__icx = true;
@@ -572,12 +595,19 @@
                 await sender.setParameters(params);
             } catch (_) {}
         }
+        // Senders carrying each of our cameras, to re-cap if the rate changes.
+        const senders = new WeakMap();
+        const sentBy = (track, sender) => {
+            if (!senders.has(track)) { senders.set(track, new Set()); }
+            senders.get(track).add(sender);
+        };
         const PC = window.RTCPeerConnection;
         if (PC && PC.prototype.addTrack && !PC.prototype.addTrack.__icx) {
             const addTrack = PC.prototype.addTrack;
             const add = function (track) {
                 const sender = addTrack.apply(this, arguments);
-                if (track && rates.has(track)) {
+                if (track && ours.has(track)) {
+                    sentBy(track, sender);
                     cap(sender, track);
                     // Some browsers only fill in the encodings once connected.
                     this.addEventListener('connectionstatechange', () => {
@@ -593,10 +623,40 @@
         if (Sender && Sender.prototype.replaceTrack && !Sender.prototype.replaceTrack.__icx) {
             const replaceTrack = Sender.prototype.replaceTrack;
             const replace = function (track) {
-                return replaceTrack.apply(this, arguments).then(out => { cap(this, track); return out; });
+                return replaceTrack.apply(this, arguments).then(out => {
+                    if (track && ours.has(track)) { sentBy(track, this); }
+                    cap(this, track);
+                    return out;
+                });
             };
             replace.__icx = true;
             Sender.prototype.replaceTrack = replace;
+        }
+
+        // The server's rate, given to a camera that's already running: kept
+        // for the broadcast, never given to the camera. Other changes (none
+        // the site makes today) still go through, minus the rate.
+        const Track = window.MediaStreamTrack;
+        if (Track && Track.prototype.applyConstraints && !Track.prototype.applyConstraints.__icx) {
+            const applyConstraints = Track.prototype.applyConstraints;
+            const apply = function (c) {
+                if (!ours.has(this) || !c || typeof c !== 'object' || !('frameRate' in c)) {
+                    return applyConstraints.apply(this, arguments);
+                }
+                const fps = wanted(c.frameRate);
+                if (fps) { rates.set(this, fps); } else { rates.delete(this); }
+                (senders.get(this) || []).forEach(s => { if (s.track === this) { cap(s, this); } });
+                const rest = { ...c };
+                delete rest.frameRate;
+                // Only the rate, or the camera's own settings again: nothing to do.
+                const settings = this.getSettings ? this.getSettings() : {};
+                const same = Object.keys(rest).every(k => k === 'deviceId'
+                    ? [].concat(rest[k]?.exact ?? rest[k]).includes(settings.deviceId)
+                    : k === 'width' || k === 'height');
+                return same ? Promise.resolve() : applyConstraints.call(this, rest);
+            };
+            apply.__icx = true;
+            Track.prototype.applyConstraints = apply;
         }
         return true;
     }
