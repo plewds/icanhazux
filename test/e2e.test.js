@@ -435,6 +435,31 @@ test('on-cam list: a nick change on cam follows the cam, through a second change
     await p.close();
 });
 
+test('a disabled cam starts as itself after the cam list shifts (the site keeps its old place in the list)', async () => {
+    const p = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    // aW(), the site's start, as a recorder: page.js wraps it.
+    await openRoom(p, { setup: () => {
+        window.du = Object.assign(window.du || {}, { dU: 1, fu: [], ft: [] });
+        window.__starts = [];
+        window.aW = function (camId, slot, slotNo, camIndex) { window.__starts.push([camId, slot && slot.id, slotNo, camIndex]); return false; };
+    } });
+    await p.waitForFunction(() => window.aW.__icx);
+    const cam = await p.evaluate(() => {
+        const vc = document.querySelector('#cams .videocontainer');
+        return { id: vc.id.replace(/^id-/, ''), slot: vc.parentElement.id };
+    });
+    // It was third in the list when disabled; two people have since left.
+    const result = await p.evaluate(id => {
+        window.du.fu = ['aaa111-live-host-jeff', `${id}-live-host-them`, 'bbb222-live-host-kim'];
+        window.aW(id, document.getElementById('slot15'), 15, 3, 100, 75);
+        // Someone no longer on cam at all: nothing to start.
+        window.aW('ccc333', document.getElementById('slot14'), 14, 0, 100, 75);
+        return window.__starts;
+    }, cam.id);
+    assert.deepStrictEqual(result, [[cam.id, cam.slot, Number(cam.slot.replace('slot', '')), 1]]);
+    await p.close();
+});
+
 test('hiding a nickname pops up the Perma-nick box; ticking it saves the hide', async () => {
     const p = await browser.newPage({ viewport: { width: 1280, height: 800 } });
     await openRoom(p, { setup: () => { sessionStorage.setItem('icx_nicks', JSON.stringify(['delta'])); } });

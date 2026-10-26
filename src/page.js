@@ -690,6 +690,37 @@
         return true;
     }
 
+    // ── Starting a disabled cam ────────────────────────────────────────────
+    // A cam's "start" button (bound by aT() when it's disabled, which is how
+    // hiding stops a cam) calls aW(camId, slot, slotNo, camIndex, w, h), with
+    // the arguments as they were at that moment. aW rebuilds the cam with
+    // aV(), which looks the cam up again by camIndex: its place in the cam
+    // list (du.fu). Anyone camming up or down in between shifts that list,
+    // so the index then names someone else's cam, or nothing, and the start
+    // does nothing; showing a hidden cam only worked again after a refresh.
+    // So the cam's place in the list, and the slot it sits in, are looked up
+    // as aW runs. A cam that's left the list isn't started at all.
+    function patchCamStart() {
+        const start = window.aW;
+        if (typeof start !== 'function' || !window.du) { return false; }
+        if (start.__icx) { return true; }
+        const wrapped = function (camId, slot, slotNo, camIndex) {
+            const du = window.du;
+            if (!du.dU || !Array.isArray(du.fu)) { return start.apply(this, arguments); }
+            const index = du.fu.findIndex(entry => streamId(entry) === String(camId));
+            if (index < 0) { return false; }
+            const args = [...arguments];
+            args[3] = index;
+            const now = document.getElementById(`id-${camId}`)?.parentElement;
+            const no = now && /^slot(\d+)$/.exec(now.id);
+            if (no) { args[1] = now; args[2] = Number(no[1]); }
+            return start.apply(this, args);
+        };
+        wrapped.__icx = true;
+        window.aW = wrapped;
+        return true;
+    }
+
     // ── Remembering the camera ─────────────────────────────────────────────
     // When the broadcast panel opens it starts the camera saved in the
     // "cam-id" cookie, else the first in the list (often the built-in one).
@@ -793,7 +824,7 @@
     // The site's scripts normally load before this runs (document_idle);
     // retry for a while in case they're late. The chat bridge goes last so it
     // wraps the already-patched functions.
-    let pending = [patchChatScroll, patchFocusSteal, patchPms, patchIdleRefresh, patchBroadcasters, patchNicks, installNickCheck, patchCameraChoice, patchCameraMemory, patchCamLabelSize, installChatBridge].filter(p => !p());
+    let pending = [patchChatScroll, patchFocusSteal, patchPms, patchIdleRefresh, patchBroadcasters, patchNicks, installNickCheck, patchCameraChoice, patchCameraMemory, patchCamLabelSize, patchCamStart, installChatBridge].filter(p => !p());
     let tries = 0;
     const timer = pending.length && setInterval(() => {
         pending = pending.filter(p => !p());
