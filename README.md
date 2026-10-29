@@ -52,7 +52,7 @@ icanhazux is unofficial: it isn't made by or affiliated with icanhazchat.com.
 ### Across the site
 
 - **Light and dark themes.** Follows your system setting, or pick one, plus eight accent colors.
-- **Three fonts.** Friendly (Nunito), Modern (Atkinson Hyperlegible Next, designed for low-vision readers) or Tech (Oxanium), for headings, buttons and names. Chat text stays easy to read in Source Sans 3. In the chat bar's ⚙ or the **ichux** menu.
+- **Three fonts.** Friendly (Nunito), Modern (Atkinson Hyperlegible Next, designed for low-vision readers) or Tech (Oxanium), for headings, buttons and names. Chat text, and anything you type, stays easy to read in Source Sans 3. In the chat bar's ⚙ or the **ichux** menu.
 - **Every page restyled.** The lobby, profiles, settings, messages, groups and dashboard use the same themes, fonts and accent-edged cards as rooms. A profile's background picture becomes a cover banner. The room emotimemes page becomes a searchable grid.
 - **Settings in the header.** The **ichux** link (after an accent bar, at the end of the site header's links) opens theme, accent and font on any page. Chat settings stay on the chat bar in rooms.
 - **Works in a narrow window.** Under about 760px wide, the header's links fold into a ☰ menu (with a dot when you have new messages), and the settings panels fit the window.

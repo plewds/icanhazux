@@ -317,6 +317,13 @@ html.icx-site .icx-paper :is(.form-control, textarea, select,
     font: 15px/1.4 var(--icx-font) !important;
     transition: border-color .12s, box-shadow .12s, background-color .12s;
 }
+/* Text boxes type in the chat font, like every text box (icanhazux.css);
+   this rule's font above would win otherwise. Dropdowns keep the
+   interface font. */
+html.icx-site .icx-paper :is(textarea, .form-control:not(select),
+    input:is([type="text"], [type="password"], [type="email"], [type="search"], [type="url"], [type="number"], [type="tel"], :not([type]))) {
+    font-family: var(--icx-font-chat) !important;
+}
 html.icx-site .icx-paper textarea { line-height: 1.5 !important; resize: vertical; }
 html.icx-site .icx-paper select { padding-right: 32px !important; cursor: pointer; }
 html.icx-site .icx-paper :is(.form-control, textarea, select, input):focus {

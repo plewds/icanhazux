@@ -549,6 +549,19 @@ test('chat: the site only puts you back in the chat box if you were just typing 
     await page.evaluate(() => document.activeElement.blur());
 });
 
+test("the chat box types in the chat font, whatever /font the site set", async () => {
+    // The site writes the saved /font name inline, alone (Calibri, say).
+    const family = await page.evaluate(() => {
+        const box = document.getElementById('txtMsg');
+        const before = box.style.fontFamily;
+        box.style.fontFamily = 'Calibri';
+        const out = getComputedStyle(box).fontFamily;
+        box.style.fontFamily = before;
+        return out;
+    });
+    assert.match(family, /^"Source Sans 3"/);
+});
+
 test('cams joining and leaving reflow the grid', async () => {
     await page.evaluate(() => { window.sim.addCam('golf', 640, 480); window.sim.addCam('hotel', 1280, 720); });
     await page.waitForFunction(() => document.querySelectorAll('#cams > [data-icx-placed]').length === 8);

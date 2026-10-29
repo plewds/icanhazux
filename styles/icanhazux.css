@@ -135,13 +135,22 @@ html.icx-site body,
 html.icx-site body *:not([class^="icon"]):not([class*=" icon-"]) {
     font-family: var(--icx-font);
 }
-/* The conversation reads in Source Sans 3. Not !important: the site's own
-   chat-font setting (inline on #txt) still wins. */
+/* The conversation reads in Source Sans 3. The site's /font setting sits
+   inline on #txt, but this rule styles the lines inside it directly, so
+   they stay Source Sans. */
 html.icx #txt,
 html.icx #txt *,
-html.icx #txtMsg,
 html.icx #tabs .pm_convo,
 html.icx #tabs .pm_convo * { font-family: var(--icx-font-chat); }
+/* Every text box, on every page, types in the chat font too. !important:
+   the site writes your saved /font name inline on the chat box, alone and
+   with no fallback, so a font this computer lacks (Calibri on a Mac
+   without Office) fell back to the browser's serif. Dropdowns aren't
+   text boxes; they keep the interface font. */
+:is(html.icx-site, html.icx) :is(textarea,
+    input:is([type="text"], [type="password"], [type="email"], [type="search"], [type="url"], [type="number"], [type="tel"], :not([type]))) {
+    font-family: var(--icx-font-chat) !important;
+}
 html.icx-site a { color: var(--icx-accent-text); }
 
 html.icx-site :is(#panelHeader, #ctl00_panelHeader),
@@ -2693,7 +2702,7 @@ html.icx-memes-page #ctl00_ContentPlaceHolder1_divEmotiMemesPage center > div[st
     border-radius: 10px;
     background: var(--icx-surface-2);
     color: var(--icx-text);
-    font: 15px/1 var(--icx-font);
+    font: 15px/1 var(--icx-font-chat);
     outline: none;
 }
 .icx-meme-filter-input:focus { border-color: var(--icx-accent); box-shadow: 0 0 0 3px var(--icx-accent-soft); background: var(--icx-surface); }
