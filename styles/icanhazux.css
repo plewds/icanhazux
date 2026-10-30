@@ -838,26 +838,26 @@ html.icx #icx-drawer > #activeUserList { display: none !important; }
     min-height: 0;
     overflow-y: auto;
     padding: 4px 6px 8px;
-    /* Two columns when there's room: names are short. */
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-    align-content: start;
-    column-gap: 4px;
 }
+/* Two columns when there's room (names are short), filled top to bottom
+   and then across, so A–Z reads down each column. */
+.icx-people-rows { columns: 190px; column-gap: 4px; }
 .icx-people-group {
-    grid-column: 1 / -1;
     padding: 10px 6px 4px;
     color: var(--icx-text-muted);
     font: 700 11px/1 var(--icx-font);
     letter-spacing: .04em;
     text-transform: uppercase;
 }
-.icx-people-empty { grid-column: 1 / -1; padding: 16px 6px; color: var(--icx-text-muted); text-align: center; }
+.icx-people-empty { padding: 16px 6px; color: var(--icx-text-muted); text-align: center; }
 .icx-person {
     display: flex;
     align-items: center;
     gap: 8px;
+    width: 100%;
     min-width: 0;
+    box-sizing: border-box;
+    break-inside: avoid;
     padding: 5px 6px;
     border: 0;
     border-radius: var(--icx-radius-btn);

@@ -22,8 +22,9 @@
     const source = document.getElementById('activeUserList');
     if (!globalThis.ICX.isRoom || !drawer || !source) { return; }
 
-    // Views: everyone, or just who's on cam. Either way the groups are mods,
-    // then active people, then idle ones (each person once), A–Z in each.
+    // Views: everyone, or just who's on cam. Either way mods come first, then
+    // everyone else, A–Z in each; idle people stay in place, just dimmed, so
+    // a name is where you'd look for it whether or not they're active.
     const VIEWS = [['all', 'All'], ['cam', 'On cam']];
     let view = VIEWS.some(([key]) => key === store.get('peopleView')) ? store.get('peopleView') : 'all';
     let query = '';
@@ -149,15 +150,17 @@
         const everyone = read();
         const inView = everyone.filter(p => view === 'all' || p.cam);
         const shown = inView.filter(p => !query || p.name.toLowerCase().includes(query)).sort(byName);
+        // Each group's rows sit in their own block so they read down the
+        // first column, then the next (A–Z top to bottom), not across.
         const section = (title, people) => people.length
-            ? [el('div', { class: 'icx-people-group', text: `${title} · ${people.length}` }), ...people.map(row)] : [];
+            ? [el('div', { class: 'icx-people-group', text: `${title} · ${people.length}` }),
+                el('div', { class: 'icx-people-rows' }, people.map(row))] : [];
         const empty = !everyone.length ? 'Loading…'
             : query ? `No one matches “${query}”`
                 : 'No one is on cam';
         list.replaceChildren(
             ...section('Mods', shown.filter(p => p.mod)),
-            ...section('Active', shown.filter(p => !p.mod && !p.idle)),
-            ...section('Inactive', shown.filter(p => !p.mod && p.idle)),
+            ...section('People', shown.filter(p => !p.mod)),
             ...(shown.length ? [] : [el('div', { class: 'icx-people-empty', text: empty })]),
         );
         const active = everyone.filter(p => !p.idle).length;

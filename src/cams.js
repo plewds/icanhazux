@@ -420,6 +420,11 @@
         let n;
         try { n = JSON.parse(e.detail); } catch (_) { return; }
         if (!n.from || !n.to) { return; }
+        // Hides and nicks are kept by the lowercased name (a cam's key); the
+        // server sends names as typed, so "Jeff" has to become "jeff" here.
+        n.from = String(n.from).toLowerCase();
+        n.to = String(n.to).toLowerCase();
+        if (n.from === n.to) { return; }
         const wasHidden = isHidden(n.from);
         state.nicks.add(n.from);
         markNick(n.to);

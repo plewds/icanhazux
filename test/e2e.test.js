@@ -435,6 +435,19 @@ test('on-cam list: a nick change on cam follows the cam, through a second change
     await p.close();
 });
 
+test('a hidden cam stays hidden through a nick change, whatever the capitals', async () => {
+    const p = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    await openRoom(p);
+    await (await camButton(p, 'delta', 'hide')).click();
+    await p.waitForTimeout(300);
+    // The server sends names as typed; hides are kept lowercased.
+    await p.evaluate(() => document.dispatchEvent(new CustomEvent('icx:nick', { detail: JSON.stringify({ from: 'Delta', to: 'NewDelta' }) })));
+    await p.waitForTimeout(100);
+    const hidden = await p.evaluate(() => JSON.parse(sessionStorage.getItem('icx_hiddenNicks') || '[]'));
+    await p.close();
+    assert.ok(hidden.includes('newdelta'), `the hide moved to the new nick: ${hidden}`);
+});
+
 test('a disabled cam starts as itself after the cam list shifts (the site keeps its old place in the list)', async () => {
     const p = await browser.newPage({ viewport: { width: 1280, height: 800 } });
     // aW(), the site's start, as a recorder: page.js wraps it.
