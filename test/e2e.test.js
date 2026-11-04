@@ -1148,7 +1148,8 @@ test('pms: Keep PMs brings conversations back after a reload; nicknames only for
         const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
         const page = await context.newPage();
         const setup = () => {
-            // Keep PMs on; alice's profile already checked (not a nickname),
+            // Keep PMs on (the old browser-wide switch, which the first
+            // account to sign in takes over); alice's profile already checked (not a nickname),
             // nick1 known to be one.
             localStorage.setItem('icx_pmKeep', 'true');
             sessionStorage.setItem('icx_pmNotNick', JSON.stringify(['alice']));
@@ -1162,8 +1163,8 @@ test('pms: Keep PMs brings conversations back after a reload; nicknames only for
         });
         await page.waitForTimeout(900);
         const stored = () => page.evaluate(() => ({
-            long: Object.keys(JSON.parse(localStorage.getItem('icx_pmLog') || '{}')),
-            session: Object.keys(JSON.parse(sessionStorage.getItem('icx_pmLog') || '{}')),
+            long: Object.keys(JSON.parse(localStorage.getItem('icx_pmLogs') || '{}').me || {}),
+            session: Object.keys(JSON.parse(sessionStorage.getItem('icx_pmLogs') || '{}').me || {}),
         }));
         assert.deepStrictEqual(await stored(), { long: ['alice'], session: ['nick1'] }, 'a nickname is kept for the session only');
 
@@ -1211,10 +1212,37 @@ test('pms: Keep PMs brings conversations back after a reload; nicknames only for
         assert.strictEqual(reopened.closed, false);
         assert.deepStrictEqual(reopened.lines, ['alice: hello there ', 'me: hi alice', 'alice: back again']);
 
-        // Switching it off deletes what was saved.
+        // Someone else signed in on the same browser sees none of it, and
+        // what they save is filed apart.
+        const other = await context.newPage();
+        await openRoom(other, { setup: `(${fakeSitePms})(); window.du.eI = 'Bob'; sessionStorage.setItem('icx_pmNotNick', '["alice"]');` });
+        assert.deepStrictEqual(await other.evaluate(() => document.querySelectorAll('#tabs > ul > li').length), 0,
+            'another account gets none of the saved conversations');
+        // Their Keep PMs starts off (the setting is per account); they turn it on.
+        await other.click('#icx-chat-settings-btn');
+        assert.strictEqual(await other.getAttribute('[data-pref="pmKeep"]', 'aria-checked'), 'false');
+        await other.click('[data-pref="pmKeep"]');
+        assert.strictEqual(await other.getAttribute('[data-pref="pmKeep"]', 'aria-checked'), 'true');
+        await other.click('#icx-chat-settings-btn');
+        await other.evaluate(() => window.bO('aa0000', 'alice', 'hi bob'));
+        assert.deepStrictEqual(await other.evaluate(() => document.querySelectorAll('#msgs_alice .icx-pm-earlier').length), 0,
+            'nor the earlier lines when the same person messages them');
+        await other.waitForTimeout(900);
+        assert.deepStrictEqual(await other.evaluate(() => {
+            const bob = JSON.parse(localStorage.getItem('icx_pmLogs') || '{}').bob || {};
+            return Object.fromEntries(Object.entries(bob).map(([n, c]) => [n, c.lines.length]));
+        }), { alice: 1 }, 'saved under their own name, without the other account\'s lines');
+        await other.close();
+
+        // Switching it off deletes what was saved: yours only. The other
+        // account keeps its setting and its conversations.
         await later.click('#icx-chat-settings-btn');
         await later.click('[data-pref="pmKeep"]');
-        assert.strictEqual(await later.evaluate(() => localStorage.getItem('icx_pmLog')), null);
+        assert.deepStrictEqual(await later.evaluate(() => ({
+            saved: Object.keys(JSON.parse(localStorage.getItem('icx_pmLogs') || '{}')),
+            mineInTab: JSON.parse(sessionStorage.getItem('icx_pmLogs') || '{}').me || null,
+            keeping: JSON.parse(localStorage.getItem('icx_pmKeeps') || '{}'),
+        })), { saved: ['bob'], mineInTab: null, keeping: { bob: true } });
         await later.evaluate(() => localStorage.clear());
     } finally {
         await browser.close();

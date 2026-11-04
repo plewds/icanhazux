@@ -285,7 +285,11 @@
             const li = document.getElementById(`pm_${name}`);
             [li, li?.querySelector('a')].forEach(n => { if (n) { n.style.color = n.style.backgroundColor = ''; } });
         });
-        const ready = () => document.dispatchEvent(new CustomEvent('icx:pm-ready'));
+        // With who's signed in (du.eI), so saved PMs are kept per account:
+        // two people on one browser mustn't see each other's.
+        const ready = () => document.dispatchEvent(new CustomEvent('icx:pm-ready', {
+            detail: JSON.stringify({ me: window.du?.eI ? String(window.du.eI) : '' }),
+        }));
         document.addEventListener('icx:pm-ping', ready);
         ready();
         return true;

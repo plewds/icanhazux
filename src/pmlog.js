@@ -9,7 +9,7 @@
 //     your earlier messages with them show above the new one.
 //
 // Saved for 7 days from the last message, at most 30 conversations and the
-// last 150 lines of each. Turning the setting off deletes everything saved.
+// last 150 lines of each. Turning the setting off deletes everything you saved.
 //
 // Names, not people: a nickname can pass to someone else, and their old
 // conversation shouldn't greet the next person to use it. So, with the same
@@ -22,6 +22,12 @@
 //   - a name not yet known either way starts as session-only, and its
 //     profile is checked once (as opening it would; page.js icx:nick-check).
 //     If it isn't a nickname, it moves to the long-term store.
+//
+// Per account: everything is filed under the name you're signed in as
+// (du.eI, from page.js with icx:pm-ready), so two people using one browser
+// never see each other's conversations. Nothing is saved or restored until
+// that name is known. Saves from before 1.3.7 weren't filed this way and
+// can't be told apart, so they're deleted.
 //
 // Lines are saved cleaned: text, bold/italic, colors, web links and the
 // site's own emoticon images. Everything else is dropped, and restoring
@@ -40,14 +46,33 @@
     const TTL_MS = 7 * 24 * 60 * 60 * 1000;
     const MAX_CONVOS = 30;
     const MAX_LINES = 150;
-    const LONG_KEY = 'pmLog';                 // store: icx_pmLog
-    const SESSION_KEY = 'icx_pmLog';          // sessionStorage
+    const LONG_KEY = 'pmLogs';                // store: icx_pmLogs
+    const SESSION_KEY = 'icx_pmLogs';         // sessionStorage
     const CHECKED_KEY = 'icx_pmNotNick';      // sessionStorage: names checked, not nicknames
 
-    const keeping = () => store.get('pmKeep', false) === true;
+    // Who's signed in, lowercased (the site's names aren't case-sensitive).
+    // Empty until page.js says.
+    let me = '';
+
+    // The setting is per account too: { account: true }. Off until we know
+    // who you are. Before 1.3.7 it was one switch for the browser
+    // (icx_pmKeep); whoever signs in first takes that over, most likely the
+    // person who turned it on.
+    const KEEP_KEY = 'pmKeeps';
+    const keepers = () => { const v = store.get(KEEP_KEY, {}); return v && typeof v === 'object' && !Array.isArray(v) ? v : {}; };
+    const keeping = () => !!me && keepers()[me] === true;
+    function setKeeping(on) {
+        const all = keepers();
+        if (on) { all[me] = true; } else { delete all[me]; }
+        if (Object.keys(all).length) { store.set(KEEP_KEY, all); } else { store.remove(KEEP_KEY); }
+    }
+    function claimOldSetting() {
+        if (store.get('pmKeep', false) === true && !(me in keepers())) { setKeeping(true); }
+        store.remove('pmKeep');
+    }
 
     // ── Storage ─────────────────────────────────────────────────────────────
-    // Both stores: { name: { t, open, lines: [html…] } }.
+    // Both stores: { account: { name: { t, open, lines: [html…] } } }.
 
     const readSession = key => {
         try { return JSON.parse(sessionStorage.getItem(key) || 'null'); } catch (_) { return null; }
@@ -55,8 +80,22 @@
     const writeSession = (key, value) => {
         try { sessionStorage.setItem(key, JSON.stringify(value)); } catch (_) {}
     };
-    const loadLong = () => { const v = store.get(LONG_KEY, {}); return v && typeof v === 'object' ? v : {}; };
-    const loadShort = () => { const v = readSession(SESSION_KEY); return v && typeof v === 'object' ? v : {}; };
+    const asMap = v => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
+    const allLong = () => asMap(store.get(LONG_KEY, {}));
+    const allShort = () => asMap(readSession(SESSION_KEY));
+    const loadLong = () => (me ? asMap(allLong()[me]) : {});
+    const loadShort = () => (me ? asMap(allShort()[me]) : {});
+    // Write this account's conversations; an account left with none is dropped.
+    function put(all, map) {
+        if (Object.keys(map).length) { all[me] = map; } else { delete all[me]; }
+        return all;
+    }
+    const writeLong = map => { const all = put(allLong(), map); if (Object.keys(all).length) { store.set(LONG_KEY, all); } else { store.remove(LONG_KEY); } };
+    const writeShort = map => writeSession(SESSION_KEY, put(allShort(), map));
+
+    // The old, unfiled saves (before 1.3.7): whose they were is unknown.
+    store.remove('pmLog');
+    try { sessionStorage.removeItem('icx_pmLog'); } catch (_) {}
 
     // Drop what's past 7 days, then all but the 30 most recent.
     function prune(map) {
@@ -178,7 +217,7 @@
     const msgsOf = name => document.getElementById(`msgs_${name}`);
 
     function save() {
-        if (!keeping()) { return; }
+        if (!keeping() || !me) { return; }
         const long = loadLong();
         const short = loadShort();
         for (const li of tabs.querySelectorAll(':scope > ul > li[id^="pm_"]')) {
@@ -203,8 +242,8 @@
         for (const name of Object.keys(long)) {
             if (nicks.has(name) && !perma.has(name)) { short[name] = long[name]; delete long[name]; }
         }
-        store.set(LONG_KEY, prune(long));
-        writeSession(SESSION_KEY, prune(short));
+        writeLong(prune(long));
+        writeShort(prune(short));
     }
 
     let timer = 0;
@@ -266,7 +305,18 @@
     try { sameTab = sessionStorage.getItem(SEEN_KEY) === '1'; sessionStorage.setItem(SEEN_KEY, '1'); } catch (_) {}
 
     let restored = false;
-    function restore() {
+    function restore(e) {
+        let who = '';
+        try { who = String(JSON.parse(e?.detail || '{}').me || ''); } catch (_) {}
+        // Signing in as someone else loads a new page, so the first name
+        // heard is this page's for good.
+        if (!me) {
+            me = who.trim().toLowerCase();
+            if (me) {
+                claimOldSetting();
+                globalThis.ICX.controls?.changed('pmKeep');   // the switch shows this account's choice
+            }
+        }
         if (restored || !keeping()) { return; }
         restored = true;
         const all = Object.entries(prune({ ...loadLong(), ...loadShort() }))
@@ -286,20 +336,24 @@
 
     // ── Setting ─────────────────────────────────────────────────────────────
 
-    function clearSaved() {
-        store.remove(LONG_KEY);
-        try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+    // Turning Keep PMs off, or "Clear saved PMs", deletes only your own:
+    // other accounts on this browser keep their setting and their saves.
+    function clearMine() {
+        if (!me) { return; }
+        writeLong({});
+        writeShort({});
     }
 
     globalThis.ICX.pmLog = {
         get: keeping,
         set(on) {
-            store.set('pmKeep', !!on);
-            if (on) { save(); } else { clearSaved(); }
+            if (!me) { return; }
+            setKeeping(!!on);
+            if (on) { save(); } else { clearMine(); }
             globalThis.ICX.controls?.changed('pmKeep');
         },
         clear() {
-            clearSaved();
+            clearMine();
             globalThis.ICX.controls?.changed('pmKeep');
         },
         count: () => Object.keys(loadLong()).length + Object.keys(loadShort()).length,
