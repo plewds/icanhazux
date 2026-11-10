@@ -240,7 +240,24 @@
     document.addEventListener('icx:broadcasters', e => {
         try { broadcasters = new Set(JSON.parse(e.detail).map(n => String(n).toLowerCase())); } catch (_) { return; }
         renderMenu();
+        renderTally();
     }, { signal });
+
+    // Cams in use, next to Hide cams: a room takes at most 15, and at 15
+    // there's no point trying to broadcast. Counts everyone broadcasting,
+    // hidden or not. Not shown until the first report.
+    const CAM_LIMIT = 15;
+    let tally = null;
+    function renderTally() {
+        if (!tally) { return; }
+        const n = broadcasters ? broadcasters.size : null;
+        tally.hidden = n === null;
+        if (n === null) { return; }
+        const full = n >= CAM_LIMIT;
+        tally.classList.toggle('icx-cams-full', full);
+        tally.replaceChildren(icon('cam'), el('span', { text: full ? `Cams full ${n}/${CAM_LIMIT}` : `${n}/${CAM_LIMIT}` }));
+        tally.title = full ? 'Every cam slot is taken' : `${n} of ${CAM_LIMIT} cams in use`;
+    }
     document.dispatchEvent(new CustomEvent('icx:broadcasters-get'));
 
     // The hidden list is kept across rooms. The menu splits it by whether
@@ -250,6 +267,10 @@
     function buildMenu() {
         const bar = globalThis.ICX.shell?.bar;
         if (!bar || menuBtn) { return; }
+        tally = el('div', { id: 'icx-cam-tally', role: 'status', hidden: '' });
+        const hideBtn = bar.querySelector(':scope > #camVisibility');
+        if (hideBtn) { hideBtn.after(tally); } else { bar.prepend(tally); }
+        renderTally();
         menuBtn = el('button', { type: 'button', id: 'icx-hidden-btn', 'aria-expanded': 'false' });
         menu = el('div', { id: 'icx-hidden-menu', hidden: '' });
         menuBtn.addEventListener('click', e => {

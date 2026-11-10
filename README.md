@@ -20,7 +20,7 @@ icanhazux is unofficial: it isn't made by or affiliated with icanhazchat.com.
 - **Sharper big cams** (optional, in the chat bar's ⚙). The focused and full-screen cams get crisper scaling and very light sharpening on your graphics card, instead of the browser's soft enlargement. It sharpens what's there; it doesn't invent detail. Off by default, and only available where the browser has graphics acceleration.
 - **Hide a cam.** The cam disappears and its stream stops, and it stays hidden when that person cams up again. **Hidden** under the cams lists who you've hidden and brings them back. Nicknames can change hands, so a hidden nickname stays hidden only for your visit, unless you mark it as someone's regular nick: a **Perma-nick** checkbox pops up when you hide one, and it's in the **Hidden** list too.
 - **Resize cams vs. chat.** Drag the bar between them. Double-click it to reset. Shrinking the window squeezes the split to fit; widening it again brings back the split you chose.
-- **Refresh all and Hide cams** sit under the cams as buttons. After the idle timeout, Refresh all brings the cams back.
+- **Refresh all and Hide cams** sit under the cams as buttons. After the idle timeout, Refresh all brings the cams back. Beside them, a count of cams in use (7/15), which says **Cams full** when all 15 are taken, so you know before you try to broadcast.
 
 **Chat**
 

@@ -127,6 +127,20 @@ test('site cam chrome is tucked away and its buttons moved to the bar', async ()
     assert.deepStrictEqual(vis, { ohhai: 'none', mute: 'none', refreshInBar: 'icx-bar', nativeDisable: 'none' });
 });
 
+test('the cam tally beside Hide cams counts everyone broadcasting, and says when cams are full', async () => {
+    const report = n => page.evaluate(n => document.dispatchEvent(new CustomEvent('icx:broadcasters', {
+        detail: JSON.stringify(Array.from({ length: n }, (_, i) => `cammer${i}`)),
+    })), n);
+    const read = () => page.evaluate(() => {
+        const t = document.getElementById('icx-cam-tally');
+        return { after: t.previousElementSibling?.id, shown: !t.hidden, text: t.textContent, full: t.classList.contains('icx-cams-full') };
+    });
+    await report(7);
+    assert.deepStrictEqual(await read(), { after: 'camVisibility', shown: true, text: '7/15', full: false });
+    await report(15);
+    assert.deepStrictEqual(await read(), { after: 'camVisibility', shown: true, text: 'Cams full 15/15', full: true });
+});
+
 test('the extension\'s icons are drawn: real SVG with a size, not empty', async () => {
     await page.hover('#cams .rounded_square[data-icx-placed]');
     const icons = await page.evaluate(() =>

@@ -974,6 +974,27 @@ html.icx #body_container:has(#camVisibility img[title^="Show"]) #cams.icx-cams.i
     content: "Cams are hidden. Use Show cams below to bring them back.";
 }
 
+/* Cams in use (cams.js): plain text beside Hide cams, red when full. */
+#icx-cam-tally {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 30px;
+    padding: 0 6px;
+    color: var(--icx-text-muted);
+    font: 600 12px/1 var(--icx-font);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+#icx-cam-tally[hidden] { display: none; }
+#icx-cam-tally svg { width: 14px; height: 14px; }
+#icx-cam-tally.icx-cams-full {
+    padding: 0 10px;
+    border-radius: var(--icx-radius-btn);
+    background: var(--icx-live);
+    color: var(--icx-live-fg);
+}
+
 #icx-hidden { position: relative; margin-left: auto; }
 #icx-hidden-menu {
     position: absolute;
