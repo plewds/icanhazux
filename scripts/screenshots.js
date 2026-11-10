@@ -34,6 +34,14 @@ const PEOPLE = [
     'quietstorm', 'rosewater', 'sundaydrive', 'tangerine_t', 'velvetfox', 'wren', 'yellowbird', 'zigzag',
     'ambergris', 'birchbark', 'cloudberry', 'dandelion', 'ember', 'fernwood', 'glowworm', 'hazelnut',
     'inkwell', 'jellybean', 'kettlecorn', 'lanternfish', 'marigold', 'nightjar', 'olive_oyl', 'pepperjack',
+    // More, so the people list shows several names under most letters.
+    'acorn_jo', 'applecrisp', 'aster', 'beanbag', 'bluejay88', 'buttons', 'cinnamon', 'cobalt', 'cricket_k',
+    'daisychain', 'dewdrop', 'driftwood', 'echo_echo', 'elmtree', 'firefly', 'foxglove', 'frostbite',
+    'gingersnap', 'goldfinch', 'gumdrop', 'harbor', 'honeybee', 'huckleberry', 'icicle', 'indigo_rae',
+    'jasper', 'jigsaw', 'kiwi_k', 'kodiak', 'lemondrop', 'lilypad', 'lunamoth', 'maplesyrup', 'meadowlark',
+    'moonpie', 'nutmeg', 'nova_n', 'opal', 'orchard', 'paperboat', 'peppermint', 'pinecone', 'quill',
+    'raincloud', 'riverstone', 'rubyred', 'saffron', 'seashell', 'snapdragon', 'sparrow', 'thistle',
+    'tidepool', 'toffee', 'umber', 'violet_v', 'waffles', 'willow', 'yarrow', 'zephyr',
 ];
 const CHAT = [
     ['mika', '#c0392b', 'evening all 👋'],
@@ -160,7 +168,7 @@ function dressMocks() {
     let room = fs.readFileSync(path.join(dir, 'room.html'), 'utf8');
     // The people list: everyone in PEOPLE, a few idle (<strike>), two mods
     // (listed again in a closing "N mods:" paragraph, as the site does).
-    const IDLE = new Set(['olive_oyl', 'kettlecorn', 'inkwell', 'nightjar']);
+    const IDLE = new Set(['olive_oyl', 'kettlecorn', 'inkwell', 'nightjar', 'buttons', 'dewdrop', 'harbor', 'lilypad', 'quill', 'tidepool', 'umber', 'frostbite', 'moonpie', 'cobalt']);
     const link = name => `<a class="userlink" href="javascript:void 0">${IDLE.has(name) ? `<strike>${name}</strike>` : name}</a>`;
     room = room.replace(/(<div id="activeUserList"[^>]*>)[\s\S]*?(<\/div>)/, (_, open, close) =>
         `${open}${PEOPLE.length} people (<a href="javascript:void 0">refresh</a>) [click for details]: ` +
@@ -227,6 +235,9 @@ async function open(browser, url, { theme = 'dark', room = false, setup } = {}) 
             const log = document.getElementById('txt');
             log.scrollTop = log.scrollHeight;
         });
+        // Who's broadcasting (page.js reports the server's list; the
+        // stand-in has none): the cams shown, for the cam count by Hide cams.
+        await page.evaluate(names => document.dispatchEvent(new CustomEvent('icx:broadcasters', { detail: JSON.stringify(names) })), CAM_NAMES);
     }
     await page.evaluate(() => document.fonts.ready);
     await page.waitForTimeout(900);
