@@ -28,6 +28,7 @@ html[data-icx-theme="light"] {
     --icx-live: #e5484d;            /* broadcast, alerts */
     --icx-live-fg: #ffffff;
     --icx-live-soft: rgba(229, 72, 77, .1);
+    --icx-live-text: #c2272d;       /* red as text, readable on the stage gray */
     --icx-online: #2fa865;
     --icx-row-alt: rgba(0, 0, 0, .035);
     --icx-mention: color-mix(in srgb, var(--icx-accent) 13%, transparent);   /* lines that mention you (or @all): a tint of the accent */
@@ -61,6 +62,7 @@ html[data-icx-theme="dark"] {
     --icx-live: #f2555a;
     --icx-live-fg: #ffffff;
     --icx-live-soft: rgba(242, 85, 90, .15);
+    --icx-live-text: #f2555a;
     --icx-online: #3fce7f;
     --icx-row-alt: rgba(255, 235, 250, .035);
     --icx-mention: color-mix(in srgb, var(--icx-accent) 24%, transparent);
@@ -839,11 +841,48 @@ html.icx #icx-drawer > #activeUserList { display: none !important; }
     overflow-y: auto;
     padding: 4px 6px 8px;
 }
-/* Two columns when there's room (names are short), filled top to bottom
-   and then across, so A–Z reads down each column. */
-.icx-people-rows { columns: 190px; column-gap: 4px; }
+/* Names wrap left to right like a paragraph, A–Z, under a heading per
+   letter (people.js). Far less scrolling than one name per row. */
+.icx-people-rows { display: flex; flex-wrap: wrap; gap: 2px; }
+.icx-people-letter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 22px;
+    padding: 0 6px 6px;
+    color: var(--icx-text-muted);
+    font: 700 12px/1 var(--icx-font);
+}
+.icx-people-letter::after { content: ""; flex: 1; height: 1px; background: var(--icx-border); }
+.icx-people-list > :first-child,
+.icx-people-group + .icx-people-letter { margin-top: 6px; }
+/* A–Z strip: jumps to a letter; letters with no one are faded. */
+.icx-people-jump {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--icx-border);
+}
+.icx-people-jump button {
+    min-width: 0;
+    padding: 3px 2px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--icx-text);
+    font: 700 11px/1 var(--icx-font);
+    cursor: pointer;
+}
+.icx-people-jump button:hover:not(:disabled) { background: var(--icx-accent-soft); color: var(--icx-accent-text); }
+.icx-people-jump button:disabled { opacity: .3; cursor: default; }
+.icx-people-jump button[hidden] { display: none; }
+.icx-people-jump button:focus { outline: none; }
+.icx-people-jump button:focus-visible { outline: 2px solid var(--icx-accent); }
+/* MODS and PEOPLE: a clear gap above (after the mods' names), and room
+   below before the first names or letter. */
 .icx-people-group {
-    padding: 10px 6px 4px;
+    margin-top: 26px;
+    padding: 0 6px 10px;
     color: var(--icx-text-muted);
     font: 700 11px/1 var(--icx-font);
     letter-spacing: .04em;
@@ -852,13 +891,13 @@ html.icx #icx-drawer > #activeUserList { display: none !important; }
 .icx-people-empty { padding: 16px 6px; color: var(--icx-text-muted); text-align: center; }
 .icx-person {
     display: flex;
+    flex: none;
     align-items: center;
-    gap: 8px;
-    width: 100%;
+    gap: 5px;
+    max-width: 100%;
     min-width: 0;
     box-sizing: border-box;
-    break-inside: avoid;
-    padding: 5px 6px;
+    padding: 3px 7px;
     border: 0;
     border-radius: var(--icx-radius-btn);
     background: transparent;
@@ -872,7 +911,7 @@ html.icx #icx-drawer > #activeUserList { display: none !important; }
 .icx-person:hover .icx-person-name { color: var(--icx-accent-text); }
 .icx-person-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Active: a filled green dot. Idle: hollow, and the name dims. */
-.icx-person-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--icx-online); }
+.icx-person-dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--icx-online); }
 .icx-person.icx-idle .icx-person-dot { background: transparent; box-shadow: inset 0 0 0 1.5px var(--icx-text-muted); }
 .icx-person.icx-idle .icx-person-name { color: var(--icx-text-muted); font-weight: 500; }
 .icx-person-tag { flex: none; display: inline-flex; color: var(--icx-text-muted); }
@@ -974,7 +1013,8 @@ html.icx #body_container:has(#camVisibility img[title^="Show"]) #cams.icx-cams.i
     content: "Cams are hidden. Use Show cams below to bring them back.";
 }
 
-/* Cams in use (cams.js): plain text beside Hide cams, red when full. */
+/* Cams in use (cams.js): plain text beside Hide cams, red when full. Text
+   only, never a filled chip, so it doesn't read as a button. */
 #icx-cam-tally {
     display: inline-flex;
     align-items: center;
@@ -988,12 +1028,7 @@ html.icx #body_container:has(#camVisibility img[title^="Show"]) #cams.icx-cams.i
 }
 #icx-cam-tally[hidden] { display: none; }
 #icx-cam-tally svg { width: 14px; height: 14px; }
-#icx-cam-tally.icx-cams-full {
-    padding: 0 10px;
-    border-radius: var(--icx-radius-btn);
-    background: var(--icx-live);
-    color: var(--icx-live-fg);
-}
+#icx-cam-tally.icx-cams-full { color: var(--icx-live-text); }
 
 #icx-hidden { position: relative; margin-left: auto; }
 #icx-hidden-menu {

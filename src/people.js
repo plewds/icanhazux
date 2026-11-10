@@ -1,10 +1,14 @@
 // People: the drawer's panel (shell.js makes the drawer). The site's own
 // list (#activeUserList) is a run-on paragraph of names that it rewrites on
 // every refresh; it stays in the drawer, hidden, as the source, and this
-// renders it as rows: who's active or idle, on cam, a mod or a site
+// renders it as names: who's active or idle, on cam, a mod or a site
 // supporter, with search and a view of everyone or just who's on cam.
-// Clicking a name opens the site's
-// profile popup, as before.
+// Clicking a name opens the site's profile popup, as before.
+//
+// Made for browsing, not just searching: names wrap left to right like a
+// paragraph (one per row took six screens of scrolling in a busy room),
+// under a heading for each letter, and an A–Z strip above the list jumps
+// to a letter.
 //
 // What the site's list carries, per name:
 //   <a class="userlink" onclick='userInfoPopup("name", …)'>name</a>
@@ -47,9 +51,15 @@
     });
     const summary = el('div', { class: 'icx-people-summary', 'aria-live': 'polite' });
     const list = el('div', { class: 'icx-people-list' });
+    // A–Z: one button per letter (and # for names that don't start with
+    // one), off where no one's name starts with it.
+    const LETTERS = ['#', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'];
+    const jump = el('div', { class: 'icx-people-jump', role: 'toolbar', 'aria-label': 'Jump to a letter' },
+        LETTERS.map(L => el('button', { type: 'button', 'data-jump': L, 'aria-label': `Jump to ${L}`, text: L })));
     const panel = el('div', { id: 'icx-people', role: 'dialog', 'aria-label': 'People in this room' }, [
         el('div', { class: 'icx-people-head' }, [search, refresh]),
         el('div', { class: 'icx-people-tools' }, [viewSeg, summary]),
+        jump,
         list,
     ]);
     drawer.prepend(panel);
@@ -59,6 +69,12 @@
     // javascript: URL).
     refresh.addEventListener('click', () => {
         document.dispatchEvent(new CustomEvent('icx:chat-set', { detail: JSON.stringify({ key: 'refreshPeople' }) }));
+    });
+    // A letter scrolls its heading to the top of the list.
+    jump.addEventListener('click', e => {
+        const b = e.target.closest('[data-jump]');
+        const head = b && !b.disabled && list.querySelector(`.icx-people-letter[data-letter="${b.dataset.jump}"]`);
+        if (head) { list.scrollTop = head.offsetTop - list.offsetTop - 8; }
     });
     // A name opens the site's profile popup: press that name's own link,
     // looked up now since the site replaces its list on every refresh.
@@ -150,19 +166,34 @@
         const everyone = read();
         const inView = everyone.filter(p => view === 'all' || p.cam);
         const shown = inView.filter(p => !query || p.name.toLowerCase().includes(query)).sort(byName);
-        // Each group's rows sit in their own block so they read down the
-        // first column, then the next (A–Z top to bottom), not across.
-        const section = (title, people) => people.length
-            ? [el('div', { class: 'icx-people-group', text: `${title} · ${people.length}` }),
-                el('div', { class: 'icx-people-rows' }, people.map(row))] : [];
+        // Mods in one block; everyone else under a heading per letter.
+        const rows = people => el('div', { class: 'icx-people-rows' }, people.map(row));
+        const groupHead = (title, people) => el('div', { class: 'icx-people-group', text: `${title} · ${people.length}` });
+        const mods = shown.filter(p => p.mod);
+        const rest = shown.filter(p => !p.mod);
+        const byLetter = new Map();
+        rest.forEach(p => {
+            const L = p.name.charAt(0).toUpperCase();
+            const key = /[A-Z]/.test(L) ? L : '#';
+            if (!byLetter.has(key)) { byLetter.set(key, []); }
+            byLetter.get(key).push(p);
+        });
+        const letters = LETTERS.filter(L => byLetter.has(L));
         const empty = !everyone.length ? 'Loading…'
             : query ? `No one matches “${query}”`
                 : 'No one is on cam';
         list.replaceChildren(
-            ...section('Mods', shown.filter(p => p.mod)),
-            ...section('People', shown.filter(p => !p.mod)),
+            ...(mods.length ? [groupHead('Mods', mods), rows(mods)] : []),
+            ...(rest.length ? [groupHead('People', rest)] : []),
+            ...letters.flatMap(L => [
+                el('div', { class: 'icx-people-letter', 'data-letter': L, text: L }),
+                rows(byLetter.get(L)),
+            ]),
             ...(shown.length ? [] : [el('div', { class: 'icx-people-empty', text: empty })]),
         );
+        jump.querySelectorAll('[data-jump]').forEach(b => { b.disabled = !byLetter.has(b.dataset.jump); });
+        // # only when someone's name needs it.
+        jump.querySelector('[data-jump="#"]').hidden = !byLetter.has('#');
         const active = everyone.filter(p => !p.idle).length;
         summary.textContent = query
             ? `${shown.length} of ${inView.length}`

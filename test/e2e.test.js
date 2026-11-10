@@ -180,6 +180,46 @@ test('chat gets the full stage height; the user list is a drawer under it', asyn
     assert.strictEqual(r.back, 'none', 'site backdrop hidden');
 });
 
+test('people: names under a heading per letter, mods first; the A–Z strip jumps to a letter', async () => {
+    const browser = await chromium.launch();
+    try {
+        const p = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+        const names = ['zed', 'Bob', 'amy', '_under', 'bea', 'modmo', ...Array.from({ length: 120 }, (_, i) => `kim${i}`)];
+        const setup = list => {
+            const link = n => `<a class="userlink" href="javascript:void 0">${n}</a>`;
+            document.getElementById('activeUserList').innerHTML =
+                `${list.length} people: ${list.map(link).join(', ')}<p>1 mods: ${link('modmo')}</p>`;
+        };
+        await openRoom(p, { setup: `(${setup})(${JSON.stringify(names)});` });
+        await p.click('#icx-drawer-toggle');
+        await p.waitForTimeout(250);
+        const r = await p.evaluate(() => {
+            const list = document.querySelector('.icx-people-list');
+            const after = head => [...head.nextElementSibling.querySelectorAll('[data-name]')].map(b => b.dataset.name);
+            return {
+                order: [...list.children].map(n => n.classList.contains('icx-people-letter') ? n.dataset.letter
+                    : n.classList.contains('icx-people-group') ? n.textContent : null).filter(Boolean),
+                b: after(list.querySelector('[data-letter="B"]')),
+                on: [...document.querySelectorAll('.icx-people-jump button:not(:disabled):not([hidden])')].map(b => b.dataset.jump),
+            };
+        });
+        assert.deepStrictEqual(r.order, ['Mods · 1', 'People · 125', '#', 'A', 'B', 'K', 'Z']);
+        assert.deepStrictEqual(r.b, ['bea', 'Bob'], 'A–Z within a letter, ignoring capitals');
+        assert.deepStrictEqual(r.on, ['#', 'A', 'B', 'K', 'Z'], 'only letters with someone under them');
+
+        await p.click('.icx-people-jump [data-jump="Z"]');
+        const z = await p.evaluate(() => {
+            const list = document.querySelector('.icx-people-list');
+            const head = list.querySelector('[data-letter="Z"]').getBoundingClientRect();
+            const box = list.getBoundingClientRect();
+            return { scrolled: list.scrollTop > 0, visible: head.top >= box.top - 1 && head.bottom <= box.bottom + 1 };
+        });
+        assert.ok(z.scrolled && z.visible, 'Z is scrolled into view');
+    } finally {
+        await browser.close();
+    }
+});
+
 test('the drawer opens over the chat, scrolls, and closes on Esc or a click elsewhere', async () => {
     const panelVisibility = () => page.evaluate(() => getComputedStyle(document.getElementById('icx-people')).visibility);
     await page.click('#icx-drawer-toggle');
